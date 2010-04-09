@@ -340,8 +340,8 @@ enum mainvolume_signal_index {
 };
 
 static pa_dbus_arg_info steps_updated_args[] = {
-    {"StepCount", "u", "out"},
-    {"CurrentStep", "u", "out"}
+    {"StepCount", "u", NULL},
+    {"CurrentStep", "u", NULL}
 };
 
 static pa_dbus_signal_info mainvolume_signals[MAINVOLUME_SIGNAL_MAX] = {
