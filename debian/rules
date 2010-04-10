@@ -1,0 +1,102 @@
+#!/usr/bin/make -f
+
+# These would be needed to create usr/lib/pkgconfig/*.pc files
+#include /usr/share/cdbs/1/rules/debhelper.mk
+#include /usr/share/cdbs/1/class/autotools.mk
+
+DEB_BUILD_ARCH_CPU ?= $(shell dpkg-architecture -qDEB_BUILD_ARCH_CPU)
+
+CFLAGS = -Wall -g -fPIC
+
+#To disable fastpath asserts uncomment following line
+#CFLAGS += -DFASTPATH=1
+
+#To disable asserts all together uncomment following line
+#CFLAGS += -DNDEBUG=1
+
+ifneq (,$(findstring noopt,$(DEB_BUILD_OPTIONS)))
+	CFLAGS += -O0 -rdynamic -fno-omit-frame-pointer -mapcs-frame
+else
+	CFLAGS += -O3
+endif
+
+ifeq ($(DEB_BUILD_ARCH),armel)
+	CFLAGS += -mfpu=neon -mfloat-abi=softfp
+endif
+
+ifneq (,$(findstring thumb,$(DEB_BUILD_OPTIONS)))
+ifeq ($(DEB_BUILD_ARCH), armel)
+	CFLAGS += -mthumb
+endif
+endif
+
+CONFIGURE_ARGS =				\
+	--enable-shave=no			\
+	--enable-aep				\
+	--enable-audiotuning			\
+	--enable-cmtspeech			\
+	--enable-mudrc				\
+	--enable-stw				\
+	--enable-xprot				\
+	--enable-xprot-ambient-temperature
+#	--enable-equalizers			\
+
+configure: configure-stamp
+configure-stamp:
+	dh_testdir
+	CFLAGS="${CFLAGS}" ./bootstrap.sh $(CONFIGURE_ARGS)
+	touch $@
+
+build: build-stamp
+build-stamp: configure-stamp
+	dh_testdir
+	$(MAKE)
+	touch $@
+
+clean:
+	dh_testdir
+	dh_testroot
+	rm -f build-stamp configure-stamp
+	[ ! -f Makefile ] || $(MAKE) distclean
+	dh_clean
+
+install: build
+	dh_testdir
+	dh_testroot
+	dh_clean -k
+	dh_installdirs
+	dh_installmodules -ppulseaudio-module-meego-cmtspeech
+	$(MAKE) DESTDIR=$(CURDIR)/debian/tmp install
+	mkdir -p $(CURDIR)/debian/tmp/usr/share/lintian
+	cp -a $(CURDIR)/debian/overrides $(CURDIR)/debian/tmp/usr/share/lintian
+
+binary-indep: build install
+	dh_installudev -ppulseaudio-module-meego-cmtspeech --priority=93
+
+binary-arch: build install
+	dh_testdir
+	dh_testroot
+	dh_install --sourcedir=debian/tmp
+	dh_link
+	dh_strip --dbg-package=pulseaudio-module-meego-common-dbg -p pulseaudio-module-meego-common
+	dh_strip --dbg-package=pulseaudio-module-meego-voice-dbg -p pulseaudio-module-meego-voice
+	dh_strip --dbg-package=pulseaudio-module-meego-cmtspeech-dbg -p pulseaudio-module-meego-cmtspeech
+	dh_strip --dbg-package=pulseaudio-module-meego-music-dbg -p pulseaudio-module-meego-music
+	dh_strip --dbg-package=pulseaudio-module-meego-record-dbg -p pulseaudio-module-meego-record
+	dh_strip --dbg-package=pulseaudio-module-meego-test-dbg -p pulseaudio-module-meego-test
+	dh_strip --dbg-package=pulseaudio-module-meego-mainvolume-dbg -p pulseaudio-module-meego-mainvolume
+	dh_strip --dbg-package=pulseaudio-module-nokia-audiots-dbg -p pulseaudio-module-nokia-audiots
+	dh_strip --dbg-package=pulseaudio-module-nokia-algorithms-dbg -p pulseaudio-module-nokia-algorithms
+	dh_strip --dbg-package=pulseaudio-module-nokia-parameters-dbg -p pulseaudio-module-nokia-parameters
+	dh_fixperms
+	dh_installdocs
+	dh_installchangelogs
+	dh_installdeb
+	dh_compress
+	dh_shlibdeps
+	dh_gencontrol
+	dh_md5sums
+	dh_builddeb
+
+binary: binary-indep binary-arch
+.PHONY: build clean binary-indep binary-arch binary install configure

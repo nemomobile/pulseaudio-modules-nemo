@@ -1,0 +1,36 @@
+AM_CFLAGS =						\
+	$(PULSEAUDIO_CFLAGS)				\
+	-I$(top_srcdir)/src/voice			\
+	-I$(top_srcdir)/src/common
+
+AM_LIBADD =							\
+	$(PULSEAUDIO_LIBS)					\
+	$(top_builddir)/src/common/libmeego-common.la
+
+###################################
+#             Voice               #
+###################################
+noinst_HEADERS = module-meego-voice-symdef.h
+
+modlibexec_LTLIBRARIES = module-meego-voice.la
+
+module_meego_voice_la_SOURCES =			\
+	module-meego-voice.c			\
+	voice-mainloop-handler.c		\
+	voice-aep-sink-input.c			\
+	voice-hw-sink-input.c			\
+	voice-hw-source-output.c		\
+	voice-optimized.c			\
+	voice-raw-sink.c			\
+	voice-raw-source.c			\
+	voice-util.c				\
+	voice-voip-sink.c			\
+	voice-voip-source.c
+
+if X86
+module_meego_voice_la_LDFLAGS = -module -avoid-version -lm -Wl,-z,noexecstack
+else
+module_meego_voice_la_LDFLAGS = -module -avoid-version -lm -Wl,-no-undefined -Wl,-z,noexecstack
+endif
+module_meego_voice_la_LIBADD = $(AM_LIBADD)
+module_meego_voice_la_CFLAGS = $(AM_CFLAGS)
