@@ -32,14 +32,7 @@ endif
 
 CONFIGURE_ARGS =				\
 	--enable-shave=no			\
-	--enable-aep				\
-	--enable-audiotuning			\
-	--enable-cmtspeech			\
-	--enable-mudrc				\
-	--enable-stw				\
-	--enable-xprot				\
-	--enable-xprot-ambient-temperature
-#	--enable-equalizers			\
+	--enable-cmtspeech
 
 configure: configure-stamp
 configure-stamp:
@@ -85,9 +78,6 @@ binary-arch: build install
 	dh_strip --dbg-package=pulseaudio-module-meego-record-dbg -p pulseaudio-module-meego-record
 	dh_strip --dbg-package=pulseaudio-module-meego-test-dbg -p pulseaudio-module-meego-test
 	dh_strip --dbg-package=pulseaudio-module-meego-mainvolume-dbg -p pulseaudio-module-meego-mainvolume
-	dh_strip --dbg-package=pulseaudio-module-nokia-audiots-dbg -p pulseaudio-module-nokia-audiots
-	dh_strip --dbg-package=pulseaudio-module-nokia-algorithms-dbg -p pulseaudio-module-nokia-algorithms
-	dh_strip --dbg-package=pulseaudio-module-nokia-parameters-dbg -p pulseaudio-module-nokia-parameters
 	dh_fixperms
 	dh_installdocs
 	dh_installchangelogs

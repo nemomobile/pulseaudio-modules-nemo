@@ -1,4 +1,4 @@
-Source: pulseaudio-nokia
+Source: pulseaudio-meego
 Priority: optional
 Maintainer: Maemo Multimedia <multimedia@maemo.org>
 Build-Depends: debhelper (>= 5),
@@ -8,7 +8,6 @@ Build-Depends: debhelper (>= 5),
 	       libpulse-dev (>= 0.9.19-1maemo1),
 	       pulseaudio-dev (>= 0.9.19-1maemo1),
 	       libcmtspeechdata-devel (>> 2.0.0),
-	       libbmeipc-dev (>= 0.8.14)
 Standards-Version: 3.8.0
 Section: sound
 
@@ -18,13 +17,6 @@ Architecture: armel i386
 Depends: ${misc:Depends}, ${shlibs:Depends}
 Description: Common libraries for Meego PulseAudio modules
  Common libraries used by Meego PulseAudio modules.
-
-Package: pulseaudio-module-nokia-common
-Section: libs
-Architecture: armel i386
-Depends: ${misc:Depends}, ${shlibs:Depends}, pulseaudio-module-meego-common (= ${binary:Version})
-Description: Common libraries for Nokia PulseAudio modules
- Common libraries used by Nokia PulseAudio modules.
 
 Package: pulseaudio-module-meego-voice
 Section: libs
@@ -41,20 +33,6 @@ Depends: ${misc:Depends}, ${shlibs:Depends}, pulseaudio-module-meego-common (= $
 Conflicts: pulseaudio (<< 0.9.19-1maemo1)
 Description: PulseAudio Meego cmtspeech module
  Meego cmtspeech module.
-
-Package: pulseaudio-module-nokia-algorithms
-Section: libs
-Architecture: armel i386
-Depends: ${misc:Depends}, ${shlibs:Depends}, pulseaudio-module-meego-common (= ${binary:Version}), pulseaudio-module-nokia-common (= ${binary:Version})
-Description: PulseAudio Nokia algorithms module
- Nokia algorithms module.
-
-Package: pulseaudio-module-nokia-parameters
-Section: libs
-Architecture: armel i386
-Depends: ${misc:Depends}, ${shlibs:Depends}, pulseaudio-module-meego-common (= ${binary:Version}), pulseaudio-module-nokia-common (= ${binary:Version})
-Description: PulseAudio Nokia parameters module
- Nokia parameters module.
 
 Package: pulseaudio-module-meego-music
 Section: libs
@@ -76,13 +54,6 @@ Architecture: armel i386
 Depends: ${misc:Depends}, ${shlibs:Depends}
 Description: PulseAudio Meego mainvolume module
  Meego mainvolume module.
-
-Package: pulseaudio-module-nokia-audiots
-Section: libs
-Architecture: armel i386
-Depends: ${misc:Depends}, ${shlibs:Depends}, pulseaudio-module-meego-common (= ${binary:Version}), pulseaudio-module-nokia-common (= ${binary:Version})
-Description: PulseAudio audiots module
- Nokia Audiots module (not for product).
 
 Package: pulseaudio-module-meego-test
 Section: libs
@@ -107,14 +78,6 @@ Depends: ${misc:Depends}, pulseaudio-module-meego-common (= ${binary:Version})
 Description: Common libraries for Meego PulseAudio modules (debug symbols)
  Libraries for Meego PulseAudio modules, debug symbols.
 
-Package: pulseaudio-module-nokia-common-dbg
-Priority: extra
-Section: libs
-Architecture: armel i386
-Depends: ${misc:Depends}, pulseaudio-module-nokia-common (= ${binary:Version})
-Description: Common libraries for Nokia PulseAudio modules (debug symbols)
- Libraries for Nokia PulseAudio modules, debug symbols.
-
 Package: pulseaudio-module-meego-voice-dbg
 Priority: extra
 Section: libdevel
@@ -130,22 +93,6 @@ Architecture: armel i386
 Depends: ${misc:Depends}, pulseaudio-module-meego-cmtspeech (= ${binary:Version})
 Description: PulseAudio Meego cmtspeech module (debug symbols)
  Nokia voice module, debug symbols.
-
-Package: pulseaudio-module-nokia-algorithms-dbg
-Priority: extra
-Section: libdevel
-Architecture: armel i386
-Depends: ${misc:Depends}, pulseaudio-module-nokia-algorithms (= ${binary:Version})
-Description: PulseAudio Nokia Algorithms module (debug symbols)
- Nokia algorithms module, debug symbols.
-
-Package: pulseaudio-module-nokia-parameters-dbg
-Priority: extra
-Section: libdevel
-Architecture: armel i386
-Depends: ${misc:Depends}, pulseaudio-module-nokia-parameters (= ${binary:Version})
-Description: PulseAudio Nokia Parameters module (debug symbols)
- Nokia parameters module, debug symbols.
 
 Package: pulseaudio-module-meego-music-dbg
 Priority: extra
@@ -170,14 +117,6 @@ Architecture: armel i386
 Depends: ${misc:Depends}, pulseaudio-module-meego-mainvolume (= ${binary:Version})
 Description: PulseAudio mainvolume module (debug symbols)
  Meego mainvolume module, debug symbols.
-
-Package: pulseaudio-module-nokia-audiots-dbg
-Priority: extra
-Section: libdevel
-Architecture: armel i386
-Depends: ${misc:Depends}, pulseaudio-module-nokia-audiots (= ${binary:Version})
-Description: PulseAudio Nokia audiots module (debug symbols)
- Nokia audiots module debug symbols.
 
 Package: pulseaudio-module-meego-test-dbg
 Priority: extra

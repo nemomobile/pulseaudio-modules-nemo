@@ -1,0 +1,5 @@
+pulseaudio-meego (0.9.19.0-1) unstable; urgency=low
+
+  * Initial version of pulsaudio-meego.
+
+ -- Meego Multimedia <mmf-audio@projects.maemo.org>  Sat, 10 Apr 2010 17:21:12 +0200
