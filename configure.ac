@@ -4,8 +4,7 @@ m4_define(PA_MAJOR, [0])
 m4_define(PA_MINOR, [9])
 m4_define(PA_MICRO, [19])
 
-AC_INIT([pulseaudio-nokia], [PA_MAJOR.PA_MINOR.PA_MICRO.0], [multimedia@maemo.org])
-AC_CONFIG_SRCDIR([src/audiots/module-nokia-audiots.c])
+AC_INIT([pulseaudio-meego], [PA_MAJOR.PA_MINOR.PA_MICRO.0], [multimedia@maemo.org])
 AC_CONFIG_HEADER([config.h])
 AM_INIT_AUTOMAKE([foreign -Wall])
 AC_CONFIG_MACRO_DIR(m4)
@@ -233,145 +232,7 @@ AC_ARG_ENABLE([processing],
         [processing=yes])
 
 ############################################
-# Audio tuning support
-AC_ARG_ENABLE([audiotuning],
-              [  --enable-audiotuning[=ARG] Turn on audiotuning support [default=no]],
-              [ case "${enableval}" in
-                yes) audiotuning=yes ;;
-                no)  audiotuning=no ;;
-                *) AC_MSG_ERROR([bad value ${enableval} for --enable-audiotuning]) ;;
-                esac],[audiotuning=no])
-
-AM_CONDITIONAL([AUDIOTUNING], [test "x$audiotuning" = xyes])
-ENABLE_AUDIOTUNING=no
-if test "x$audiotuning" = xyes ; then
-    AC_DEFINE([AUDIOTUNING], 1, [Audio tuning support enabled.])
-    ENABLE_AUDIOTUNING=yes
-fi
-
-############################################
-# Music module DRC
-AC_ARG_ENABLE([mudrc],
-              [ --enable-mudrc[=ARG] Enable music module mudrc algorithm [default=yes]],
-              [ case "${enableval}" in
-                yes) mudrc=yes ;;
-                no)  mudrc=no ;;
-                *) AC_MSG_ERROR([bad value ${enableval} for --enable-mudrc]) ;;
-                esac],[mudrc=$processing])
-
-AM_CONDITIONAL([ENABLE_MUDRC], [test "x$mudrc" = xyes])
-ENABLE_MUDRC=no
-if test "x$mudrc" = xyes ; then
-   AC_DEFINE([MUDRC_INTEGRATION], 1, [Enable music module MuDRC algorithm])
-   ENABLE_MUDRC=yes
-fi
-
-############################################
-# Music module DRC
-AC_ARG_ENABLE([stw],
-              [ --enable-stw[=ARG] Enable music module stw algorithm [default=yes]],
-              [ case "${enableval}" in
-                yes) stw=yes ;;
-                no)  stw=no ;;
-                *) AC_MSG_ERROR([bad value ${enableval} for --enable-stw]) ;;
-                esac],[stw=$processing])
-
-AM_CONDITIONAL([ENABLE_STW], [test "x$stw" = xyes])
-ENABLE_STW=no
-if test "x$stw" = xyes ; then
-   AC_DEFINE([STW_INTEGRATION], 1, [Enable music module STW algorithm])
-   ENABLE_STW=yes
-fi
-
-############################################
-# Xprot
-AC_ARG_ENABLE([xprot],
-              [ --enable-xprot[=ARG] Enable xprot algorithm [default=yes]],
-              [ case "${enableval}" in
-                yes) xprot=yes ;;
-                no)  xprot=no ;;
-                *) AC_MSG_ERROR([bad value ${enableval} for --enable-xprot]) ;;
-                esac],[xprot=$processing])
-
-AM_CONDITIONAL([ENABLE_XPROT], [test "x$xprot" = xyes])
-ENABLE_XPROT=no
-if test "x$xprot" = xyes ; then
-   AC_DEFINE([XPROT_INTEGRATION], 1, [Enable Xprot algorithm])
-   ENABLE_XPROT=yes
-   NEED_ADAPTATION=yes
-fi
-
-############################################
-# Xprot ambient temperature reading from BME
-AC_ARG_ENABLE([xprot-ambient-temperature],
-              [ --enable-xprot-ambient-temperature[=ARG] Enable xprot ambient temperature reading from BME [default=no]],
-              [ case "${enableval}" in
-                yes) xprotambienttemperature=yes ;;
-                no)  xprotambienttemperature=no ;;
-                *) AC_MSG_ERROR([bad value ${enableval} for --enable-xprot-ambient-temperature]) ;;
-                esac],[xprotambienttemperature=$processing])
-
-AM_CONDITIONAL([ENABLE_XPROT_AMBIENT_TEMPERATURE], [test "x$xprotambienttemperature" = xyes])
-ENABLE_XPROT_AMBIENT_TEMPERATURE=no
-if test "x$xprotambienttemperature" = xyes ; then
-   AC_DEFINE([XPROT_AMBIENT_TEMPERATURE_INTEGRATION], 1, [Enable Xprot ambient temperature reading])
-   ENABLE_XPROT_AMBIENT_TEMPERATURE=yes
-
-   AC_CHECK_LIB(bmeipc, bme_connect, [], [
-             echo "Error! libbmeipc required."
-             exit -1
-             ])
-
-   # BME header filenames changed somewhere between versions 0.8 and 0.9,
-   # this is naive test to see which set of files to include
-   AC_MSG_CHECKING([BME header filenames])
-   if test -e /usr/include/bme/bmemsg.h
-   then
-      AC_MSG_RESULT([new set])
-      AC_DEFINE([BME_NEW_HEADERS], 1, [BME header filenames])
-   else
-      AC_MSG_RESULT([old set])
-   fi
-
-fi
-
-############################################
-# EQs
-AC_ARG_ENABLE([equalizers],
-              [ --enable-equalizers[=ARG] Enable equalizer algorithms [default=yes]],
-              [ case "${enableval}" in
-                yes) equalizers=yes ;;
-                no)  equalizers=no ;;
-                *) AC_MSG_ERROR([bad value ${enableval} for --enable-equalizers]) ;;
-                esac],[equalizers=$processing])
-AM_CONDITIONAL([ENABLE_EQUALIZERS], [test "x$equalizers" = xyes])
-ENABLE_EQUALIZERS=no
-if test "x$equalizers" = xyes ; then
-   AC_DEFINE([EQ_INTEGRATION], 1, [Enable equalizers])
-   ENABLE_EQUALIZERS=yes
-   NEED_ADAPTATION=yes
-fi
-
-############################################
-# AEP
-AC_ARG_ENABLE([aep],
-              [ --enable-aep[=ARG] Enable AEP algorithms [default=yes]],
-              [ case "${enableval}" in
-                yes) aep=yes ;;
-                no)  aep=no ;;
-                *) AC_MSG_ERROR([bad value ${enableval} for --enable-aep]) ;;
-                esac],[aep=$processing])
-AM_CONDITIONAL([ENABLE_AEP], [test "x$aep" = xyes])
-ENABLE_AEP=no
-if test "x$aep" = xyes ; then
-   AC_DEFINE([AEP_INTEGRATION], 1, [Enable AEP algorithms])
-   ENABLE_AEP=yes
-   NEED_ADAPTATION=yes
-fi
-
-# gcc adaptation symbols for AEP, EQ, and Xprot
-AM_CONDITIONAL([NEED_ADAPTATION], [test "x$NEED_ADAPTATION" = xyes])
-
+# x86
 AC_MSG_CHECKING([Use x86 libraries])
 case $host_cpu in
      arm*) x86=no; AC_MSG_RESULT([no]) ;;
@@ -384,26 +245,16 @@ if test "x$x86" = xyes ; then
     ENABLE_X86=yes
 fi
 
-AC_DEFINE([HAVE_ALGORITHM_LIMITER], 1, [Enable limiter after MuMDRC.])
-
 AC_CONFIG_FILES([
 Makefile
 shave
 shave-libtool
 src/Makefile
 src/common/Makefile
-src/nokia/Makefile
-src/audiots/Makefile
 src/music/Makefile
 src/record/Makefile
 src/voice/Makefile
 src/test/Makefile
-src/algorithms/Makefile
-src/algorithms/eq/Makefile
-src/algorithms/xprot/Makefile
-src/algorithms/drc/Makefile
-src/algorithms/stw/Makefile
-src/parameters/Makefile
 src/cmtspeech/Makefile
 src/mainvolume/Makefile
 src/mainvolume/tests/Makefile
@@ -424,22 +275,6 @@ echo "
     modules directory:      ${modlibexecdir}
 
     Enable x86 libraries    ${ENABLE_X86}
-    Enable audiotuning:     ${ENABLE_AUDIOTUNING}
 
-    Music module:
-      Enable mudrc:         ${ENABLE_MUDRC}
-      Enable stw:           ${ENABLE_STW}
-
-    Record module:
-      Enable mudrc:         ${ENABLE_MUDRC}
-
-    Voice module:
-      Enable cmtspeech:     ${ENABLE_CMTSPEECH}
-      Enable xprot:         ${ENABLE_XPROT}
-      Enable xprot amb temp: ${ENABLE_XPROT_AMBIENT_TEMPERATURE}
-      Enable equalizers:    ${ENABLE_EQUALIZERS}
-      Enable aep:           ${ENABLE_AEP}
-
-    Cmtspeech module:
-      Enable cmtspeech:     ${ENABLE_CMTSPEECH}
+    Enable cmtspeech:       ${ENABLE_CMTSPEECH}
     "

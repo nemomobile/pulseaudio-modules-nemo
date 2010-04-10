@@ -1,4 +1,4 @@
-SUBDIRS = common voice music record audiots test algorithms parameters mainvolume nokia
+SUBDIRS = common voice music record test mainvolume
 
 if HAVE_LIBCMTSPEECHDATA
 SUBDIRS += cmtspeech
