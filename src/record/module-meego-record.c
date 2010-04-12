@@ -399,6 +399,9 @@ int pa__init(pa_module*m) {
     pa_source_new_data_set_channel_map(&source_data, &map);
     pa_proplist_setf(source_data.proplist, PA_PROP_DEVICE_DESCRIPTION, "%s connected to %s", source_name, master_source->name);
     pa_proplist_sets(source_data.proplist, PA_PROP_DEVICE_MASTER_DEVICE, master_source->name);
+    pa_proplist_sets(source_data.proplist,
+                     PA_PROP_SOURCE_RECORD_API_EXTENSION_PROPERTY_NAME,
+                     PA_PROP_SOURCE_RECORD_API_EXTENSION_PROPERTY_VALUE);
 
     u->source = pa_source_new(m->core, &source_data, PA_SOURCE_LATENCY);
     pa_source_new_data_done(&source_data);
