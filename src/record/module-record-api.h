@@ -21,7 +21,7 @@
 
 #define RECORD_HOOK_DYNAMIC_ENHANCE              "x-meego.record.dynamic_enhance"
 
-#define PA_PROP_SINK_RECORD_API_EXTENSION_PROPERTY_NAME "sink.api-extension.meego.record"
-#define PA_PROP_SINK_RECORD_API_EXTENSION_PROPERTY_VALUE RECORD_API_VERSION
+#define PA_PROP_SOURCE_RECORD_API_EXTENSION_PROPERTY_NAME "source.api-extension.meego.record"
+#define PA_PROP_SOURCE_RECORD_API_EXTENSION_PROPERTY_VALUE RECORD_API_VERSION
 
 #endif /* module_record_api_h */
