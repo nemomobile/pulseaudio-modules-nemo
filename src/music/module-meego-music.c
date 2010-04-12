@@ -500,6 +500,9 @@ int pa__init(pa_module*m) {
     pa_proplist_setf(sink_data.proplist, PA_PROP_DEVICE_DESCRIPTION, "%s connected to %s", sink_name, master_sink->name);
     pa_proplist_sets(sink_data.proplist, PA_PROP_DEVICE_MASTER_DEVICE, master_sink->name);
     pa_proplist_sets(sink_data.proplist, "module-suspend-on-idle.timeout", "1");
+    pa_proplist_sets(sink_data.proplist,
+                     PA_PROP_SINK_MUSIC_API_EXTENSION_PROPERTY_NAME,
+                     PA_PROP_SINK_MUSIC_API_EXTENSION_PROPERTY_VALUE);
 
     /* Create sink */
     u->sink = pa_sink_new(m->core, &sink_data, PA_SINK_LATENCY);
