@@ -1,6 +1,8 @@
 #ifndef _algorithm_hook_h_
 #define _algorithm_hook_h_
 
+#include <pulsecore/hook-list.h>
+
 typedef struct algorithm_hook algorithm_hook;
 
 /* get pointer to opaque algorithm_hook struct.
@@ -17,8 +19,8 @@ pa_hook *algorithm_hook_init(algorithm_hook *a, const char *name);
 /* clear hook with name. */
 pa_bool_t algorithm_hook_done(algorithm_hook *a, const char *name);
 
-/* get pointer to hook with name. if no hook is initialized with
+/* connect to hook with name. if no hook is initialized with
  * given name, returns NULL. */
-pa_hook *algorithm_hook_get_hook(algorithm_hook *a, const char *name);
+pa_hook_slot *algorithm_hook_connect(algorithm_hook *a, const char *name, pa_hook_cb_t cb, void *data);
 
 #endif
