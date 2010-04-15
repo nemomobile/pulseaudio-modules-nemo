@@ -51,7 +51,7 @@ Description: PulseAudio Meego record module
 Package: pulseaudio-module-meego-mainvolume
 Section: libs
 Architecture: armel i386
-Depends: ${misc:Depends}, ${shlibs:Depends}
+Depends: ${misc:Depends}, ${shlibs:Depends}, pulseaudio-module-meego-common (= ${binary:Version})
 Description: PulseAudio Meego mainvolume module
  Meego mainvolume module.
 
