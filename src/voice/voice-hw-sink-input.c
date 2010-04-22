@@ -481,13 +481,6 @@ static void hw_sink_input_detach_cb(pa_sink_input *i) {
 static void hw_sink_input_attach_slave_sink(struct userdata *u, pa_sink *sink, pa_sink *to_sink) {
     pa_assert(sink);
 
-    /* XXX: _set_asyncmsgq() shouldn't be called while the IO thread is
-     * running, but we "have to" (ie. no better way to handle this has been
-     * figured out). This call is one of the reasons for that we had to comment
-     * out the assertion from pa_sink_set_asyncmsgq() that checks that the call
-     * is done from the main thread. */
-    pa_sink_set_asyncmsgq(sink, to_sink->asyncmsgq);
-
     pa_sink_set_rtpoll(sink, to_sink->thread_info.rtpoll);
     voice_sink_inputs_may_move(sink, TRUE);
     sink->flat_volume_sink = to_sink;
@@ -565,6 +558,8 @@ static void hw_sink_input_kill_cb(pa_sink_input *i) {
 static void hw_sink_input_update_slave_sink(struct userdata *u, pa_sink *sink, pa_sink *to_sink) {
     pa_assert(sink);
     pa_proplist *p;
+
+    pa_sink_set_asyncmsgq(sink, to_sink->asyncmsgq);
 
     p = pa_proplist_new();
     pa_proplist_setf(p, PA_PROP_DEVICE_DESCRIPTION, "%s connected to %s", sink->name, u->master_sink->name);
