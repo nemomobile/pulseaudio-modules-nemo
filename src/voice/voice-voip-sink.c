@@ -136,7 +136,9 @@ int voice_init_voip_sink(struct userdata *u, const char *name) {
     pa_proplist_sets(sink_data.proplist, PA_PROP_SINK_API_EXTENSION_PROPERTY_NAME,
                      PA_PROP_SINK_API_EXTENSION_PROPERTY_VALUE);
 
-    u->voip_sink = pa_sink_new(u->core, &sink_data, PA_SINK_LATENCY);
+    u->voip_sink = pa_sink_new(u->core, &sink_data, u->master_sink->flags &
+                               (PA_SINK_LATENCY|PA_SINK_DYNAMIC_LATENCY));
+
     pa_sink_new_data_done(&sink_data);
 
     /* Create sink */

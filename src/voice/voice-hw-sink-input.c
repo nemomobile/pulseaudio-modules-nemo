@@ -574,6 +574,7 @@ static void hw_sink_input_update_slave_sink(struct userdata *u, pa_sink *sink, p
     pa_assert(sink);
     pa_proplist *p;
 
+    pa_sink_update_flags(sink, PA_SINK_LATENCY|PA_SINK_DYNAMIC_LATENCY, to_sink->flags);
     pa_sink_set_asyncmsgq(sink, to_sink->asyncmsgq);
 
     p = pa_proplist_new();
