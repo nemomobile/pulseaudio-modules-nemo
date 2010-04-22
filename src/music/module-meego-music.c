@@ -305,13 +305,6 @@ static void sink_input_detach_cb(pa_sink_input *i) {
     else
         pa_log("fixme: !PA_SINK_IS_LINKED ?");
 
-    /* XXX: _set_asyncmsgq() shouldn't be called while the IO thread is
-     * running, but we "have to" (ie. no better way to handle this has been
-     * figured out). This call is one of the reasons for that we had to comment
-     * out the assertion from pa_sink_set_asyncmsgq() that checks that the call
-     * is done from the main thread. */
-    pa_sink_set_asyncmsgq(u->sink, NULL);
-
     pa_sink_set_rtpoll(u->sink, NULL);
     sink_inputs_may_move(u->sink, FALSE);
 }
@@ -325,13 +318,6 @@ static void sink_input_attach_cb(pa_sink_input *i) {
 
     if (!u->sink || !PA_SINK_IS_LINKED(u->sink->thread_info.state))
         return;
-
-    /* XXX: _set_asyncmsgq() shouldn't be called while the IO thread is
-     * running, but we "have to" (ie. no better way to handle this has been
-     * figured out). This call is one of the reasons for that we had to comment
-     * out the assertion from pa_sink_set_asyncmsgq() that checks that the call
-     * is done from the main thread. */
-    pa_sink_set_asyncmsgq(u->sink, i->sink->asyncmsgq);
 
     sink_inputs_may_move(u->sink, TRUE);
     pa_sink_set_rtpoll(u->sink, i->sink->thread_info.rtpoll);
@@ -353,6 +339,7 @@ static void sink_input_moving_cb(pa_sink_input *i, pa_sink *dest){
         return; /* The sink input is going to be killed, don't do anything. */
 
     u->master_sink = dest;
+    pa_sink_set_asyncmsgq(u->sink, i->sink->asyncmsgq);
 
     p = pa_proplist_new();
     pa_proplist_setf(p, PA_PROP_DEVICE_DESCRIPTION, "%s connected to %s", u->sink->name, u->master_sink->name);
