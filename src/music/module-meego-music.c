@@ -280,6 +280,19 @@ static void sink_input_update_sink_latency_range_cb(pa_sink_input *i) {
     pa_sink_set_latency_range_within_thread(u->sink, i->sink->thread_info.min_latency, i->sink->thread_info.max_latency);
 }
 
+/* Called from I/O thread context */
+static void sink_input_update_sink_fixed_latency_cb(pa_sink_input *i) {
+    struct userdata *u;
+
+    pa_sink_input_assert_ref(i);
+    pa_assert_se(u = i->userdata);
+
+    if (!u->sink || !PA_SINK_IS_LINKED(u->sink->thread_info.state))
+        return;
+
+    pa_sink_set_fixed_latency_within_thread(u->sink, i->sink->thread_info.fixed_latency);
+}
+
 static void sink_inputs_may_move(pa_sink *s, pa_bool_t move) {
     pa_sink_input *i;
     uint32_t idx;
@@ -324,6 +337,8 @@ static void sink_input_attach_cb(pa_sink_input *i) {
     pa_sink_attach_within_thread(u->sink);
 
     pa_sink_set_latency_range_within_thread(u->sink, i->sink->thread_info.min_latency, i->sink->thread_info.max_latency);
+    pa_sink_set_fixed_latency_within_thread(u->sink, i->sink->thread_info.fixed_latency);
+    pa_sink_set_max_request_within_thread(u->sink, pa_sink_input_get_max_request(i));
     pa_sink_set_max_rewind_within_thread(u->sink, i->sink->thread_info.max_rewind);
 }
 
@@ -492,7 +507,7 @@ int pa__init(pa_module*m) {
                      PA_PROP_SINK_MUSIC_API_EXTENSION_PROPERTY_VALUE);
 
     /* Create sink */
-    u->sink = pa_sink_new(m->core, &sink_data, PA_SINK_LATENCY);
+    u->sink = pa_sink_new(m->core, &sink_data, (PA_SINK_LATENCY|PA_SINK_DYNAMIC_LATENCY));
     pa_sink_new_data_done(&sink_data);
     if (!u->sink) {
       pa_log("Failed to create sink.");
@@ -535,6 +550,7 @@ int pa__init(pa_module*m) {
     u->sink_input->update_max_rewind = sink_input_update_max_rewind_cb;
     u->sink_input->update_max_request = sink_input_update_max_request_cb;
     u->sink_input->update_sink_latency_range = sink_input_update_sink_latency_range_cb;
+    u->sink_input->update_sink_fixed_latency = sink_input_update_sink_fixed_latency_cb;
     u->sink_input->kill = sink_input_kill_cb;
     u->sink_input->attach = sink_input_attach_cb;
     u->sink_input->detach = sink_input_detach_cb;
