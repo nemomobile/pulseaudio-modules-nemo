@@ -444,6 +444,19 @@ static void hw_sink_input_update_sink_latency_range_cb(pa_sink_input *i) {
 	pa_sink_set_latency_range_within_thread(u->voip_sink, i->sink->thread_info.min_latency, i->sink->thread_info.max_latency);
 }
 
+/* Called from I/O thread context */
+static void hw_sink_input_update_sink_fixed_latency_cb(pa_sink_input *i) {
+    struct userdata *u;
+
+    pa_sink_input_assert_ref(i);
+    pa_assert_se(u = i->userdata);
+
+    if (u->raw_sink && PA_SINK_IS_LINKED(u->raw_sink->thread_info.state))
+        pa_sink_set_fixed_latency_within_thread(u->raw_sink, i->sink->thread_info.fixed_latency);
+
+    if (u->voip_sink && PA_SINK_IS_LINKED(u->voip_sink->thread_info.state))
+        pa_sink_set_fixed_latency_within_thread(u->voip_sink, i->sink->thread_info.fixed_latency);
+}
 
 /* Called from I/O thread context */
 static void hw_sink_input_detach_slave_sink(pa_sink *sink) {
@@ -486,6 +499,8 @@ static void hw_sink_input_attach_slave_sink(struct userdata *u, pa_sink *sink, p
     sink->flat_volume_sink = to_sink;
     pa_sink_attach_within_thread(sink);
     pa_sink_set_latency_range_within_thread(sink, u->master_sink->thread_info.min_latency, u->master_sink->thread_info.max_latency);
+    pa_sink_set_fixed_latency_within_thread(sink, to_sink->thread_info.fixed_latency);
+    pa_sink_set_max_request_within_thread(sink, u->master_sink->thread_info.max_request);
     pa_sink_set_max_rewind_within_thread(sink, u->master_sink->thread_info.max_rewind);
 }
 
@@ -695,6 +710,7 @@ static pa_sink_input *voice_hw_sink_input_new(struct userdata *u, pa_sink_input_
     new_sink_input->update_max_rewind = hw_sink_input_update_max_rewind_cb;
     new_sink_input->update_max_request = hw_sink_input_update_max_request_cb;
     new_sink_input->update_sink_latency_range = hw_sink_input_update_sink_latency_range_cb;
+    new_sink_input->update_sink_fixed_latency = hw_sink_input_update_sink_fixed_latency_cb;
     new_sink_input->kill = hw_sink_input_kill_cb;
     new_sink_input->attach = hw_sink_input_attach_cb;
     new_sink_input->detach = hw_sink_input_detach_cb;
