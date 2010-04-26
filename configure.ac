@@ -271,6 +271,7 @@ src/test/Makefile
 src/cmtspeech/Makefile
 src/mainvolume/Makefile
 src/mainvolume/tests/Makefile
+src/sidetone/Makefile
 ])
 
 SHAVE_INIT
