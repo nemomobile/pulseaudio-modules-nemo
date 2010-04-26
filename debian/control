@@ -57,6 +57,13 @@ Depends: ${misc:Depends}, ${shlibs:Depends}, pulseaudio-module-meego-common (= $
 Description: PulseAudio Meego mainvolume module
  Meego mainvolume module.
 
+Package: pulseaudio-module-meego-sidetone
+Section: libs
+Architecture: armel i386
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: PulseAudio Meego sidetone module
+ Meego sidetone module.
+
 Package: pulseaudio-module-meego-test
 Section: libs
 Architecture: armel i386
@@ -119,6 +126,14 @@ Architecture: armel i386
 Depends: ${misc:Depends}, pulseaudio-module-meego-mainvolume (= ${binary:Version})
 Description: PulseAudio mainvolume module (debug symbols)
  Meego mainvolume module, debug symbols.
+
+Package: pulseaudio-module-meego-sidetone-dbg
+Priority: extra
+Section: libdevel
+Architecture: armel i386
+Depends: ${misc:Depends}, pulseaudio-module-meego-sidetone (= ${binary:Version})
+Description: PulseAudio sidetone module (debug symbols)
+ Meego sidetone module, debug symbols.
 
 Package: pulseaudio-module-meego-test-dbg
 Priority: extra
