@@ -313,23 +313,12 @@ static void hw_source_output_attach_cb(pa_source_output *o) {
     pa_log_debug("Attach called, new master %p %s", (void*)u->master_source, u->master_source->name);
     if (u->raw_source && PA_SOURCE_IS_LINKED(u->raw_source->thread_info.state)) {
 
-        /* XXX: _set_asyncmsgq() shouldn't be called while the IO thread is
-         * running, but we "have to" (ie. no better way to handle this has been
-         * figured out). This call is one of the reasons for that we had to comment
-         * out the assertion from pa_source_set_asyncmsgq() that checks that the
-         * call is done from the main thread. */
-        pa_source_set_asyncmsgq(u->raw_source, o->source->asyncmsgq);
-
         pa_source_set_rtpoll(u->raw_source, o->source->thread_info.rtpoll);
         pa_source_attach_within_thread(u->raw_source);
 
         pa_source_set_latency_range_within_thread(u->raw_source, u->master_source->thread_info.min_latency, u->master_source->thread_info.max_latency);
     }
     if (u->voip_source && PA_SOURCE_IS_LINKED(u->voip_source->thread_info.state)) {
-        /* There is no aep-source-output to drive voip_source. */
-        /* XXX: The same note as above about calling _set_asyncmsgq() from the IO
-         * thread applies here. */
-        pa_source_set_asyncmsgq(u->voip_source, o->source->asyncmsgq);
 
         pa_source_set_rtpoll(u->voip_source, o->source->thread_info.rtpoll);
         pa_source_attach_within_thread(u->voip_source);
@@ -344,6 +333,9 @@ static void hw_source_output_update_slave_source(struct userdata *u, pa_source *
     pa_assert(u);
     pa_assert(source);
     pa_assert(new_master);
+
+    pa_source_set_asyncmsgq(source, new_master->asyncmsgq);
+
     p = pa_proplist_new();
     pa_proplist_setf(p, PA_PROP_DEVICE_DESCRIPTION, "%s source connected to %s", source->name, new_master->name);
     pa_proplist_sets(p, PA_PROP_DEVICE_MASTER_DEVICE, new_master->name);
