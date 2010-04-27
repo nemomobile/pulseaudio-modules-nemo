@@ -302,6 +302,20 @@ static void hw_source_output_detach_cb(pa_source_output *o) {
 }
 
 /* Called from I/O thread context */
+static void hw_source_output_attach_slave_source(struct userdata *u, pa_source *source, pa_source *to_source) {
+    pa_assert(u);
+    pa_assert(to_source);
+
+    if (source && PA_SOURCE_IS_LINKED(source->thread_info.state)) {
+        pa_source_set_rtpoll(source, to_source->thread_info.rtpoll);
+        pa_source_attach_within_thread(source);
+        pa_source_set_latency_range_within_thread(source, to_source->thread_info.min_latency,
+                                                  to_source->thread_info.max_latency);
+        pa_source_set_fixed_latency_within_thread(source, to_source->thread_info.fixed_latency);
+    }
+}
+
+/* Called from I/O thread context */
 static void hw_source_output_attach_cb(pa_source_output *o) {
     struct userdata *u;
 
@@ -311,20 +325,8 @@ static void hw_source_output_attach_cb(pa_source_output *o) {
     u->master_source = o->source;
 
     pa_log_debug("Attach called, new master %p %s", (void*)u->master_source, u->master_source->name);
-    if (u->raw_source && PA_SOURCE_IS_LINKED(u->raw_source->thread_info.state)) {
-
-        pa_source_set_rtpoll(u->raw_source, o->source->thread_info.rtpoll);
-        pa_source_attach_within_thread(u->raw_source);
-
-        pa_source_set_latency_range_within_thread(u->raw_source, u->master_source->thread_info.min_latency, u->master_source->thread_info.max_latency);
-    }
-    if (u->voip_source && PA_SOURCE_IS_LINKED(u->voip_source->thread_info.state)) {
-
-        pa_source_set_rtpoll(u->voip_source, o->source->thread_info.rtpoll);
-        pa_source_attach_within_thread(u->voip_source);
-
-        pa_source_set_latency_range_within_thread(u->voip_source, u->master_source->thread_info.min_latency, u->master_source->thread_info.max_latency);
-    }
+    hw_source_output_attach_slave_source(u, u->raw_source, o->source);
+    hw_source_output_attach_slave_source(u, u->voip_source, o->source);
 }
 
 /* Called from main thread context */
