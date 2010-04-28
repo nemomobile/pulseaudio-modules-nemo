@@ -130,7 +130,7 @@ pa_bool_t algorithm_hook_done(algorithm_hook *a, const char *name) {
     }
 }
 
-pa_hook_slot *algorithm_hook_connect(algorithm_hook *a, const char *name, pa_hook_cb_t cb, void *data) {
+pa_hook_slot *algorithm_hook_connect(algorithm_hook *a, const char *name, pa_hook_priority_t prio, pa_hook_cb_t cb, void *data) {
     algorithm_entry *entry;
     pa_hook_slot *slot;
 
@@ -143,7 +143,7 @@ pa_hook_slot *algorithm_hook_connect(algorithm_hook *a, const char *name, pa_hoo
 
     if ((entry = pa_hashmap_get(a->hooks, name))) {
         if (!entry->dead)
-            slot = pa_hook_connect(&entry->hook, PA_HOOK_NORMAL, cb, data);
+            slot = pa_hook_connect(&entry->hook, prio, cb, data);
     }
 
     return slot;

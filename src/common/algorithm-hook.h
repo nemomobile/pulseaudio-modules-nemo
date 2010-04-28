@@ -21,6 +21,6 @@ pa_bool_t algorithm_hook_done(algorithm_hook *a, const char *name);
 
 /* connect to hook with name. if no hook is initialized with
  * given name, returns NULL. */
-pa_hook_slot *algorithm_hook_connect(algorithm_hook *a, const char *name, pa_hook_cb_t cb, void *data);
+pa_hook_slot *algorithm_hook_connect(algorithm_hook *a, const char *name, pa_hook_priority_t prio, pa_hook_cb_t cb, void *data);
 
 #endif
