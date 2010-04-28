@@ -245,27 +245,6 @@ static void hw_source_output_push_cb_8k_mono(pa_source_output *o, const pa_memch
 #endif
 }
 
-/* Called from main context */
-static void hw_source_output_kill_cb(pa_source_output* o) {
-    struct userdata *u;
-
-    pa_source_output_assert_ref(o);
-    pa_assert_se(u = o->userdata);
-
-    pa_source_unlink(u->voip_source);
-    pa_source_unlink(u->raw_source);
-    pa_source_output_unlink(o);
-
-    pa_source_unref(u->voip_source);
-    pa_source_unref(u->raw_source);
-    u->raw_source = NULL;
-    u->voip_source = NULL;
-
-    pa_source_output_unref(o);
-    u->hw_source_output = NULL;
-}
-
-
 /* Called from I/O thread context */
 static int hw_source_output_process_msg(pa_msgobject *mo, int code, void *userdata, int64_t offset, pa_memchunk *chunk) {
     pa_source_output *o = PA_SOURCE_OUTPUT(mo);
@@ -286,6 +265,78 @@ static int hw_source_output_process_msg(pa_msgobject *mo, int code, void *userda
     }
 
     return pa_source_output_process_msg(mo, code, userdata, offset, chunk);
+}
+
+static
+size_t hw_source_output_convert_bytes(pa_source_output *o, pa_source *s, size_t nbytes)
+{
+    return (nbytes/pa_frame_size(&o->thread_info.sample_spec))*pa_frame_size(&s->sample_spec);
+}
+
+/* Called from I/O thread context */
+static void hw_source_output_process_rewind_cb(pa_source_output *o, size_t nbytes) {
+    struct userdata *u;
+
+    pa_source_output_assert_ref(o);
+    pa_assert_se(u = o->userdata);
+
+    if (!PA_SOURCE_OUTPUT_IS_LINKED(o->thread_info.state))
+        return;
+
+    if (u->raw_source && PA_SOURCE_IS_OPENED(u->raw_source->thread_info.state)) {
+	size_t amount = hw_source_output_convert_bytes(o, u->raw_source, nbytes);
+	pa_source_process_rewind(u->raw_source, amount);
+    }
+
+    if (u->voip_source && PA_SOURCE_IS_OPENED(u->voip_source->thread_info.state)) {
+	size_t amount = hw_source_output_convert_bytes(o, u->voip_source, nbytes);
+	pa_source_process_rewind(u->voip_source, amount);
+    }
+}
+
+/* Called from I/O thread context */
+static void hw_source_output_update_max_rewind_cb(pa_source_output *o, size_t nbytes) {
+    struct userdata *u;
+
+    pa_source_output_assert_ref(o);
+    pa_assert_se(u = o->userdata);
+
+    if (!PA_SOURCE_OUTPUT_IS_LINKED(o->thread_info.state))
+        return;
+
+    if (u->raw_source && PA_SOURCE_IS_LINKED(u->raw_source->thread_info.state))
+        pa_source_set_max_rewind_within_thread(u->raw_source, hw_source_output_convert_bytes(o, u->raw_source, nbytes));
+
+    if (u->voip_source && PA_SOURCE_IS_LINKED(u->voip_source->thread_info.state))
+        pa_source_set_max_rewind_within_thread(u->voip_source, hw_source_output_convert_bytes(o, u->voip_source, nbytes));
+}
+
+/* Called from I/O thread context */
+static void hw_source_output_update_source_latency_range_cb(pa_source_output *o) {
+    struct userdata *u;
+
+    pa_source_output_assert_ref(o);
+    pa_assert_se(u = o->userdata);
+
+    if (u->raw_source && PA_SOURCE_IS_LINKED(u->raw_source->thread_info.state))
+	pa_source_set_latency_range_within_thread(u->raw_source, o->source->thread_info.min_latency, o->source->thread_info.max_latency);
+
+    if (u->voip_source && PA_SOURCE_IS_LINKED(u->voip_source->thread_info.state))
+	pa_source_set_latency_range_within_thread(u->voip_source, o->source->thread_info.min_latency, o->source->thread_info.max_latency);
+}
+
+/* Called from I/O thread context */
+static void hw_source_output_update_source_fixed_latency_cb(pa_source_output *o) {
+    struct userdata *u;
+
+    pa_source_output_assert_ref(o);
+    pa_assert_se(u = o->userdata);
+
+    if (u->raw_source && PA_SOURCE_IS_LINKED(u->raw_source->thread_info.state))
+        pa_source_set_fixed_latency_within_thread(u->raw_source, o->source->thread_info.fixed_latency);
+
+    if (u->raw_source && PA_SOURCE_IS_LINKED(u->raw_source->thread_info.state))
+        pa_source_set_fixed_latency_within_thread(u->voip_source, o->source->thread_info.fixed_latency);
 }
 
 /* Called from I/O thread context */
@@ -359,6 +410,7 @@ static void hw_source_output_update_slave_source(struct userdata *u, pa_source *
     pa_proplist_free(p);
 }
 
+/* Called from main thread context */
 static void hw_source_output_moving_cb(pa_source_output *o, pa_source *dest) {
     struct userdata *u;
 
@@ -386,6 +438,26 @@ static void hw_source_output_moving_cb(pa_source_output *o, pa_source *dest) {
 
         voice_reinit_hw_source_output(u);
     }
+}
+
+/* Called from main thread context */
+static void hw_source_output_kill_cb(pa_source_output* o) {
+    struct userdata *u;
+
+    pa_source_output_assert_ref(o);
+    pa_assert_se(u = o->userdata);
+
+    pa_source_unlink(u->voip_source);
+    pa_source_unlink(u->raw_source);
+    pa_source_output_unlink(o);
+
+    pa_source_unref(u->voip_source);
+    pa_source_unref(u->raw_source);
+    u->raw_source = NULL;
+    u->voip_source = NULL;
+
+    pa_source_output_unref(o);
+    u->hw_source_output = NULL;
 }
 
 static pa_bool_t hw_source_output_may_move_to_cb(pa_source_output *o, pa_source *dest) {
@@ -472,10 +544,14 @@ static pa_source_output *voice_hw_source_output_new(struct userdata *u, pa_sourc
     else
         new_source_output->push = hw_source_output_push_cb;
     new_source_output->parent.process_msg = hw_source_output_process_msg;
-    new_source_output->kill = hw_source_output_kill_cb;
+    new_source_output->process_rewind = hw_source_output_process_rewind_cb;
+    new_source_output->update_max_rewind = hw_source_output_update_max_rewind_cb;
+    new_source_output->update_source_latency_range = hw_source_output_update_source_latency_range_cb;
+    new_source_output->update_source_fixed_latency = hw_source_output_update_source_fixed_latency_cb;
     new_source_output->attach = hw_source_output_attach_cb;
     new_source_output->detach = hw_source_output_detach_cb;
     new_source_output->moving = hw_source_output_moving_cb;
+    new_source_output->kill = hw_source_output_kill_cb;
     new_source_output->may_move_to = hw_source_output_may_move_to_cb;
     new_source_output->userdata = u;
 

@@ -492,16 +492,20 @@ static void hw_sink_input_detach_cb(pa_sink_input *i) {
 
 /* Called from I/O thread context */
 static void hw_sink_input_attach_slave_sink(struct userdata *u, pa_sink *sink, pa_sink *to_sink) {
-    pa_assert(sink);
+    pa_assert(u);
+    pa_assert(to_sink);
 
-    pa_sink_set_rtpoll(sink, to_sink->thread_info.rtpoll);
-    voice_sink_inputs_may_move(sink, TRUE);
-    sink->flat_volume_sink = to_sink;
-    pa_sink_attach_within_thread(sink);
-    pa_sink_set_latency_range_within_thread(sink, u->master_sink->thread_info.min_latency, u->master_sink->thread_info.max_latency);
-    pa_sink_set_fixed_latency_within_thread(sink, to_sink->thread_info.fixed_latency);
-    pa_sink_set_max_request_within_thread(sink, u->master_sink->thread_info.max_request);
-    pa_sink_set_max_rewind_within_thread(sink, u->master_sink->thread_info.max_rewind);
+    if (sink && PA_SINK_IS_LINKED(sink->thread_info.state)) {
+        pa_sink_set_rtpoll(sink, to_sink->thread_info.rtpoll);
+        voice_sink_inputs_may_move(sink, TRUE);
+        sink->flat_volume_sink = to_sink;
+        pa_sink_attach_within_thread(sink);
+        pa_sink_set_latency_range_within_thread(sink, to_sink->thread_info.min_latency,
+                                                to_sink->thread_info.max_latency);
+        pa_sink_set_fixed_latency_within_thread(sink, to_sink->thread_info.fixed_latency);
+        pa_sink_set_max_request_within_thread(sink, to_sink->thread_info.max_request);
+        pa_sink_set_max_rewind_within_thread(sink, to_sink->thread_info.max_rewind);
+    }
 }
 
 static void voice_hw_sink_input_reset_volume_defer_cb(pa_mainloop_api *m, pa_defer_event *de, void *userdata) {
@@ -533,13 +537,8 @@ static void hw_sink_input_attach_cb(pa_sink_input *i) {
 
     u->core->mainloop->defer_new(u->core->mainloop, voice_hw_sink_input_reset_volume_defer_cb, i);
 
-    if (u->raw_sink && PA_SINK_IS_LINKED(u->raw_sink->thread_info.state)) {
-        hw_sink_input_attach_slave_sink(u, u->raw_sink, i->sink);
-    }
-
-    if (u->voip_sink && PA_SINK_IS_LINKED(u->voip_sink->thread_info.state)) {
-        hw_sink_input_attach_slave_sink(u, u->voip_sink, i->sink);
-    }
+    hw_sink_input_attach_slave_sink(u, u->raw_sink, i->sink);
+    hw_sink_input_attach_slave_sink(u, u->voip_sink, i->sink);
 
     pa_log_debug("Attach called, new master %p %s", (void*)u->master_sink, u->master_sink->name);
 }
