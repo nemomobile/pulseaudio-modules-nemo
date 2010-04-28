@@ -137,7 +137,7 @@ void voice_uplink_timing_check(struct userdata *u, pa_usec_t now,
 
 /*** hw_source_output callbacks ***/
 
-/* Called from thread context */
+/* Called from I/O thread context */
 static void hw_source_output_push_cb(pa_source_output *o, const pa_memchunk *new_chunk) {
     struct userdata *u;
     pa_memchunk chunk;
@@ -196,7 +196,7 @@ static void hw_source_output_push_cb(pa_source_output *o, const pa_memchunk *new
 #endif
 }
 
-/* Called from thread context */
+/* Called from I/O thread context */
 static void hw_source_output_push_cb_8k_mono(pa_source_output *o, const pa_memchunk *new_chunk) {
     struct userdata *u;
     pa_memchunk chunk;
@@ -265,14 +265,27 @@ static void hw_source_output_kill_cb(pa_source_output* o) {
     u->hw_source_output = NULL;
 }
 
-/* Called from main context */
-static pa_usec_t hw_source_output_get_latency_cb(pa_source_output *o) {
+
+/* Called from I/O thread context */
+static int hw_source_output_process_msg(pa_msgobject *mo, int code, void *userdata, int64_t offset, pa_memchunk *chunk) {
+    pa_source_output *o = PA_SOURCE_OUTPUT(mo);
     struct userdata *u;
-    pa_assert(o);
+    pa_source_output_assert_ref(o);
+
     pa_assert_se(u = o->userdata);
 
-    // Should we send an async message instead?
-    return pa_bytes_to_usec((uint64_t)pa_memblockq_get_length(u->hw_source_memblockq), &o->sample_spec);
+    switch (code) {
+
+        case PA_SOURCE_OUTPUT_MESSAGE_GET_LATENCY: {
+            pa_usec_t *r = userdata;
+
+            r[0] += pa_bytes_to_usec(pa_memblockq_get_length(u->hw_source_memblockq), &o->sample_spec);
+
+            break;
+        }
+    }
+
+    return pa_source_output_process_msg(mo, code, userdata, offset, chunk);
 }
 
 /* Called from I/O thread context */
@@ -457,8 +470,8 @@ static pa_source_output *voice_hw_source_output_new(struct userdata *u, pa_sourc
         new_source_output->push = hw_source_output_push_cb_8k_mono;
     else
         new_source_output->push = hw_source_output_push_cb;
+    new_source_output->parent.process_msg = hw_source_output_process_msg;
     new_source_output->kill = hw_source_output_kill_cb;
-    new_source_output->get_latency = hw_source_output_get_latency_cb;
     new_source_output->attach = hw_source_output_attach_cb;
     new_source_output->detach = hw_source_output_detach_cb;
     new_source_output->moving = hw_source_output_moving_cb;
