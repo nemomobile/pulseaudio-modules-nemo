@@ -375,15 +375,15 @@ static void hw_source_output_moving_cb(pa_source_output *o, pa_source *dest) {
 }
 
 static pa_bool_t hw_source_output_may_move_to_cb(pa_source_output *o, pa_source *dest) {
-  struct userdata *u;
+    struct userdata *u;
 
-  pa_source_output_assert_ref(o);
-  pa_assert_se(u = o->userdata);
+    pa_source_output_assert_ref(o);
+    pa_assert_se(u = o->userdata);
 
-  if (u->master_source == NULL)
-    return TRUE;
+    if (u->master_source == NULL)
+        return TRUE;
 
-  return ((u->master_source != dest) && (u->master_source->asyncmsgq != dest->asyncmsgq));
+    return ((u->master_source != dest) && (u->master_source->asyncmsgq != dest->asyncmsgq));
 }
 
 static pa_hook_result_t hw_source_output_move_fail_cb(pa_core *c, pa_source_output *o, struct userdata *u) {
