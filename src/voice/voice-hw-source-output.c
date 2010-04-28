@@ -347,7 +347,6 @@ static void hw_source_output_update_slave_source(struct userdata *u, pa_source *
 
 static void hw_source_output_moving_cb(pa_source_output *o, pa_source *dest) {
     struct userdata *u;
-    pa_proplist *p;
 
     pa_source_output_assert_ref(o);
     pa_assert_se(u = o->userdata);
@@ -360,13 +359,6 @@ static void hw_source_output_moving_cb(pa_source_output *o, pa_source *dest) {
         return; /* The source output is going to be killed, don't do anything. */
 
     u->master_source = dest;
-
-    p = pa_proplist_new();
-    pa_proplist_setf(p, PA_PROP_DEVICE_DESCRIPTION, "%s source connected to %s",
-                     u->raw_source->name, u->master_source->name);
-    pa_proplist_sets(p, PA_PROP_DEVICE_MASTER_DEVICE, u->master_source->name);
-    pa_source_update_proplist(u->raw_source, PA_UPDATE_REPLACE, p);
-    pa_proplist_free(p);
 
     if ((o->sample_spec.rate == SAMPLE_RATE_AEP_HZ &&
 	 dest->sample_spec.rate != SAMPLE_RATE_AEP_HZ) ||
