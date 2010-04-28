@@ -58,6 +58,19 @@ static int raw_source_set_state(pa_source *s, pa_source_state_t state) {
     return ret;
 }
 
+/* Called from I/O thread context */
+static void raw_source_update_requested_latency(pa_source *s) {
+    struct userdata *u;
+
+    pa_source_assert_ref(s);
+    pa_assert_se(u = s->userdata);
+
+    /* Just hand this one over to the master source */
+    pa_source_output_set_requested_latency_within_thread(
+            u->hw_source_output,
+            voice_source_get_requested_latency(s, u->voip_source));
+}
+
 int voice_init_raw_source(struct userdata *u, const char *name) {
     pa_source_new_data data;
     ENTER();
@@ -86,6 +99,7 @@ int voice_init_raw_source(struct userdata *u, const char *name) {
 
     u->raw_source->parent.process_msg = raw_source_process_msg;
     u->raw_source->set_state = raw_source_set_state;
+    u->raw_source->update_requested_latency = raw_source_update_requested_latency;
     u->raw_source->userdata = u;
     u->raw_source->flags = 0; // PA_SOURCE_CAN_SUSPEND
 

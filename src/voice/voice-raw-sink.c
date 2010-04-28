@@ -91,7 +91,7 @@ static void raw_sink_update_requested_latency(pa_sink *s) {
     /* Just hand this one over to the master sink */
     pa_sink_input_set_requested_latency_within_thread(
             u->hw_sink_input,
-            pa_sink_get_requested_latency_within_thread(s));
+            voice_sink_get_requested_latency(s, u->voip_sink));
 }
 
 int voice_init_raw_sink(struct userdata *u, const char *name) {
