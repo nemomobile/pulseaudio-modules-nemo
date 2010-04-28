@@ -66,6 +66,10 @@ int voice_source_set_state(pa_source *s, pa_source *other, pa_source_state_t sta
 
 int voice_sink_set_state(pa_sink *s, pa_sink *other, pa_sink_state_t state);
 
+pa_usec_t voice_source_get_requested_latency(pa_source *s, pa_source *other);
+
+pa_usec_t voice_sink_get_requested_latency(pa_sink *s, pa_sink *other);
+
 void voice_sink_inputs_may_move(pa_sink *s, pa_bool_t move);
 void voice_source_outputs_may_move(pa_source *s, pa_bool_t move);
 

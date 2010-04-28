@@ -152,14 +152,14 @@ void voice_memchunk_pool_unload(struct userdata *u) {
     voice_memchunk_pool_table = NULL;
 }
 
-/* Generic source state change logic. Used by raw_source and voice_source */
+/* Generic source state change logic. Used by raw_source and voice_source. */
 int voice_source_set_state(pa_source *s, pa_source *other, pa_source_state_t state) {
     struct userdata *u;
 
     pa_source_assert_ref(s);
     pa_assert_se(u = s->userdata);
     if (!other) {
-        pa_log_debug("other source not initialized or freed");
+        pa_log_debug("other source not initialized or already freed");
         return 0;
     }
     pa_source_assert_ref(other);
@@ -184,7 +184,7 @@ int voice_source_set_state(pa_source *s, pa_source *other, pa_source_state_t sta
     return 0;
 }
 
-/* Generic sink state change logic. Used by raw_sink and voip_sink */
+/* Generic sink state change logic. Used by raw_sink and voip_sink. */
 int voice_sink_set_state(pa_sink *s, pa_sink *other, pa_sink_state_t state) {
     struct userdata *u;
     pa_sink *om_sink;
@@ -192,7 +192,7 @@ int voice_sink_set_state(pa_sink *s, pa_sink *other, pa_sink_state_t state) {
     pa_sink_assert_ref(s);
     pa_assert_se(u = s->userdata);
     if (!other) {
-        pa_log_debug("other sink not initialized or freed");
+        pa_log_debug("other sink not initialized or already freed");
         return 0;
     }
     pa_sink_assert_ref(other);
@@ -248,6 +248,48 @@ int voice_sink_set_state(pa_sink *s, pa_sink *other, pa_sink_state_t state) {
     }
 
     return 0;
+}
+
+/* Used by raw_source and voip_source. Called from I/O thread. */
+pa_usec_t voice_source_get_requested_latency(pa_source *s, pa_source *other) {
+    struct userdata *u;
+    pa_usec_t latency;
+    pa_source_assert_ref(s);
+
+    latency = pa_source_get_requested_latency_within_thread(s);
+
+    pa_assert_se(u = s->userdata);
+    if (!other) {
+        pa_log_debug("other source not initialized or already freed");
+        return latency;
+    }
+    pa_source_assert_ref(other);
+
+    if (latency == (pa_usec_t) -1 || latency > pa_source_get_requested_latency_within_thread(other))
+        latency = pa_source_get_requested_latency_within_thread(other);
+
+    return latency;
+}
+
+/* Used by raw_sink and voip_sink. Called from I/O thread. */
+pa_usec_t voice_sink_get_requested_latency(pa_sink *s, pa_sink *other) {
+    struct userdata *u;
+    pa_usec_t latency;
+    pa_sink_assert_ref(s);
+
+    latency = pa_sink_get_requested_latency_within_thread(s);
+
+    pa_assert_se(u = s->userdata);
+    if (!other) {
+        pa_log_debug("other sink not initialized or already freed");
+        return latency;
+    }
+    pa_sink_assert_ref(other);
+
+    if (latency == (pa_usec_t) -1 || latency > pa_sink_get_requested_latency_within_thread(other))
+        latency = pa_sink_get_requested_latency_within_thread(other);
+
+    return latency;
 }
 
 void voice_sink_inputs_may_move(pa_sink *s, pa_bool_t move) {
