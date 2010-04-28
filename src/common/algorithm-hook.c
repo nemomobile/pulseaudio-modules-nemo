@@ -99,7 +99,7 @@ pa_hook *algorithm_hook_init(algorithm_hook *a, const char *name) {
         pa_hashmap_put(a->hooks, entry->name, entry);
         return &entry->hook;
     } else {
-        pa_log_warn("algorithm_hook_register: Algorithm with name \"%s\" already registered.", name);
+        pa_log_warn("algorithm_hook_init: Algorithm with name \"%s\" already registered.", name);
         return NULL;
     }
 }
@@ -125,7 +125,7 @@ pa_bool_t algorithm_hook_done(algorithm_hook *a, const char *name) {
         }
         return TRUE;
     } else {
-        pa_log_warn("algorithm_hook_unregister: Couldn't unregister algorithm with name \"%s\": doesn't exist.", name);
+        pa_log_warn("algorithm_hook_done: Couldn't unregister algorithm with name \"%s\": doesn't exist.", name);
         return FALSE;
     }
 }
