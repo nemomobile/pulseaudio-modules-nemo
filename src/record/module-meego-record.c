@@ -190,36 +190,36 @@ static void source_output_push_cb_stereo(pa_source_output *o, const pa_memchunk 
 }
 
 /* Called from I/O thread context */
-static void source_output_update_source_latency_range_cb(pa_source_output *i) {
+static void source_output_update_source_latency_range_cb(pa_source_output *o) {
     struct userdata *u;
 
-    pa_source_output_assert_ref(i);
-    pa_assert_se(u = i->userdata);
+    pa_source_output_assert_ref(o);
+    pa_assert_se(u = o->userdata);
 
     if (!u->source || !PA_SOURCE_IS_LINKED(u->source->thread_info.state))
         return;
 
-    pa_source_set_latency_range_within_thread(u->source, i->source->thread_info.min_latency, i->source->thread_info.max_latency);
+    pa_source_set_latency_range_within_thread(u->source, o->source->thread_info.min_latency, o->source->thread_info.max_latency);
 }
 
 static void source_outputs_may_move(pa_source *s, pa_bool_t move) {
-    pa_source_output *i;
+    pa_source_output *o;
     uint32_t idx;
 
-    for (i = PA_SOURCE_OUTPUT(pa_idxset_first(s->outputs, &idx)); i; i = PA_SOURCE_OUTPUT(pa_idxset_next(s->outputs, &idx))) {
+    for (o = PA_SOURCE_OUTPUT(pa_idxset_first(s->outputs, &idx)); o; o = PA_SOURCE_OUTPUT(pa_idxset_next(s->outputs, &idx))) {
         if (move)
-            i->flags &= ~PA_SOURCE_OUTPUT_DONT_MOVE;
+            o->flags &= ~PA_SOURCE_OUTPUT_DONT_MOVE;
         else
-            i->flags |= PA_SOURCE_OUTPUT_DONT_MOVE;
+            o->flags |= PA_SOURCE_OUTPUT_DONT_MOVE;
     }
 }
 
 /* Called from I/O thread context */
-static void source_output_detach_cb(pa_source_output *i) {
+static void source_output_detach_cb(pa_source_output *o) {
     struct userdata *u;
 
-    pa_source_output_assert_ref(i);
-    pa_assert_se(u = i->userdata);
+    pa_source_output_assert_ref(o);
+    pa_assert_se(u = o->userdata);
 
     if (PA_SOURCE_IS_LINKED(u->source->thread_info.state))
         pa_source_detach_within_thread(u->source);
@@ -238,11 +238,11 @@ static void source_output_detach_cb(pa_source_output *i) {
 }
 
 /* Called from I/O thread context */
-static void source_output_attach_cb(pa_source_output *i) {
+static void source_output_attach_cb(pa_source_output *o) {
     struct userdata *u;
 
-    pa_source_output_assert_ref(i);
-    pa_assert_se(u = i->userdata);
+    pa_source_output_assert_ref(o);
+    pa_assert_se(u = o->userdata);
 
     if (!u->source || !PA_SOURCE_IS_LINKED(u->source->thread_info.state))
         return;
@@ -252,13 +252,13 @@ static void source_output_attach_cb(pa_source_output *i) {
      * figured out). This call is one of the reasons for that we had to comment
      * out the assertion from pa_source_set_asyncmsgq() that checks that the
      * call is done from the main thread. */
-    pa_source_set_asyncmsgq(u->source, i->source->asyncmsgq);
+    pa_source_set_asyncmsgq(u->source, o->source->asyncmsgq);
 
     source_outputs_may_move(u->source, TRUE);
-    pa_source_set_rtpoll(u->source, i->source->thread_info.rtpoll);
+    pa_source_set_rtpoll(u->source, o->source->thread_info.rtpoll);
     pa_source_attach_within_thread(u->source);
 
-    pa_source_set_latency_range_within_thread(u->source, i->source->thread_info.min_latency, i->source->thread_info.max_latency);
+    pa_source_set_latency_range_within_thread(u->source, o->source->thread_info.min_latency, o->source->thread_info.max_latency);
 }
 
 /* Called from main context */
@@ -282,11 +282,11 @@ static void source_output_moving_cb(pa_source_output *o, pa_source *dest){
 }
 
 /* Called from main context */
-static void source_output_kill_cb(pa_source_output *i) {
+static void source_output_kill_cb(pa_source_output *o) {
     struct userdata *u;
 
-    pa_source_output_assert_ref(i);
-    pa_assert_se(u = i->userdata);
+    pa_source_output_assert_ref(o);
+    pa_assert_se(u = o->userdata);
 
     pa_source_unlink(u->source);
 
