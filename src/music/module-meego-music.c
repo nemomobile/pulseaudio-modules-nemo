@@ -354,6 +354,7 @@ static void sink_input_moving_cb(pa_sink_input *i, pa_sink *dest){
         return; /* The sink input is going to be killed, don't do anything. */
 
     u->master_sink = dest;
+    pa_sink_update_flags(u->sink, PA_SINK_LATENCY|PA_SINK_DYNAMIC_LATENCY, dest->flags);
     pa_sink_set_asyncmsgq(u->sink, i->sink->asyncmsgq);
 
     p = pa_proplist_new();
@@ -507,7 +508,8 @@ int pa__init(pa_module*m) {
                      PA_PROP_SINK_MUSIC_API_EXTENSION_PROPERTY_VALUE);
 
     /* Create sink */
-    u->sink = pa_sink_new(m->core, &sink_data, (PA_SINK_LATENCY|PA_SINK_DYNAMIC_LATENCY));
+    u->sink = pa_sink_new(m->core, &sink_data,
+                          master_sink->flags & (PA_SINK_LATENCY|PA_SINK_DYNAMIC_LATENCY));
     pa_sink_new_data_done(&sink_data);
     if (!u->sink) {
       pa_log("Failed to create sink.");
@@ -519,7 +521,6 @@ int pa__init(pa_module*m) {
     u->sink->update_requested_latency = sink_update_requested_latency;
     u->sink->request_rewind = sink_request_rewind;
     u->sink->userdata = u;
-    u->sink->flags = PA_SINK_LATENCY;
     pa_memblock_ref(u->silence_memchunk.memblock);
     u->sink->silence = u->silence_memchunk;
 
