@@ -47,7 +47,7 @@ PA_MODULE_DESCRIPTION("Nokia record module");
 PA_MODULE_USAGE(
     "master_source=<source to connect to> "
     "source_name=<name of created source> "
-    "stereo=<use 2 channels instead of mono, default false> "
+    "stereo=<use 2 channels instead of mono, default true>"
     "rate=<sample rate, default 48000> "
     "samplelength=<sample length in ms, default 20> "
 );
@@ -150,7 +150,7 @@ static int source_set_state(pa_source *s, pa_source_state_t state) {
  *************************/
 
 /* Called from I/O thread context */
-static void source_output_push_cb_mono(pa_source_output *o, const pa_memchunk *new_chunk) {
+static void source_output_push_cb(pa_source_output *o, const pa_memchunk *new_chunk) {
     struct userdata *u;
     pa_memchunk chunk;
 
@@ -174,19 +174,6 @@ static void source_output_push_cb_mono(pa_source_output *o, const pa_memchunk *n
         pa_memblock_unref(chunk.memblock);
 
     }
-}
-
-/* FIXME implement drc for stereo */
-/* Called from I/O thread context */
-static void source_output_push_cb_stereo(pa_source_output *o, const pa_memchunk *new_chunk) {
-    struct userdata *u;
-
-    pa_source_output_assert_ref(o);
-    pa_assert_se(u = o->userdata);
-    pa_assert(new_chunk);
-
-    if (PA_SOURCE_IS_OPENED(u->source->thread_info.state))
-        pa_source_post(u->source, new_chunk);
 }
 
 /* Called from I/O thread context */
@@ -362,7 +349,7 @@ int pa__init(pa_module*m) {
     char t[256];
     pa_source_output_new_data source_output_data;
     pa_source_new_data source_data;
-    pa_bool_t stereo = FALSE;
+    pa_bool_t stereo = TRUE;
     unsigned samplerate;
     unsigned samplelength;
     int maxblocksize;
@@ -385,11 +372,6 @@ int pa__init(pa_module*m) {
     samplelength = DEFAULT_SAMPLELENGTH;
     pa_modargs_get_value_u32(ma, "rate", &samplerate);
     pa_modargs_get_value_u32(ma, "samplelength", &samplelength);
-
-    pa_log_debug("Got arguments: source_name=\"%s\" master_source=\"%s\"",
-                 source_name, master_source_name);
-    pa_log_debug("stereo=\"%s\" rate=\"%d\" samplelength=\"%d\".",
-                 pa_yes_no(stereo), samplerate, samplelength);
 
     if (!(master_source = pa_namereg_get(m->core, master_source_name, PA_NAMEREG_SOURCE))) {
         pa_log_error("Master source \"%s\" not found", master_source_name);
@@ -477,10 +459,7 @@ int pa__init(pa_module*m) {
         goto fail;
     }
 
-    if (stereo)
-        u->source_output->push = source_output_push_cb_stereo;
-    else
-        u->source_output->push = source_output_push_cb_mono;
+    u->source_output->push = source_output_push_cb;
     u->source_output->process_rewind = source_output_process_rewind_cb;
     u->source_output->update_max_rewind = source_output_update_max_rewind_cb;
     u->source_output->update_source_latency_range = source_output_update_source_latency_range_cb;
