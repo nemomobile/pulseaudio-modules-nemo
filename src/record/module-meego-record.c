@@ -190,6 +190,32 @@ static void source_output_push_cb_stereo(pa_source_output *o, const pa_memchunk 
 }
 
 /* Called from I/O thread context */
+static void source_output_process_rewind_cb(pa_source_output *o, size_t nbytes) {
+    struct userdata *u;
+
+    pa_source_output_assert_ref(o);
+    pa_assert_se(u = o->userdata);
+
+    if (!u->source || !PA_SOURCE_IS_LINKED(u->source->thread_info.state))
+        return;
+
+    pa_source_process_rewind(u->source, nbytes);
+}
+
+/* Called from I/O thread context */
+static void source_output_update_max_rewind_cb(pa_source_output *o, size_t nbytes) {
+    struct userdata *u;
+
+    pa_source_output_assert_ref(o);
+    pa_assert_se(u = o->userdata);
+
+    if (!u->source || !PA_SOURCE_IS_LINKED(u->source->thread_info.state))
+        return;
+
+    pa_source_set_max_rewind_within_thread(u->source, nbytes);
+}
+
+/* Called from I/O thread context */
 static void source_output_update_source_latency_range_cb(pa_source_output *o) {
     struct userdata *u;
 
@@ -199,7 +225,21 @@ static void source_output_update_source_latency_range_cb(pa_source_output *o) {
     if (!u->source || !PA_SOURCE_IS_LINKED(u->source->thread_info.state))
         return;
 
-    pa_source_set_latency_range_within_thread(u->source, o->source->thread_info.min_latency, o->source->thread_info.max_latency);
+    pa_source_set_latency_range_within_thread(u->source, o->source->thread_info.min_latency,
+                                              o->source->thread_info.max_latency);
+}
+
+/* Called from I/O thread context */
+static void source_output_update_source_fixed_latency_cb(pa_source_output *o) {
+    struct userdata *u;
+
+    pa_source_output_assert_ref(o);
+    pa_assert_se(u = o->userdata);
+
+    if (!u->source || !PA_SOURCE_IS_LINKED(u->source->thread_info.state))
+        return;
+
+    pa_source_set_fixed_latency_within_thread(u->source, o->source->thread_info.fixed_latency);
 }
 
 static void source_outputs_may_move(pa_source *s, pa_bool_t move) {
@@ -444,7 +484,10 @@ int pa__init(pa_module*m) {
         u->source_output->push = source_output_push_cb_stereo;
     else
         u->source_output->push = source_output_push_cb_mono;
+    u->source_output->process_rewind = source_output_process_rewind_cb;
+    u->source_output->update_max_rewind = source_output_update_max_rewind_cb;
     u->source_output->update_source_latency_range = source_output_update_source_latency_range_cb;
+    u->source_output->update_source_fixed_latency = source_output_update_source_fixed_latency_cb;
     u->source_output->kill = source_output_kill_cb;
     u->source_output->attach = source_output_attach_cb;
     u->source_output->detach = source_output_detach_cb;
