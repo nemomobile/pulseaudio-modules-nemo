@@ -349,6 +349,7 @@ static void hw_source_output_update_slave_source(struct userdata *u, pa_source *
     pa_assert(source);
     pa_assert(new_master);
 
+    pa_source_update_flags(source, PA_SOURCE_LATENCY|PA_SOURCE_DYNAMIC_LATENCY, new_master->flags);
     pa_source_set_asyncmsgq(source, new_master->asyncmsgq);
 
     p = pa_proplist_new();

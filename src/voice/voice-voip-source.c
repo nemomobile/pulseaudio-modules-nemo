@@ -105,7 +105,8 @@ int voice_init_voip_source(struct userdata *u, const char *name) {
     pa_source_new_data_set_sample_spec(&data, &u->aep_sample_spec);
     pa_source_new_data_set_channel_map(&data, &u->aep_channel_map);
 
-    u->voip_source = pa_source_new(u->core, &data, 0);
+    u->voip_source = pa_source_new(u->core, &data, u->master_source->flags &
+                                   (PA_SOURCE_LATENCY|PA_SOURCE_DYNAMIC_LATENCY));
     pa_source_new_data_done(&data);
 
     if (!u->voip_source) {
@@ -117,7 +118,6 @@ int voice_init_voip_source(struct userdata *u, const char *name) {
     u->voip_source->set_state = voip_source_set_state;
     u->raw_source->update_requested_latency = voip_source_update_requested_latency;
     u->voip_source->userdata = u;
-    u->voip_source->flags = 0; // PA_SOURCE_CAN_SUSPEND
 
     pa_source_set_asyncmsgq(u->voip_source, u->master_source->asyncmsgq);
     pa_source_set_rtpoll(u->voip_source, u->master_source->thread_info.rtpoll);
