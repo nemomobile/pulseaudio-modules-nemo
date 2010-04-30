@@ -61,12 +61,14 @@ enum {
     VOICE_SINK_GET_SIDE_INFO_QUEUE_PTR = PA_SINK_MESSAGE_MAX + 100,
 };
 
-
 #define PA_PROP_SINK_API_EXTENSION_PROPERTY_NAME "sink.api-extension.meego.voice"
 #define PA_PROP_SINK_API_EXTENSION_PROPERTY_VALUE VOICE_API_VERSION
 
 #define PA_PROP_SOURCE_API_EXTENSION_PROPERTY_NAME "source.api-extension.meego.voice"
 #define PA_PROP_SOURCE_API_EXTENSION_PROPERTY_VALUE VOICE_API_VERSION
+
+#define VOICE_MASTER_SINK_INPUT_NAME "Voice module master sink input"
+#define VOICE_MASTER_SOURCE_OUTPUT_NAME "Voice module master source output"
 
 /* Because pa_queue does not like NULL pointers, this flag is added to every
  * set of flags to make the pa_queue entries non null. */
