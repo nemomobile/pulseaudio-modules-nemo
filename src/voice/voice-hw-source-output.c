@@ -511,9 +511,7 @@ static pa_source_output *voice_hw_source_output_new(struct userdata *u, pa_sourc
     pa_assert(u->master_source);
     ENTER();
 
-    /* TODO: Naming is screwd ... Should be "Voice module master source output" or something.
-       When changing syncronize with policy. */
-    snprintf(t, sizeof(t), "input of %s", u->master_source->name);
+    snprintf(t, sizeof(t), VOICE_MASTER_SOURCE_OUTPUT_NAME);
 
     pa_source_output_new_data_init(&so_data);
     so_data.flags = flags;

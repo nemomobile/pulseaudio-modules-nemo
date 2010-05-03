@@ -670,7 +670,7 @@ static pa_sink_input *voice_hw_sink_input_new(struct userdata *u, pa_sink_input_
     pa_assert(u->master_sink);
     ENTER();
 
-    snprintf(t, sizeof(t), "output of %s", u->raw_sink->name);
+    snprintf(t, sizeof(t), VOICE_MASTER_SINK_INPUT_NAME);
 
     pa_sink_input_new_data_init(&sink_input_data);
     sink_input_data.flags = flags;
