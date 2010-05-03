@@ -325,7 +325,6 @@ fail:
 
 void pa__done(pa_module*m) {
     struct userdata *u = m->userdata;
-    unsigned i;
 
     assert(m);
 
