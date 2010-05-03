@@ -1,3 +1,4 @@
 ../../src/common/*.h usr/include/pulsecore/modules/meego
+../../src/*/*-api.h usr/include/pulsecore/modules/meego
 usr/lib/pulse-*/modules/libmeego-common.a
 usr/lib/pulse-*/modules/libmeego-common.la
