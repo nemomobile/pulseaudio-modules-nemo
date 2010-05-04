@@ -266,13 +266,6 @@ static void source_output_detach_cb(pa_source_output *o) {
     else
         pa_log_error("fixme: !PA_SOURCE_IS_LINKED ?");
 
-    /* XXX: _set_asyncmsgq() shouldn't be called while the IO thread is
-     * running, but we "have to" (ie. no better way to handle this has been
-     * figured out). This call is one of the reasons for that we had to comment
-     * out the assertion from pa_source_set_asyncmsgq() that checks that the
-     * call is done from the main thread. */
-    pa_source_set_asyncmsgq(u->source, NULL);
-
     pa_source_set_rtpoll(u->source, NULL);
     source_outputs_may_move(u->source, FALSE);
 }
@@ -286,13 +279,6 @@ static void source_output_attach_cb(pa_source_output *o) {
 
     if (!u->source || !PA_SOURCE_IS_LINKED(u->source->thread_info.state))
         return;
-
-    /* XXX: _set_asyncmsgq() shouldn't be called while the IO thread is
-     * running, but we "have to" (ie. no better way to handle this has been
-     * figured out). This call is one of the reasons for that we had to comment
-     * out the assertion from pa_source_set_asyncmsgq() that checks that the
-     * call is done from the main thread. */
-    pa_source_set_asyncmsgq(u->source, o->source->asyncmsgq);
 
     source_outputs_may_move(u->source, TRUE);
     pa_source_set_rtpoll(u->source, o->source->thread_info.rtpoll);
@@ -313,6 +299,7 @@ static void source_output_moving_cb(pa_source_output *o, pa_source *dest){
         return; /* The source output is going to be killed, don't do anything. */
 
     u->master_source = dest;
+    pa_source_set_asyncmsgq(u->source, dest->asyncmsgq);
 
     p = pa_proplist_new();
     pa_proplist_setf(p, PA_PROP_DEVICE_DESCRIPTION, "%s connected to %s", u->source->name, u->master_source->name);
