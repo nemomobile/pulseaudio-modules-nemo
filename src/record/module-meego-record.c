@@ -300,6 +300,7 @@ static void source_output_moving_cb(pa_source_output *o, pa_source *dest){
 
     u->master_source = dest;
     pa_source_set_asyncmsgq(u->source, dest->asyncmsgq);
+    pa_source_update_flags(u->source, PA_SOURCE_LATENCY|PA_SOURCE_DYNAMIC_LATENCY, dest->flags);
 
     p = pa_proplist_new();
     pa_proplist_setf(p, PA_PROP_DEVICE_DESCRIPTION, "%s connected to %s", u->source->name, u->master_source->name);
@@ -430,7 +431,8 @@ int pa__init(pa_module*m) {
                      PA_PROP_SOURCE_RECORD_API_EXTENSION_PROPERTY_NAME,
                      PA_PROP_SOURCE_RECORD_API_EXTENSION_PROPERTY_VALUE);
 
-    u->source = pa_source_new(m->core, &source_data, PA_SOURCE_LATENCY);
+    u->source = pa_source_new(m->core, &source_data, u->master_source->flags &
+                              (PA_SOURCE_LATENCY|PA_SOURCE_DYNAMIC_LATENCY));
     pa_source_new_data_done(&source_data);
     if (!u->source) {
         pa_log_error("Failed to create source.");
