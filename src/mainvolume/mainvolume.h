@@ -53,6 +53,7 @@ struct mv_userdata {
 
     pa_hashmap *steps;
     struct mv_volume_steps_set *current_steps;
+    char *route;
 
     pa_call_state_tracker *call_state_tracker;
     pa_hook_slot *call_state_tracker_slot;

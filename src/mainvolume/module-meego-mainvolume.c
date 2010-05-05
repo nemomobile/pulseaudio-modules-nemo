@@ -36,6 +36,7 @@
 #include "module-meego-mainvolume-symdef.h"
 #include "mainvolume.h"
 
+#include <src/common/parameter-hook.h>
 #include <src/common/proplist-meego.h>
 
 PA_MODULE_AUTHOR("Juho Hämäläinen");
@@ -97,16 +98,31 @@ static struct mv_volume_steps_set* fallback_new(const char *route, const int cal
     return fallback;
 }
 
-static pa_hook_result_t sink_proplist_changed_cb(pa_core *c, pa_sink *s, struct mv_userdata *u) {
-    const char *route;
+static pa_hook_result_t mode_changed_cb(pa_core *c, const char *mode, struct mv_userdata *u) {
+    pa_assert(u);
+
+    if (mode) {
+        if (u->route) {
+            if (pa_streq(u->route, mode))
+                return PA_HOOK_OK;
+
+            pa_xfree(u->route);
+        }
+        u->route = pa_xstrdup(mode);
+        pa_log_debug("mode changes to %s", u->route);
+    }
+
+    return PA_HOOK_OK;
+}
+
+static pa_hook_result_t parameters_changed_cb(pa_core *c, struct update_args *ua, struct mv_userdata *u) {
     struct mv_volume_steps_set *set;
-    int ret;
+    pa_proplist *p = NULL;
+    int ret = 0;
 
     pa_assert(u);
-    pa_assert(s);
 
-    route = pa_proplist_gets(s->proplist, PA_NOKIA_PROP_AUDIO_MODE);
-    if (!route || (u->current_steps && pa_streq(route, u->current_steps->route)))
+    if (!u->route || !ua || (ua && !ua->parameters))
         return PA_HOOK_OK;
 
     /* in tuning mode we always update steps when changing
@@ -114,7 +130,7 @@ static pa_hook_result_t sink_proplist_changed_cb(pa_core *c, pa_sink *s, struct 
      * First remove tunings in current route, then try to parse
      * normally */
     if (u->tuning_mode) {
-        if ((set = pa_hashmap_remove(u->steps, route))) {
+        if ((set = pa_hashmap_remove(u->steps, u->route))) {
             steps_set_free(set, NULL);
             set = NULL;
         }
@@ -127,22 +143,26 @@ static pa_hook_result_t sink_proplist_changed_cb(pa_core *c, pa_sink *s, struct 
      * are incorrect, we use "fallback" route, which is created
      * in module init.
      */
-    set = pa_hashmap_get(u->steps, route);
+    set = pa_hashmap_get(u->steps, u->route);
     if (set) {
         u->current_steps = set;
     } else {
-        ret = mv_parse_steps(u,
-                             route,
-                             pa_proplist_gets(s->proplist, XMAEMO_CALL_STEPS),
-                             pa_proplist_gets(s->proplist, XMAEMO_MEDIA_STEPS));
+        if ((p = pa_proplist_from_string(ua->parameters)))
+            ret = mv_parse_steps(u,
+                                 u->route,
+                                 pa_proplist_gets(p, XMAEMO_CALL_STEPS),
+                                 pa_proplist_gets(p, XMAEMO_MEDIA_STEPS));
 
         if (ret > 0) {
-            u->current_steps = pa_hashmap_get(u->steps, route);
+            u->current_steps = pa_hashmap_get(u->steps, u->route);
         } else {
-            pa_log_info("failed to update steps for %s, using fallback.", route);
+            pa_log_info("failed to update steps for %s, using fallback.", u->route);
             u->current_steps = pa_hashmap_get(u->steps, "fallback");
         }
     }
+
+    if (p)
+        pa_proplist_free(p);
 
     /* update steps for this route */
     mv_update_step(u);
@@ -224,14 +244,10 @@ int pa__init(pa_module *m) {
                                            (pa_hook_cb_t)volume_changed_cb,
                                            u);
 
-    /* track sink property list changes, react as late as possible,
-     * thus PA_HOOK_LATE+50 magic number */
-    u->sink_proplist_changed_slot = pa_hook_connect(&m->core->hooks[PA_CORE_HOOK_SINK_PROPLIST_CHANGED],
-                                                    PA_HOOK_LATE+50,
-                                                    (pa_hook_cb_t)sink_proplist_changed_cb,
-                                                    u);
-
     dbus_init(u);
+
+    request_parameter_updates("mode", (pa_hook_cb_t)mode_changed_cb, PA_HOOK_NORMAL, u);
+    request_parameter_updates("mainvolume", (pa_hook_cb_t)parameters_changed_cb, PA_HOOK_NORMAL, u);
 
     pa_modargs_free(ma);
 
