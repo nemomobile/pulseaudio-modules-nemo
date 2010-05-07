@@ -335,7 +335,7 @@ static void hw_source_output_update_source_fixed_latency_cb(pa_source_output *o)
     if (u->raw_source && PA_SOURCE_IS_LINKED(u->raw_source->thread_info.state))
         pa_source_set_fixed_latency_within_thread(u->raw_source, o->source->thread_info.fixed_latency);
 
-    if (u->raw_source && PA_SOURCE_IS_LINKED(u->raw_source->thread_info.state))
+    if (u->voip_source && PA_SOURCE_IS_LINKED(u->voip_source->thread_info.state))
         pa_source_set_fixed_latency_within_thread(u->voip_source, o->source->thread_info.fixed_latency);
 }
 
