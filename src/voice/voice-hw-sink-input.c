@@ -607,10 +607,10 @@ static void hw_sink_input_moving_cb(pa_sink_input *i, pa_sink *dest){
        restoring route volume, because i->sink is NULL or one of the
        sink->asyncmsq is NULL at that time */
 
-    if ((i->sample_spec.rate == SAMPLE_RATE_AEP_HZ &&
-	 dest->sample_spec.rate != SAMPLE_RATE_AEP_HZ) ||
-	(i->sample_spec.rate != SAMPLE_RATE_AEP_HZ &&
-	 dest->sample_spec.rate == SAMPLE_RATE_AEP_HZ)) {
+    if ((i->sample_spec.rate == VOICE_SAMPLE_RATE_AEP_HZ &&
+	 dest->sample_spec.rate != VOICE_SAMPLE_RATE_AEP_HZ) ||
+	(i->sample_spec.rate != VOICE_SAMPLE_RATE_AEP_HZ &&
+	 dest->sample_spec.rate == VOICE_SAMPLE_RATE_AEP_HZ)) {
 	pa_log_info("Reinitialize due to samplerate change %d->%d.",
                     i->sample_spec.rate, dest->sample_spec.rate);
         pa_log_debug("New sink format %s", pa_sample_format_to_string(dest->sample_spec.format)) ;
@@ -683,7 +683,7 @@ static pa_sink_input *voice_hw_sink_input_new(struct userdata *u, pa_sink_input_
 
     pa_proplist_sets(sink_input_data.proplist, PA_PROP_MEDIA_NAME, t);
     pa_proplist_sets(sink_input_data.proplist, PA_PROP_APPLICATION_NAME, t); /* this is the default value used by PA modules */
-    if (u->master_sink->sample_spec.rate == SAMPLE_RATE_AEP_HZ) {
+    if (u->master_sink->sample_spec.rate == VOICE_SAMPLE_RATE_AEP_HZ) {
 	pa_sink_input_new_data_set_sample_spec(&sink_input_data, &u->aep_sample_spec);
 	pa_sink_input_new_data_set_channel_map(&sink_input_data, &u->aep_channel_map);
     }
@@ -701,7 +701,7 @@ static pa_sink_input *voice_hw_sink_input_new(struct userdata *u, pa_sink_input_
         return NULL;
     }
 
-    if (u->master_sink->sample_spec.rate == SAMPLE_RATE_AEP_HZ)
+    if (u->master_sink->sample_spec.rate == VOICE_SAMPLE_RATE_AEP_HZ)
 	new_sink_input->pop = hw_sink_input_pop_8k_mono_cb;
     else
 	new_sink_input->pop = hw_sink_input_pop_cb;

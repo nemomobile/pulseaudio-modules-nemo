@@ -75,7 +75,7 @@ pa_bool_t voice_voip_source_process(struct userdata *u, pa_memchunk *chunk) {
                                 chunk,
                                 &u->aep_sample_spec,
                                 chunk->length);
-        voice_aep_ear_ref_ul_drop_log(u, PERIOD_AEP_USECS);
+        voice_aep_ear_ref_ul_drop_log(u, VOICE_PERIOD_AEP_USECS);
     } else {
         aep_uplink params;
         pa_memchunk rchunk;
@@ -102,7 +102,7 @@ void voice_uplink_timing_check(struct userdata *u, pa_usec_t now,
 
     if (to_deadline < u->ul_timing_advance) {
         pa_usec_t forward_usecs = (pa_usec_t)
-            ((((u->ul_timing_advance-to_deadline)/PERIOD_CMT_USECS)+1)*PERIOD_CMT_USECS);
+            ((((u->ul_timing_advance-to_deadline)/VOICE_PERIOD_CMT_USECS)+1)*VOICE_PERIOD_CMT_USECS);
 
         pa_log_debug("Deadline already missed by %lld usec (%lld < %lld + %d) forwarding %lld usecs",
                      -to_deadline + u->ul_timing_advance, u->ul_deadline, now,
@@ -113,7 +113,7 @@ void voice_uplink_timing_check(struct userdata *u, pa_usec_t now,
     }
 
     pa_log_debug("Time to next deadline %lld usecs (%d)", to_deadline, u->ul_timing_advance);
-    if ((int)to_deadline < PERIOD_MASTER_USECS + u->ul_timing_advance) {
+    if ((int)to_deadline < VOICE_PERIOD_MASTER_USECS + u->ul_timing_advance) {
         if (!ul_frame_sent) {
             // Flush all that we have from buffers, so we should be in time on next round
             size_t drop = pa_memblockq_get_length(u->ul_memblockq);
@@ -499,10 +499,10 @@ static void hw_source_output_moving_cb(pa_source_output *o, pa_source *dest) {
 
     u->master_source = dest;
 
-    if ((o->sample_spec.rate == SAMPLE_RATE_AEP_HZ &&
-	 dest->sample_spec.rate != SAMPLE_RATE_AEP_HZ) ||
-	(o->sample_spec.rate != SAMPLE_RATE_AEP_HZ &&
-	 dest->sample_spec.rate == SAMPLE_RATE_AEP_HZ)) {
+    if ((o->sample_spec.rate == VOICE_SAMPLE_RATE_AEP_HZ &&
+	 dest->sample_spec.rate != VOICE_SAMPLE_RATE_AEP_HZ) ||
+	(o->sample_spec.rate != VOICE_SAMPLE_RATE_AEP_HZ &&
+	 dest->sample_spec.rate == VOICE_SAMPLE_RATE_AEP_HZ)) {
 	pa_log_info("Reinitialize due to samplerate change %d->%d.",
                     o->sample_spec.rate, dest->sample_spec.rate);
         pa_log_debug("New source format %s", pa_sample_format_to_string(dest->sample_spec.format)) ;
@@ -593,7 +593,7 @@ static pa_source_output *voice_hw_source_output_new(struct userdata *u, pa_sourc
     so_data.source = u->master_source;
     pa_proplist_sets(so_data.proplist, PA_PROP_MEDIA_NAME, t);
     pa_proplist_sets(so_data.proplist, PA_PROP_APPLICATION_NAME, t); /* this is the default value used by PA modules */
-    if (u->master_source->sample_spec.rate == SAMPLE_RATE_AEP_HZ) {
+    if (u->master_source->sample_spec.rate == VOICE_SAMPLE_RATE_AEP_HZ) {
 	pa_source_output_new_data_set_sample_spec(&so_data, &u->aep_sample_spec);
 	pa_source_output_new_data_set_channel_map(&so_data, &u->aep_channel_map);
     }
@@ -610,7 +610,7 @@ static pa_source_output *voice_hw_source_output_new(struct userdata *u, pa_sourc
         return NULL;
     }
 
-    if (u->master_source->sample_spec.rate == SAMPLE_RATE_AEP_HZ)
+    if (u->master_source->sample_spec.rate == VOICE_SAMPLE_RATE_AEP_HZ)
         new_source_output->push = hw_source_output_push_cb_8k_mono;
     else
         /* mono */ 

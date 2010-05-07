@@ -27,6 +27,13 @@
 #define VOICE_SOURCE_FRAMESIZE (20000) /* us */
 #define VOICE_SINK_FRAMESIZE (10000) /* us */
 
+#define VOICE_SAMPLE_RATE_HW_HZ   48000
+#define VOICE_SAMPLE_RATE_AEP_HZ  8000
+
+#define VOICE_PERIOD_MASTER_USECS 5000
+#define VOICE_PERIOD_AEP_USECS    10000
+#define VOICE_PERIOD_CMT_USECS    20000
+
 #define VOICE_API_VERSION "0.1"
 
 #define VOICE_HOOK_HW_SINK_PROCESS              "x-meego.voice.hw_sink_process"

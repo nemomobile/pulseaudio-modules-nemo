@@ -42,7 +42,6 @@
 
 #include "algorithm-hook.h"
 
-#include <voice-buffer.h>
 #include <voice-hooks.h>
 
 /* This is a copy/paste from module-alsa-sink-volume.c, keep it up to date!*/

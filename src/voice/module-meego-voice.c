@@ -213,28 +213,28 @@ int pa__init(pa_module*m) {
     pa_channel_map_init_stereo(&u->stereo_map);
 
     u->hw_sample_spec.format = PA_SAMPLE_S16NE;
-    u->hw_sample_spec.rate = SAMPLE_RATE_HW_HZ;
+    u->hw_sample_spec.rate = VOICE_SAMPLE_RATE_HW_HZ;
     u->hw_sample_spec.channels = 2;
 
     u->hw_mono_sample_spec.format = PA_SAMPLE_S16NE;
-    u->hw_mono_sample_spec.rate = SAMPLE_RATE_HW_HZ;
+    u->hw_mono_sample_spec.rate = VOICE_SAMPLE_RATE_HW_HZ;
     u->hw_mono_sample_spec.channels = 1;
 
     u->aep_sample_spec.format = PA_SAMPLE_S16NE;
-    u->aep_sample_spec.rate = SAMPLE_RATE_AEP_HZ;
+    u->aep_sample_spec.rate = VOICE_SAMPLE_RATE_AEP_HZ;
     u->aep_sample_spec.channels = 1;
     pa_channel_map_init_mono(&u->aep_channel_map);
     // The result is rounded down incorrectly thus +1
-    u->aep_fragment_size = pa_usec_to_bytes(PERIOD_AEP_USECS+1, &u->aep_sample_spec);
-    u->aep_hw_fragment_size = pa_usec_to_bytes(PERIOD_AEP_USECS+1, &u->hw_sample_spec);
-    u->hw_fragment_size = pa_usec_to_bytes(PERIOD_MASTER_USECS+1, &u->hw_sample_spec);
+    u->aep_fragment_size = pa_usec_to_bytes(VOICE_PERIOD_AEP_USECS+1, &u->aep_sample_spec);
+    u->aep_hw_fragment_size = pa_usec_to_bytes(VOICE_PERIOD_AEP_USECS+1, &u->hw_sample_spec);
+    u->hw_fragment_size = pa_usec_to_bytes(VOICE_PERIOD_MASTER_USECS+1, &u->hw_sample_spec);
     u->hw_fragment_size_max = max_hw_frag_size;
     if (0 != (u->hw_fragment_size_max % u->hw_fragment_size))
         u->hw_fragment_size_max += u->hw_fragment_size - (u->hw_fragment_size_max % u->hw_fragment_size);
-    u->aep_hw_mono_fragment_size = pa_usec_to_bytes(PERIOD_AEP_USECS+1, &u->hw_mono_sample_spec);
-    u->hw_mono_fragment_size = pa_usec_to_bytes(PERIOD_MASTER_USECS+1, &u->hw_mono_sample_spec);
+    u->aep_hw_mono_fragment_size = pa_usec_to_bytes(VOICE_PERIOD_AEP_USECS+1, &u->hw_mono_sample_spec);
+    u->hw_mono_fragment_size = pa_usec_to_bytes(VOICE_PERIOD_MASTER_USECS+1, &u->hw_mono_sample_spec);
 
-    u->voice_ul_fragment_size = pa_usec_to_bytes(PERIOD_CMT_USECS+1, &u->aep_sample_spec);
+    u->voice_ul_fragment_size = pa_usec_to_bytes(VOICE_PERIOD_CMT_USECS+1, &u->aep_sample_spec);
     pa_silence_memchunk_get(&u->core->silence_cache,
 			    u->core->mempool,
 			    &u->aep_silence_memchunk,
