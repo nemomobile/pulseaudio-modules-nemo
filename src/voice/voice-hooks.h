@@ -32,6 +32,7 @@ enum  {
     HOOK_CALL_END,
     HOOK_AEP_DOWNLINK,
     HOOK_AEP_UPLINK,
+    HOOK_RMC_MONO,
     HOOK_MAX
 };
 

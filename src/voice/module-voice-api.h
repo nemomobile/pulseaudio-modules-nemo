@@ -40,6 +40,8 @@
 #define VOICE_HOOK_CALL_END                     "x-meego.voice.call_end"
 #define VOICE_HOOK_AEP_DOWNLINK                 "x-meego.voice.aep_downlink"
 #define VOICE_HOOK_AEP_UPLINK                   "x-meego.voice.aep_uplink"
+#define VOICE_HOOK_RMC_MONO                     "x-meego.voice.rmc"
+
 
 typedef struct {
     pa_memchunk *chunk;

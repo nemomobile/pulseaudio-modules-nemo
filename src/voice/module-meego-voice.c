@@ -110,7 +110,7 @@ static int set_hooks(struct userdata *u) {
     u->hooks[HOOK_CALL_END]                     = algorithm_hook_init(u->algorithm, VOICE_HOOK_CALL_END);
     u->hooks[HOOK_AEP_DOWNLINK]                 = algorithm_hook_init(u->algorithm, VOICE_HOOK_AEP_DOWNLINK);
     u->hooks[HOOK_AEP_UPLINK]                   = algorithm_hook_init(u->algorithm, VOICE_HOOK_AEP_UPLINK);
-
+    u->hooks[HOOK_RMC_MONO]                     = algorithm_hook_init(u->algorithm, VOICE_HOOK_RMC_MONO);
     return 0;
 }
 
@@ -128,6 +128,7 @@ static int unset_hooks(struct userdata *u) {
     algorithm_hook_done(u->algorithm, VOICE_HOOK_CALL_END);
     algorithm_hook_done(u->algorithm, VOICE_HOOK_AEP_DOWNLINK);
     algorithm_hook_done(u->algorithm, VOICE_HOOK_AEP_UPLINK);
+    algorithm_hook_done(u->algorithm, VOICE_HOOK_RMC_MONO);
 
     algorithm_hook_unref(u->algorithm);
     u->algorithm = NULL;
