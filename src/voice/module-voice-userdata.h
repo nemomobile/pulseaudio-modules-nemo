@@ -60,7 +60,7 @@
 typedef enum {
     MIC_BOTH = 3,
     MIC_CH0 = 1,
-    MIC_CH1 = 2
+    MIC_CH1 = 2,
 } call_mic_ch_t;
 
 

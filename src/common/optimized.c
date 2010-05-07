@@ -264,13 +264,15 @@ void deinterleave_stereo_to_mono(const short *src, short *dst[], unsigned n)
     }
 }
 
-void extract_mono_from_interleaved_stereo(const short *src, short *dst, unsigned n)
+void extract_mono_from_interleaved_stereo(const short *src, short *dst, unsigned n, unsigned ch)
 {
     unsigned i;
     unsigned offset = 8;
 
+
     for (i = 0; i < n; i += 16) {
-        unsigned i1 = 0, i2 = 0;
+        unsigned i1 = ch; 
+        unsigned i2 = 0;
 
         while (i2 < 8) {
             *(dst + i2) = *(src + i + i1); i1++;
