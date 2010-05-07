@@ -92,7 +92,10 @@ void deinterleave_stereo_to_mono(const short *src, short *dst[], unsigned n)
     }
 }
 
-void extract_mono_from_interleaved_stereo(const short *src, short *dst, unsigned n)
+
+
+
+void extract_mono_from_interleaved_stereo(const short *src, short *dst, unsigned n, unsigned ch)
 {
     unsigned i;
     unsigned offset = 8;
@@ -100,10 +103,11 @@ void extract_mono_from_interleaved_stereo(const short *src, short *dst, unsigned
 
     for (i = 0; i < n; i += 16) {
         result = vld2q_s16 (src + i);
-        vst1q_s16 (dst, result.val[0]);
+        vst1q_s16 (dst, result.val[ch]);
        dst += offset;
     }
 }
+
 
 void downmix_to_mono_from_interleaved_stereo(const short *src, short *dst, unsigned n)
 {

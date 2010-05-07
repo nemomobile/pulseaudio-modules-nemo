@@ -18,7 +18,7 @@
 #include "voice-optimized.h"
 #include "src/common/optimized.h"
 
-int voice_take_channel1(struct userdata *u, const pa_memchunk *ichunk, pa_memchunk *ochunk) {
+int voice_take_channel(struct userdata *u, const pa_memchunk *ichunk, pa_memchunk *ochunk, voice_channel ch) {
     pa_assert(u);
     pa_assert(ochunk);
     pa_assert(ichunk);
@@ -30,7 +30,7 @@ int voice_take_channel1(struct userdata *u, const pa_memchunk *ichunk, pa_memchu
     ochunk->memblock = pa_memblock_new(u->core->mempool, ochunk->length);
     short *output = (short *) pa_memblock_acquire(ochunk->memblock);
     const short *input = ((short *)pa_memblock_acquire(ichunk->memblock) + ichunk->index/sizeof(short));
-    extract_mono_from_interleaved_stereo(input, output, ichunk->length/sizeof(short));
+    extract_mono_from_interleaved_stereo(input, output, ichunk->length/sizeof(short),ch);
     pa_memblock_release(ochunk->memblock);
     pa_memblock_release(ichunk->memblock);
     return 0;
@@ -150,3 +150,37 @@ int voice_interleave_stereo(struct userdata *u, const pa_memchunk *ichunk1, cons
     return 0;
 }
 
+int voice_deinterleave_stereo_to_mono(struct userdata *u, const pa_memchunk *ichunk, pa_memchunk *ochunk1, pa_memchunk *ochunk2) {
+    pa_assert(u);
+    pa_assert(ichunk);
+    pa_assert(ochunk1);
+    pa_assert(ochunk2);
+    pa_assert(ichunk->memblock);
+    /* pa_assert(ochunk1->memblock); */
+    /* pa_assert(ochunk2->memblock); */
+    pa_assert(0 == (ichunk->length % (8*sizeof(short))));
+
+    ochunk1->length = ichunk->length/2;
+    ochunk1->index = 0;
+
+    ochunk2->length = ichunk->length/2;
+    ochunk2->index = 0;
+
+    ochunk1->memblock = pa_memblock_new(u->core->mempool, ochunk1->length);
+    ochunk2->memblock = pa_memblock_new(u->core->mempool, ochunk2->length);
+
+    short *output1 = (short *) pa_memblock_acquire(ochunk1->memblock);
+    short *output2 = (short *) pa_memblock_acquire(ochunk2->memblock);
+
+    /* set input pointer to correct position */
+    const short *input = ((short *)pa_memblock_acquire(ichunk->memblock) + ichunk->index/sizeof(short));
+
+    const short *bufs[2] = { output1, output2 };
+    deinterleave_stereo_to_mono(input, bufs, ichunk->length/sizeof(short));
+
+    pa_memblock_release(ichunk->memblock);
+    pa_memblock_release(ochunk1->memblock);
+    pa_memblock_release(ochunk2->memblock);
+
+    return 0;
+}

@@ -19,12 +19,23 @@
 
 #include "module-voice-userdata.h"
 
-int voice_take_channel1(struct userdata *u, const pa_memchunk *ichunk, pa_memchunk *ochunk);
+typedef enum voice_channel
+{
+    VOICE_CH_0 = 0,
+    VOICE_CH_1 = 1
+} voice_channel;
+
+
+/* int voice_take_channel1(struct userdata *u, const pa_memchunk *ichunk, pa_memchunk *ochunk); */
+int voice_take_channel(struct userdata *u, const pa_memchunk *ichunk, pa_memchunk *ochunk, voice_channel ch);
+
 int voice_downmix_to_mono(struct userdata *u, const pa_memchunk *ichunk, pa_memchunk *ochunk);
 int voice_equal_mix_in(pa_memchunk *ochunk, const pa_memchunk *ichunk);
 int voice_mix_in_with_volume(pa_memchunk *ochunk, const pa_memchunk *ichunk, const pa_volume_t vol);
 int voice_apply_volume(pa_memchunk *chunk, const pa_volume_t vol);
 int voice_mono_to_stereo(struct userdata *u, const pa_memchunk *ichunk, pa_memchunk *ochunk);
 int voice_interleave_stereo(struct userdata *u, const pa_memchunk *ichunk1, const pa_memchunk *ichunk2, pa_memchunk *ochunk);
+int voice_deinterleave_stereo_to_mono(struct userdata *u, const pa_memchunk *ichunk, pa_memchunk *ochunk1, pa_memchunk *ochunk2);
+
 
 #endif // voice_optimized_h

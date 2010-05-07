@@ -231,6 +231,7 @@ AC_ARG_ENABLE([processing],
         ],
         [processing=yes])
 
+
 ############################################
 # x86
 AC_MSG_CHECKING([Use x86 libraries])

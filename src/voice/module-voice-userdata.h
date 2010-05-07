@@ -57,7 +57,13 @@
 #define PROP_MIXER_TUNING_PRI_S "0"
 #define PROP_MIXER_TUNING_ALT_S "1"
 
-/* TODO: Classify each member according to which thread they are used from */
+typedef enum {
+    MIC_BOTH = 3,
+    MIC_CH0 = 1,
+    MIC_CH1 = 2
+} call_mic_ch_t;
+
+
 struct userdata {
     pa_core *core;
     pa_module *module;
@@ -146,6 +152,8 @@ struct userdata {
 
     unsigned current_audio_mode_hwid_hash;
     pa_hook *hooks[HOOK_MAX];
+
+    call_mic_ch_t active_mic_channel;
 };
 
 

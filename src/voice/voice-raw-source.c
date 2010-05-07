@@ -86,6 +86,12 @@ int voice_init_raw_source(struct userdata *u, const char *name) {
     pa_proplist_sets(data.proplist, PA_PROP_DEVICE_MASTER_DEVICE, u->master_source->name);
     pa_proplist_sets(data.proplist, "module-suspend-on-idle.timeout", "1");
 
+    /* TODO: change voice.source.raw to stereo
+       pa_source_new_data_set_sample_spec(&data, &u->hw_sample_spec);
+       pa_source_new_data_set_channel_map(&data, &u->stereo_map);
+
+    */
+
     pa_source_new_data_set_sample_spec(&data, &u->hw_mono_sample_spec);
     pa_source_new_data_set_channel_map(&data, &u->mono_map);
 
