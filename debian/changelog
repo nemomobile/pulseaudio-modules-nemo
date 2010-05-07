@@ -5,6 +5,8 @@ pulseaudio-meego (0.9.19.0-2) unstable; urgency=low
   * Update sink/source flags according to master sink/source
   * Add src/*/*-api.h to pulseaudio-module-meego-common-dev
   * Music and Record module algorithms behind hooks
+  * Dualmic functionality added.
+  * RMC algorithm hook added.
 
  -- Maemo Multimedia <multimedia@maemo.org>  Mon, 03 May 2010 14:29:12 +0200
 
