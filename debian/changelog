@@ -4,7 +4,6 @@ pulseaudio-meego (0.9.19.0-2) unstable; urgency=low
   * Implement missing callbacks to sink-inputs and source-outputs
   * Update sink/source flags according to master sink/source
   * Add src/*/*-api.h to pulseaudio-module-meego-common-dev
-  * Add src/*/*-api.h to pulseaudio-module-meego-common-dev
   * Music and Record module algorithms behind hooks
 
  -- Maemo Multimedia <multimedia@maemo.org>  Mon, 03 May 2010 14:29:12 +0200
