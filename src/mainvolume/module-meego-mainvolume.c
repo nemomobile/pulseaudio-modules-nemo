@@ -122,14 +122,14 @@ static pa_hook_result_t parameters_changed_cb(pa_core *c, struct update_args *ua
 
     pa_assert(u);
 
-    if (!u->route || !ua || (ua && !ua->parameters))
+    if (!u->route)
         return PA_HOOK_OK;
 
     /* in tuning mode we always update steps when changing
      * x-maemo.mode.
      * First remove tunings in current route, then try to parse
      * normally */
-    if (u->tuning_mode) {
+    if (u->tuning_mode && ua && ua->parameters) {
         if ((set = pa_hashmap_remove(u->steps, u->route))) {
             steps_set_free(set, NULL);
             set = NULL;
@@ -147,7 +147,7 @@ static pa_hook_result_t parameters_changed_cb(pa_core *c, struct update_args *ua
     if (set) {
         u->current_steps = set;
     } else {
-        if ((p = pa_proplist_from_string(ua->parameters)))
+        if (ua && ua->parameters && (p = pa_proplist_from_string(ua->parameters)))
             ret = mv_parse_steps(u,
                                  u->route,
                                  pa_proplist_gets(p, XMAEMO_CALL_STEPS),
