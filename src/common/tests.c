@@ -25,7 +25,14 @@ int test_extract(int argc, char *argv[])
       test_result[i] = 0;
     }
 
-  extract_mono_from_interleaved_stereo(test_input, &test_result[0], TEST_LENGTH);
+  extract_mono_from_interleaved_stereo(test_input, &test_result[0], TEST_LENGTH, 0);
+
+  for (i = 0; i < TEST_LENGTH / 2; i++)
+    {
+      printf("test result in index %d is %d\n", i, test_result[i]);
+    }
+
+  extract_mono_from_interleaved_stereo(test_input, &test_result[0], TEST_LENGTH, 1);
 
   for (i = 0; i < TEST_LENGTH / 2; i++)
     {
@@ -263,12 +270,12 @@ int test_apply_volume(int argc, char *argv[])
 }
 
 int main (int argc, char * argv[]) {
-    //test_interleave(argc, argv);
-    //test_deinterleave(argc, argv);
-    //test_dup(argc, argv);
-  test_downmix(argc, argv);
-  //test_extract(argc, argv);
-  //test_mix(argc, argv);
-  //test_mix_in_with_volume(argc, argv);
-  //test_apply_volume(argc, argv);
+    test_interleave(argc, argv);
+    test_deinterleave(argc, argv);
+    test_dup(argc, argv);
+    test_downmix(argc, argv);
+    test_extract(argc, argv);
+    test_mix(argc, argv);
+    test_mix_in_with_volume(argc, argv);
+    test_apply_volume(argc, argv);
 }
