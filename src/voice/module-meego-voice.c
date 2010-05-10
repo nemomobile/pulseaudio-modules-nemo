@@ -296,6 +296,9 @@ int pa__init(pa_module*m) {
     if (voice_convert_init(u))
 	goto fail;
 
+    /* IHF mode is the default and this initialization is consistent with it. */
+    u->active_mic_channel = MIC_CH0;
+
     request_parameter_updates("voice", (pa_hook_cb_t)voice_parameter_cb, PA_HOOK_NORMAL, u);
     request_parameter_updates("alsa", (pa_hook_cb_t)alsa_parameter_cb, PA_HOOK_NORMAL, u);
     request_parameter_updates("aep", (pa_hook_cb_t)aep_parameter_cb, PA_HOOK_LATE, u);
