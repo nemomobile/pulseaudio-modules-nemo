@@ -346,6 +346,8 @@ static void sink_input_attach_cb(pa_sink_input *i) {
 static void sink_input_moving_cb(pa_sink_input *i, pa_sink *dest){
     struct userdata *u;
     pa_proplist *p;
+    pa_sink_input *si;
+    uint32_t idx;
 
     pa_sink_input_assert_ref(i);
     pa_assert_se(u = i->userdata);
@@ -364,6 +366,11 @@ static void sink_input_moving_cb(pa_sink_input *i, pa_sink *dest){
     pa_proplist_free(p);
 
     u->sink->flat_volume_sink = u->master_sink;
+
+    /* Call moving callbacks of slave sink's sink-inputs. */
+    PA_IDXSET_FOREACH(si, u->sink->inputs, idx)
+        if (si->moving)
+            si->moving(si, u->sink);
 }
 
 /* Called from main context */
