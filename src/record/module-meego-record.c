@@ -292,6 +292,8 @@ static void source_output_attach_cb(pa_source_output *o) {
 static void source_output_moving_cb(pa_source_output *o, pa_source *dest){
     struct userdata *u;
     pa_proplist *p;
+    pa_source_output *so;
+    uint32_t idx;
 
     pa_source_output_assert_ref(o);
     pa_assert_se(u = o->userdata);
@@ -308,6 +310,11 @@ static void source_output_moving_cb(pa_source_output *o, pa_source *dest){
     pa_proplist_sets(p, PA_PROP_DEVICE_MASTER_DEVICE, u->master_source->name);
     pa_source_update_proplist(u->source, PA_UPDATE_REPLACE, p);
     pa_proplist_free(p);
+
+    /* Call moving callbacks of slave sources's source-outputs. */
+    PA_IDXSET_FOREACH(so, u->source->outputs, idx)
+        if (so->moving)
+            so->moving(so, u->source);
 }
 
 /* Called from main context */
