@@ -171,7 +171,6 @@ static void hw_source_output_push_cb(pa_source_output *o, const pa_memchunk *new
     pa_memchunk ochunk_ch0;
     pa_memchunk ochunk_ch1;
 
-
     while (util_memblockq_to_chunk(u->core->mempool, u->hw_source_memblockq, &chunk, u->aep_hw_fragment_size)) {
 
         if (voice_voip_source_active_iothread(u)) {
@@ -202,7 +201,7 @@ static void hw_source_output_push_cb(pa_source_output *o, const pa_memchunk *new
                 voice_take_channel(u, &chunk, &ochunk_ch0, VOICE_CH_0);
 
                 /* RMC used only with ECI headsets that have one mic */
-                pa_hook_fire(&u->hooks[HOOK_RMC_MONO], &ochunk_ch0);
+                pa_hook_fire(u->hooks[HOOK_RMC_MONO], &ochunk_ch0);
 
                 voice_convert_run_48_to_8(u, u->hw_source_to_aep_resampler, &ochunk_ch0, &achunk_ch0);
                 pa_memblock_unref(ochunk_ch0.memblock);
@@ -213,7 +212,7 @@ static void hw_source_output_push_cb(pa_source_output *o, const pa_memchunk *new
             case MIC_CH1:
                 voice_take_channel(u, &chunk, &ochunk_ch1, VOICE_CH_1);
 
-                pa_hook_fire(&u->hooks[HOOK_RMC_MONO], &ochunk_ch1);
+                pa_hook_fire(u->hooks[HOOK_RMC_MONO], &ochunk_ch1);
 
                 voice_convert_run_48_to_8(u, u->hw_source_to_aep_resampler, &ochunk_ch1, &achunk_ch1);
                 pa_memblock_unref(ochunk_ch1.memblock);
