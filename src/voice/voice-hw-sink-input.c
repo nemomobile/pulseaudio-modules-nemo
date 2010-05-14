@@ -570,8 +570,10 @@ static void hw_sink_input_kill_cb(pa_sink_input *i) {
 
 /* Called from main thread context */
 static void hw_sink_input_update_slave_sink(struct userdata *u, pa_sink *sink, pa_sink *to_sink) {
-    pa_assert(sink);
     pa_proplist *p;
+    pa_sink_input *i;
+    uint32_t idx;
+    pa_assert(sink);
 
     pa_sink_update_flags(sink, PA_SINK_LATENCY|PA_SINK_DYNAMIC_LATENCY, to_sink->flags);
     pa_sink_set_asyncmsgq(sink, to_sink->asyncmsgq);
@@ -581,6 +583,11 @@ static void hw_sink_input_update_slave_sink(struct userdata *u, pa_sink *sink, p
     pa_proplist_sets(p, PA_PROP_DEVICE_MASTER_DEVICE, u->master_sink->name);
     pa_sink_update_proplist(sink, PA_UPDATE_REPLACE, p);
     pa_proplist_free(p);
+
+    /* Call moving callbacks of slave sink's sink-inputs. */
+    PA_IDXSET_FOREACH(i, sink->inputs, idx)
+        if (i->moving)
+            i->moving(i, sink);
 }
 
 /* Called from main context */

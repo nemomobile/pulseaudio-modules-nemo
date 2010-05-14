@@ -469,6 +469,8 @@ static void hw_source_output_attach_cb(pa_source_output *o) {
 /* Called from main thread context */
 static void hw_source_output_update_slave_source(struct userdata *u, pa_source *source, pa_source *new_master) {
     pa_proplist *p;
+    pa_source_output *o;
+    uint32_t idx;
     pa_assert(u);
     pa_assert(source);
     pa_assert(new_master);
@@ -481,6 +483,11 @@ static void hw_source_output_update_slave_source(struct userdata *u, pa_source *
     pa_proplist_sets(p, PA_PROP_DEVICE_MASTER_DEVICE, new_master->name);
     pa_source_update_proplist(source, PA_UPDATE_REPLACE, p);
     pa_proplist_free(p);
+
+    /* Call moving callbacks of slave sources's source-outputs. */
+    PA_IDXSET_FOREACH(o, source->outputs, idx)
+        if (o->moving)
+            o->moving(o, source);
 }
 
 /* Called from main thread context */
