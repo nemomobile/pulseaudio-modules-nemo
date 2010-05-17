@@ -1,3 +1,9 @@
+pulseaudio-meego (0.9.19.0-3) UNRELEASED; urgency=low
+
+  * Fix crash problem associated with rerouting and cascaded sinks and sources
+
+ -- Maemo Multimedia <multimedia@maemo.org>  Mon, 03 May 2010 14:29:12 +0200
+
 pulseaudio-meego (0.9.19.0-2) unstable; urgency=low
 
   * Update fixed latency according to master sink/source Fixes: NB#141799
