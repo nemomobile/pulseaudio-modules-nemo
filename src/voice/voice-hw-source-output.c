@@ -226,29 +226,29 @@ static void hw_source_output_push_cb(pa_source_output *o, const pa_memchunk *new
                 break;
 
             }
-            
+
             pa_assert(achunk.memblock);
             pa_assert(achunk.length >0);
 
-            ul_frame_sent = voice_voip_source_process(u, &achunk);            
+            ul_frame_sent = voice_voip_source_process(u, &achunk);
             pa_memblock_unref(achunk.memblock);
-            
+
 
         } else {
-            
+
             /* NOTE: Raw source samples are not run trough any EQ if AEP is running. */
             voice_deinterleave_stereo_to_mono(u, &chunk, &ochunk_ch0, &ochunk_ch1);
-            
+
             pa_hook_fire(u->hooks[HOOK_WIDEBAND_MIC_EQ_MONO], &ochunk_ch0);
             pa_hook_fire(u->hooks[HOOK_WIDEBAND_MIC_EQ_MONO], &ochunk_ch1);
-            
+
             voice_equal_mix_in(&ochunk_ch0,&ochunk_ch1);
 
             /* achunk_ch0 contains mixed data of both channels as mono */
             pa_memblock_unref(chunk.memblock);
             pa_memblock_unref(ochunk_ch1.memblock);
             chunk = ochunk_ch0;
-            
+
         }
 
         if (PA_SOURCE_IS_OPENED(u->raw_source->thread_info.state)) {
@@ -613,7 +613,7 @@ static pa_source_output *voice_hw_source_output_new(struct userdata *u, pa_sourc
     if (u->master_source->sample_spec.rate == VOICE_SAMPLE_RATE_AEP_HZ)
         new_source_output->push = hw_source_output_push_cb_8k_mono;
     else
-        /* mono */ 
+        /* mono */
         new_source_output->push = hw_source_output_push_cb;
     new_source_output->parent.process_msg = hw_source_output_process_msg;
     new_source_output->process_rewind = hw_source_output_process_rewind_cb;
