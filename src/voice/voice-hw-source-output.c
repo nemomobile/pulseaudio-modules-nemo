@@ -173,6 +173,8 @@ static void hw_source_output_push_cb(pa_source_output *o, const pa_memchunk *new
 
     while (util_memblockq_to_chunk(u->core->mempool, u->hw_source_memblockq, &chunk, u->aep_hw_fragment_size)) {
 
+
+        /* This branch is taken when call is active */
         if (voice_voip_source_active_iothread(u)) {
 
             switch (u->active_mic_channel){
@@ -186,12 +188,11 @@ static void hw_source_output_push_cb(pa_source_output *o, const pa_memchunk *new
                 voice_convert_run_48_to_8(u, u->hw_source_to_aep_resampler, &ochunk_ch1, &achunk_ch1);
                 pa_memblock_unref(ochunk_ch1.memblock);
 
-
                 pa_hook_fire(u->hooks[HOOK_NARROWBAND_MIC_EQ_MONO], &achunk_ch0);
                 pa_hook_fire(u->hooks[HOOK_NARROWBAND_MIC_EQ_MONO], &achunk_ch1);
 
                 /* seems to cause distortion -> maybe we could use voice_mix_in_with_volume here? */
-                voice_equal_mix_in(&achunk_ch0,&achunk_ch1);
+                voice_equal_mix_in(&achunk_ch0, &achunk_ch1);
                 pa_memblock_unref(achunk_ch1.memblock);
                 /* achunk_ch0 contains mixed data of both channels as mono */
                 achunk = achunk_ch0;
@@ -227,12 +228,12 @@ static void hw_source_output_push_cb(pa_source_output *o, const pa_memchunk *new
             }
 
             pa_assert(achunk.memblock);
-            pa_assert(achunk.length >0);
+            pa_assert(achunk.length > 0);
 
             ul_frame_sent = voice_voip_source_process(u, &achunk);
             pa_memblock_unref(achunk.memblock);
 
-
+            /* This branch is taken when call is not active e.g. when source.voice.raw is used */
         } else {
 
             /* NOTE: Raw source samples are not run trough any EQ if AEP is running. */
@@ -241,13 +242,12 @@ static void hw_source_output_push_cb(pa_source_output *o, const pa_memchunk *new
             pa_hook_fire(u->hooks[HOOK_WIDEBAND_MIC_EQ_MONO], &ochunk_ch0);
             pa_hook_fire(u->hooks[HOOK_WIDEBAND_MIC_EQ_MONO], &ochunk_ch1);
 
-            voice_equal_mix_in(&ochunk_ch0,&ochunk_ch1);
+            voice_interleave_stereo(u, &ochunk_ch0, &ochunk_ch1, &achunk);
 
-            /* achunk_ch0 contains mixed data of both channels as mono */
-            pa_memblock_unref(chunk.memblock);
+            pa_memblock_unref(ochunk_ch0.memblock);
             pa_memblock_unref(ochunk_ch1.memblock);
-            chunk = ochunk_ch0;
-
+            pa_memblock_unref(chunk.memblock);
+            chunk = achunk;
         }
 
         if (PA_SOURCE_IS_OPENED(u->raw_source->thread_info.state)) {
