@@ -1,18 +1,23 @@
 /*
- * This file is part of pulseaudio-meego
+ * Copyright (C) 2010 Nokia Corporation.
  *
- * Copyright (C) 2008, 2009 Nokia Corporation. All rights reserved.
+ * Contact: Maemo MMF Audio <mmf-audio@projects.maemo.org>
+ *          or Jyri Sarha <jyri.sarha@nokia.com>
  *
- * Contact: Maemo Multimedia <multimedia@maemo.org>
+ * These PulseAudio Modules are free software; you can redistribute
+ * it and/or modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation
+ * version 2.1 of the License.
  *
- * This software, including documentation, is protected by copyright
- * controlled by Nokia Corporation. All rights are reserved.
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
  *
- * Copying, including reproducing, storing, adapting or translating,
- * any or all of this material requires the prior written consent of
- * Nokia Corporation. This material also contains confidential
- * information which may not be disclosed to others without the prior
- * written consent of Nokia.
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301
+ * USA.
  */
 #ifndef voice_aep_convert_h
 #define voice_aep_convert_h

@@ -1,19 +1,26 @@
+/*
+ * Copyright (C) 2010 Nokia Corporation.
+ *
+ * Contact: Maemo MMF Audio <mmf-audio@projects.maemo.org>
+ *          or Jyri Sarha <jyri.sarha@nokia.com>
+ *
+ * These PulseAudio Modules are free software; you can redistribute
+ * it and/or modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation
+ * version 2.1 of the License.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301
+ * USA.
+ */
 #ifndef __SRC_48_TO_8_H__
 #define __SRC_48_TO_8_H__
-
-/*
-
-Copyright (C) 2008, 2009 Nokia Corporation.
-This material, including documentation and any related
-computer programs, is protected by copyright controlled by
-Nokia Corporation. All rights are reserved. Copying,
-including reproducing, storing,  adapting or translating, any
-or all of this material requires the prior written consent of
-Nokia Corporation. This material also contains confidential
-information which may not be disclosed to others without the
-prior written consent of Nokia Corporation.
-
-*/
 
 #define SRC_48_TO_8_MAX_INPUT_FRAMES 960
 
