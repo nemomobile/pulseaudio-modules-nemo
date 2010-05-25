@@ -5,6 +5,7 @@ modlibexec_LTLIBRARIES = libmeego-common.la
 
 libmeego_common_la_SOURCES = \
 	optimized.c optimized.h \
+	pa-optimized.c pa-optimized.h \
 	memory.c memory.h \
 	parameter-hook.c parameter-hook.h \
 	algorithm-hook.c algorithm-hook.h \

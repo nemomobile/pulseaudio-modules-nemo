@@ -19,28 +19,24 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301
  * USA.
  */
-#ifndef voice_optimized_h
-#define voice_optimized_h
+#ifndef pa_optimized_h
+#define pa_optimized_h
 
-#include "module-voice-userdata.h"
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
 
-typedef enum voice_channel
-{
-    VOICE_CH_0 = 0,
-    VOICE_CH_1 = 1
-} voice_channel;
+#include <pulsecore/memchunk.h>
+#include <pulsecore/core.h>
 
+int pa_optimized_take_channel(const pa_memchunk *ichunk, pa_memchunk *ochunk, int channel);
 
-/* int voice_take_channel1(struct userdata *u, const pa_memchunk *ichunk, pa_memchunk *ochunk); */
-int voice_take_channel(struct userdata *u, const pa_memchunk *ichunk, pa_memchunk *ochunk, voice_channel ch);
+int pa_optimized_downmix_to_mono(const pa_memchunk *ichunk, pa_memchunk *ochunk);
+int pa_optimized_equal_mix_in(pa_memchunk *ochunk, const pa_memchunk *ichunk);
+int pa_optimized_mix_in_with_volume(pa_memchunk *ochunk, const pa_memchunk *ichunk, const pa_volume_t vol);
+int pa_optimized_apply_volume(pa_memchunk *chunk, const pa_volume_t vol);
+int pa_optimized_mono_to_stereo(const pa_memchunk *ichunk, pa_memchunk *ochunk);
+int pa_optimized_interleave_stereo(const pa_memchunk *ichunk1, const pa_memchunk *ichunk2, pa_memchunk *ochunk);
+int pa_optimized_deinterleave_stereo_to_mono(const pa_memchunk *ichunk, pa_memchunk *ochunk1, pa_memchunk *ochunk2);
 
-int voice_downmix_to_mono(struct userdata *u, const pa_memchunk *ichunk, pa_memchunk *ochunk);
-int voice_equal_mix_in(pa_memchunk *ochunk, const pa_memchunk *ichunk);
-int voice_mix_in_with_volume(pa_memchunk *ochunk, const pa_memchunk *ichunk, const pa_volume_t vol);
-int voice_apply_volume(pa_memchunk *chunk, const pa_volume_t vol);
-int voice_mono_to_stereo(struct userdata *u, const pa_memchunk *ichunk, pa_memchunk *ochunk);
-int voice_interleave_stereo(struct userdata *u, const pa_memchunk *ichunk1, const pa_memchunk *ichunk2, pa_memchunk *ochunk);
-int voice_deinterleave_stereo_to_mono(struct userdata *u, const pa_memchunk *ichunk, pa_memchunk *ochunk1, pa_memchunk *ochunk2);
-
-
-#endif // voice_optimized_h
+#endif /* pa_optimized_h */

@@ -32,7 +32,7 @@
 #include "voice-aep-ear-ref.h"
 #include "voice-util.h"
 #include "voice-voip-source.h"
-#include "voice-optimized.h"
+#include "pa-optimized.h"
 #include "voice-convert.h"
 #include "memory.h"
 
@@ -185,26 +185,18 @@ static void hw_source_output_push_cb(pa_source_output *o, const pa_memchunk *new
             switch (u->active_mic_channel){
 
             case MIC_BOTH:
-                voice_deinterleave_stereo_to_mono(u, &chunk, &ochunk_ch0, &ochunk_ch1);
+                pa_optimized_downmix_to_mono(&chunk, &achunk);
 
-                voice_convert_run_48_to_8(u, u->hw_source_to_aep_resampler, &ochunk_ch0, &achunk_ch0);
-                pa_memblock_unref(ochunk_ch0.memblock);
+                voice_convert_run_48_to_8(u, u->hw_source_to_aep_resampler, &achunk, &ochunk_ch0);
+                pa_memblock_unref(achunk.memblock);
 
-                voice_convert_run_48_to_8(u, u->hw_source_to_aep_resampler, &ochunk_ch1, &achunk_ch1);
-                pa_memblock_unref(ochunk_ch1.memblock);
+                pa_hook_fire(u->hooks[HOOK_NARROWBAND_MIC_EQ_MONO], &ochunk_ch0);
 
-                pa_hook_fire(u->hooks[HOOK_NARROWBAND_MIC_EQ_MONO], &achunk_ch0);
-                pa_hook_fire(u->hooks[HOOK_NARROWBAND_MIC_EQ_MONO], &achunk_ch1);
-
-                /* seems to cause distortion -> maybe we could use voice_mix_in_with_volume here? */
-                voice_equal_mix_in(&achunk_ch0, &achunk_ch1);
-                pa_memblock_unref(achunk_ch1.memblock);
-                /* achunk_ch0 contains mixed data of both channels as mono */
-                achunk = achunk_ch0;
+                achunk = ochunk_ch0;
                 break;
 
             case MIC_CH0:
-                voice_take_channel(u, &chunk, &ochunk_ch0, VOICE_CH_0);
+                pa_optimized_take_channel(&chunk, &ochunk_ch0, 0);
 
                 /* RMC used only with ECI headsets that have one mic */
                 pa_hook_fire(u->hooks[HOOK_RMC_MONO], &ochunk_ch0);
@@ -216,7 +208,7 @@ static void hw_source_output_push_cb(pa_source_output *o, const pa_memchunk *new
                 break;
 
             case MIC_CH1:
-                voice_take_channel(u, &chunk, &ochunk_ch1, VOICE_CH_1);
+                pa_optimized_take_channel(&chunk, &ochunk_ch1, 1);
 
                 pa_hook_fire(u->hooks[HOOK_RMC_MONO], &ochunk_ch1);
 
@@ -242,12 +234,12 @@ static void hw_source_output_push_cb(pa_source_output *o, const pa_memchunk *new
         } else {
 
             /* NOTE: Raw source samples are not run trough any EQ if AEP is running. */
-            voice_deinterleave_stereo_to_mono(u, &chunk, &ochunk_ch0, &ochunk_ch1);
+            pa_optimized_deinterleave_stereo_to_mono(&chunk, &ochunk_ch0, &ochunk_ch1);
 
             pa_hook_fire(u->hooks[HOOK_WIDEBAND_MIC_EQ_MONO], &ochunk_ch0);
             pa_hook_fire(u->hooks[HOOK_WIDEBAND_MIC_EQ_MONO], &ochunk_ch1);
 
-            voice_interleave_stereo(u, &ochunk_ch0, &ochunk_ch1, &achunk);
+            pa_optimized_interleave_stereo(&ochunk_ch0, &ochunk_ch1, &achunk);
 
             pa_memblock_unref(ochunk_ch0.memblock);
             pa_memblock_unref(ochunk_ch1.memblock);

@@ -48,7 +48,7 @@
 #include "voice-raw-sink.h"
 #include "voice-aep-ear-ref.h"
 #include "voice-convert.h"
-#include "voice-optimized.h"
+#include "pa-optimized.h"
 #include "memory.h"
 #include "voice-voip-source.h"
 
@@ -141,7 +141,7 @@ static int hw_sink_input_pop_cb(pa_sink_input *i, size_t length, pa_memchunk *ch
 	if (aep_volume != PA_VOLUME_MUTED && !pa_memblock_is_silence(aepchunk.memblock)) {
 	    if (aep_volume != PA_VOLUME_NORM) {
 		pa_memchunk_make_writable(&aepchunk, 0);
-		voice_apply_volume(&aepchunk, aep_volume);
+		pa_optimized_apply_volume(&aepchunk, aep_volume);
 	    }
 	}
 	else if (!pa_memblock_is_silence(aepchunk.memblock)) {
@@ -168,7 +168,7 @@ static int hw_sink_input_pop_cb(pa_sink_input *i, size_t length, pa_memchunk *ch
             u->alt_mixer_compensation != PA_VOLUME_NORM &&
             !pa_memblock_is_silence(rawchunk.memblock)) {
             pa_memchunk_make_writable(&rawchunk, 0);
-            voice_apply_volume(&rawchunk, u->alt_mixer_compensation);
+            pa_optimized_apply_volume(&rawchunk, u->alt_mixer_compensation);
         }
     }
 
@@ -178,20 +178,20 @@ static int hw_sink_input_pop_cb(pa_sink_input *i, size_t length, pa_memchunk *ch
 	    pa_memchunk monochunk, stereochunk;
 	    pa_hook_fire(u->hooks[HOOK_NARROWBAND_EAR_EQU_MONO], &aepchunk);
 	    voice_convert_run_8_to_48(u, u->aep_to_hw_sink_resampler, &aepchunk, chunk);
-	    voice_downmix_to_mono(u, &rawchunk, &monochunk);
+	    pa_optimized_downmix_to_mono(&rawchunk, &monochunk);
 	    pa_memblock_unref(rawchunk.memblock);
 	    pa_memchunk_reset(&rawchunk);
 	    pa_assert(monochunk.length == chunk->length);
-	    voice_equal_mix_in(chunk, &monochunk);
+	    pa_optimized_equal_mix_in(chunk, &monochunk);
 	    pa_memblock_unref(monochunk.memblock);
             pa_hook_fire(u->hooks[HOOK_XPROT_MONO], chunk);
-            voice_mono_to_stereo(u, chunk, &stereochunk);
+            pa_optimized_mono_to_stereo(chunk, &stereochunk);
             pa_memblock_unref(chunk->memblock);
             *chunk = stereochunk;
 #else /* Do full stereo processing if the raw and aep inputs are both available */
 	    voice_convert_run_8_to_48_stereo(u, u->aep_to_hw_sink_resampler, &aepchunk, chunk);
 	    pa_assert(chunk->length == rawchunk.length);
-	    voice_equal_mix_in(chunk, &rawchunk);
+	    pa_optimized_equal_mix_in(chunk, &rawchunk);
 	    pa_hook_fire(u->hooks[HOOK_HW_SINK_PROCESS], chunk);
 #endif
 	}
@@ -200,7 +200,7 @@ static int hw_sink_input_pop_cb(pa_sink_input *i, size_t length, pa_memchunk *ch
             pa_hook_fire(u->hooks[HOOK_NARROWBAND_EAR_EQU_MONO], &aepchunk);
 	    voice_convert_run_8_to_48(u, u->aep_to_hw_sink_resampler, &aepchunk, chunk);
             pa_hook_fire(u->hooks[HOOK_XPROT_MONO], chunk);
-            voice_mono_to_stereo(u, chunk, &stereochunk);
+            pa_optimized_mono_to_stereo(chunk, &stereochunk);
             pa_memblock_unref(chunk->memblock);
             *chunk = stereochunk;
 	}
@@ -316,9 +316,9 @@ static int hw_sink_input_pop_8k_mono_cb(pa_sink_input *i, size_t length, pa_memc
 	    pa_memblock_unref(tchunk.memblock);
             if (!pa_memblock_is_silence(chunk->memblock)) {
                 if (aep_volume == PA_VOLUME_NORM)
-                    voice_equal_mix_in(&ichunk, chunk);
+                    pa_optimized_equal_mix_in(&ichunk, chunk);
                 else
-                    voice_mix_in_with_volume(&ichunk, chunk, aep_volume);
+                    pa_optimized_mix_in_with_volume(&ichunk, chunk, aep_volume);
             }
             pa_memblock_unref(chunk->memblock);
             *chunk = ichunk;
@@ -332,7 +332,7 @@ static int hw_sink_input_pop_8k_mono_cb(pa_sink_input *i, size_t length, pa_memc
         have_raw_frame = 1;
     } else if (have_aep_frame && aep_volume != PA_VOLUME_NORM &&
                !pa_memblock_is_silence(chunk->memblock)) {
-	voice_apply_volume(chunk, aep_volume);
+	pa_optimized_apply_volume(chunk, aep_volume);
     }
 
     if (!have_raw_frame && !have_aep_frame) {

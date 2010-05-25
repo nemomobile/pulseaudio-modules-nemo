@@ -20,7 +20,6 @@ module_meego_voice_la_SOURCES =			\
 	voice-aep-sink-input.c			\
 	voice-hw-sink-input.c			\
 	voice-hw-source-output.c		\
-	voice-optimized.c			\
 	voice-raw-sink.c			\
 	voice-raw-source.c			\
 	voice-util.c				\
