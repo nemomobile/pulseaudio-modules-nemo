@@ -1,13 +1,20 @@
-AM_CFLAGS = $(PULSEAUDIO_CFLAGS)
+SUBDIRS = tests
 
-AM_LIBADD = $(PULSEAUDIO_LIBS)
+AM_CFLAGS = $(PULSEAUDIO_CFLAGS) $(ASOUNDLIB_CFLAGS) -L$(modlibexecdir) -lalsa-util
+
+AM_LIBADD = $(PULSEAUDIO_LIBS) $(ASOUNDLIB_LIBS)
 
 modlibexec_LTLIBRARIES = module-meego-sidetone.la
 
 noinst_HEADERS = module-meego-sidetone-symdef.h
 
-module_meego_sidetone_la_SOURCES = module-meego-sidetone.c
+module_meego_sidetone_la_SOURCES = \
+	module-meego-sidetone.c \
+	sidetone.c sidetone.h \
+	ctrl-element.c ctrl-element.h \
+	alsa-utils.c alsa-utils.h \
+	sidetone-args.c sidetone-args.h
 
 module_meego_sidetone_la_LDFLAGS = -module -avoid-version -Wl,-no-undefined
-module_meego_sidetone_la_LIBADD = $(AM_LIBADD)
-module_meego_sidetone_la_CFLAGS = $(AM_CFLAGS)
+module_meego_sidetone_la_LIBADD = $(AM_LIBADD) $(top_builddir)/src/common/libmeego-common.la
+module_meego_sidetone_la_CFLAGS = $(AM_CFLAGS) 

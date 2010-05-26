@@ -178,6 +178,10 @@ PKG_CHECK_MODULES([DBUS], [dbus-1 >= 1.2])
 AC_SUBST(DBUS_CFLAGS)
 AC_SUBST(DBUS_LIBS)
 
+PKG_CHECK_MODULES([ASOUNDLIB], [ alsa >= 1.0.19 ])
+AC_SUBST(ASOUNDLIB_CFLAGS)
+AC_SUBST(ASOUNDLIB_LIBS)
+
 AC_ARG_WITH([module-dir],
         AS_HELP_STRING([--with-module-dir],[Directory where to install the modules to (defaults to ${pulseaudiodir}/lib/pulse-${PA_MAJORMINORMICRO}/modules/]),
         [modlibexecdir=$withval], [modlibexecdir="${pulseaudiodir}/lib/pulse-${PA_MAJORMINORMICRO}/modules"])
@@ -272,6 +276,7 @@ src/cmtspeech/Makefile
 src/mainvolume/Makefile
 src/mainvolume/tests/Makefile
 src/sidetone/Makefile
+src/sidetone/tests/Makefile
 ])
 
 SHAVE_INIT
