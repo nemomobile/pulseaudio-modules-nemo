@@ -168,8 +168,6 @@ int pa_optimized_deinterleave_stereo_to_mono(const pa_memchunk *ichunk, pa_memch
     pa_assert_fp(ochunk1);
     pa_assert_fp(ochunk2);
     pa_assert_fp(ichunk->memblock);
-    pa_assert_fp(ochunk1->memblock);
-    pa_assert_fp(ochunk2->memblock);
     pa_assert_fp(0 == (ichunk->length % (8*sizeof(short))));
     pool = pa_memblock_get_pool(ichunk->memblock);
 
