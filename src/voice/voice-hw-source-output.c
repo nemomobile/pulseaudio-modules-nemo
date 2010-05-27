@@ -166,85 +166,58 @@ static void hw_source_output_push_cb(pa_source_output *o, const pa_memchunk *new
         return;
     }
 
-    /* used to store 8 kHz stereo audio temporarily */
-    pa_memchunk achunk;
-
-    /* used to store mono audio temporarily */
-    pa_memchunk achunk_ch0;
-    pa_memchunk achunk_ch1;
-
-    pa_memchunk ochunk_ch0;
-    pa_memchunk ochunk_ch1;
-
     while (util_memblockq_to_chunk(u->core->mempool, u->hw_source_memblockq, &chunk, u->aep_hw_fragment_size)) {
 
-
-        /* This branch is taken when call is active */
         if (voice_voip_source_active_iothread(u)) {
+            /* This branch is taken when call is active */
+            pa_memchunk chunkmono, chunk8k;
 
-            switch (u->active_mic_channel){
+            switch (u->active_mic_channel) {
+            default:
+                pa_log_error("u->active_mic_channel value invalid");
+                pa_assert_not_reached();
 
             case MIC_BOTH:
-                pa_optimized_downmix_to_mono(&chunk, &achunk);
-
-                voice_convert_run_48_to_8(u, u->hw_source_to_aep_resampler, &achunk, &ochunk_ch0);
-                pa_memblock_unref(achunk.memblock);
-
-                pa_hook_fire(u->hooks[HOOK_NARROWBAND_MIC_EQ_MONO], &ochunk_ch0);
-
-                achunk = ochunk_ch0;
+                pa_optimized_downmix_to_mono(&chunk, &chunkmono);
                 break;
 
             case MIC_CH0:
-                pa_optimized_take_channel(&chunk, &ochunk_ch0, 0);
-
-                /* RMC used only with ECI headsets that have one mic */
-                pa_hook_fire(u->hooks[HOOK_RMC_MONO], &ochunk_ch0);
-
-                voice_convert_run_48_to_8(u, u->hw_source_to_aep_resampler, &ochunk_ch0, &achunk_ch0);
-                pa_memblock_unref(ochunk_ch0.memblock);
-                pa_hook_fire(u->hooks[HOOK_NARROWBAND_MIC_EQ_MONO], &achunk_ch0);
-                achunk = achunk_ch0;
+                pa_optimized_take_channel(&chunk, &chunkmono, 0);
                 break;
 
             case MIC_CH1:
-                pa_optimized_take_channel(&chunk, &ochunk_ch1, 1);
-
-                pa_hook_fire(u->hooks[HOOK_RMC_MONO], &ochunk_ch1);
-
-                voice_convert_run_48_to_8(u, u->hw_source_to_aep_resampler, &ochunk_ch1, &achunk_ch1);
-                pa_memblock_unref(ochunk_ch1.memblock);
-                pa_hook_fire(u->hooks[HOOK_NARROWBAND_MIC_EQ_MONO], &achunk_ch1);
-                achunk = achunk_ch1;
+                pa_optimized_take_channel(&chunk, &chunkmono, 1);
                 break;
-
-            default:
-                pa_log_error("u->active_mic_channel value invalid, chunk not filtered");
-                break;
-
             }
 
-            pa_assert(achunk.memblock);
-            pa_assert(achunk.length > 0);
+            /* RMC used only with ECI headsets that have one mic */
+            pa_hook_fire(u->hooks[HOOK_RMC_MONO], &chunkmono);
 
-            ul_frame_sent = voice_voip_source_process(u, &achunk);
-            pa_memblock_unref(achunk.memblock);
+            voice_convert_run_48_to_8(u, u->hw_source_to_aep_resampler, &chunkmono, &chunk8k);
+            pa_memblock_unref(chunkmono.memblock);
+            pa_hook_fire(u->hooks[HOOK_NARROWBAND_MIC_EQ_MONO], &chunk8k);
 
-            /* This branch is taken when call is not active e.g. when source.voice.raw is used */
+            ul_frame_sent = voice_voip_source_process(u, &chunk8k);
+            pa_memblock_unref(chunk8k.memblock);
+
         } else {
+            /* This branch is taken when call is not active e.g. when source.voice.raw is used */
+
+            /* used to store mono audio temporarily */
+            pa_memchunk ochunk_ch0;
+            pa_memchunk ochunk_ch1;
 
             /* NOTE: Raw source samples are not run trough any EQ if AEP is running. */
             pa_optimized_deinterleave_stereo_to_mono(&chunk, &ochunk_ch0, &ochunk_ch1);
+            pa_memblock_unref(chunk.memblock);
 
             pa_hook_fire(u->hooks[HOOK_WIDEBAND_MIC_EQ_MONO], &ochunk_ch0);
             pa_hook_fire(u->hooks[HOOK_WIDEBAND_MIC_EQ_MONO], &ochunk_ch1);
 
-            pa_optimized_interleave_stereo(&ochunk_ch0, &ochunk_ch1, &achunk);
+            pa_optimized_interleave_stereo(&ochunk_ch0, &ochunk_ch1, &chunk);
 
             pa_memblock_unref(ochunk_ch0.memblock);
             pa_memblock_unref(ochunk_ch1.memblock);
-            pa_memblock_unref(chunk.memblock);
-            chunk = achunk;
         }
 
         if (PA_SOURCE_IS_OPENED(u->raw_source->thread_info.state)) {
@@ -256,7 +229,6 @@ static void hw_source_output_push_cb(pa_source_output *o, const pa_memchunk *new
 
     if (u->ul_deadline)
         voice_uplink_timing_check(u, now, ul_frame_sent);
-
 
 #ifdef SOURCE_TIMING_DEBUG_ON
     pa_rtclock_get(&tv_new);
