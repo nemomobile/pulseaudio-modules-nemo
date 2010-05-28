@@ -82,15 +82,6 @@ static void cmtspeech_source_output_state_change_cb(pa_source_output *o, pa_sour
     pa_assert_se(u = o->userdata);
 
     pa_log_debug("State changed %d -> %d", o->thread_info.state, state);
-
-    if (state == PA_SOURCE_OUTPUT_CORKED && o->thread_info.state != PA_SOURCE_OUTPUT_CORKED) {
-        /* UL closing - nothing to do */
-        pa_log_info("UL corked");
-    }
-    else if (state != PA_SOURCE_OUTPUT_CORKED && o->thread_info.state == PA_SOURCE_OUTPUT_CORKED) {
-        /* UL opening - nothing to do */
-        pa_log_info("UL uncorked");
-    }
 }
 
 /* Called from main context */
@@ -145,7 +136,7 @@ int cmtspeech_create_source_output(struct userdata *u)
     ENTER();
 
     if (u->source_output) {
-        pa_log_warn("Create called but output already exists");
+        pa_log_info("Create called but output already exists");
         return 1;
     }
 
@@ -161,7 +152,7 @@ int cmtspeech_create_source_output(struct userdata *u)
     pa_proplist_sets(data.proplist, PA_PROP_APPLICATION_NAME, t);
     pa_source_output_new_data_set_sample_spec(&data, &u->ss);
     pa_source_output_new_data_set_channel_map(&data, &u->map);
-    data.flags = PA_SOURCE_OUTPUT_DONT_MOVE|PA_SOURCE_OUTPUT_START_CORKED;
+    data.flags = PA_SOURCE_OUTPUT_DONT_MOVE;
 
     pa_source_output_new(&u->source_output, u->core, &data);
     pa_source_output_new_data_done(&data);
@@ -182,6 +173,8 @@ int cmtspeech_create_source_output(struct userdata *u)
 
     pa_source_output_put(u->source_output);
 
+    pa_log_info("cmtspeech source-output created");
+
     return 0;
 }
 
@@ -197,4 +190,6 @@ void cmtspeech_delete_source_output(struct userdata *u) {
     pa_source_output_unlink(u->source_output);
     pa_source_output_unref(u->source_output);
     u->source_output = NULL;
+
+    pa_log_info("cmtspeech source-output deleted");
 }

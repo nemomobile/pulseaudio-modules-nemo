@@ -297,15 +297,6 @@ static void cmtspeech_sink_input_state_change_cb(pa_sink_input *i, pa_sink_input
     pa_assert_se(u = i->userdata);
 
     pa_log_debug("State changed %d -> %d", i->thread_info.state, state);
-
-    if (state == PA_SINK_INPUT_CORKED && i->thread_info.state != PA_SINK_INPUT_CORKED) {
-        cmtspeech_sink_input_reset_dl_stream(u);
-        pa_log_info("DL corked");
-    }
-    else if (state != PA_SINK_INPUT_CORKED && i->thread_info.state == PA_SINK_INPUT_CORKED) {
-        cmtspeech_sink_input_reset_dl_stream(u);
-        pa_log_info("DL uncorked");
-    }
 }
 
 /* Called from I/O thread context */
@@ -394,7 +385,7 @@ int cmtspeech_create_sink_input(struct userdata *u) {
     pa_proplist_sets(data.proplist, PA_PROP_APPLICATION_NAME, t);
     pa_sink_input_new_data_set_sample_spec(&data, &u->ss);
     pa_sink_input_new_data_set_channel_map(&data, &u->map);
-    data.flags = PA_SINK_INPUT_DONT_MOVE|PA_SINK_INPUT_START_CORKED;
+    data.flags = PA_SINK_INPUT_DONT_MOVE;
 
     pa_sink_input_new(&u->sink_input, u->core, &data);
     pa_sink_input_new_data_done(&data);
@@ -420,6 +411,8 @@ int cmtspeech_create_sink_input(struct userdata *u) {
 
     pa_sink_input_put(u->sink_input);
 
+    pa_log_info("cmtspeech sink-input created");
+
     return 0;
 }
 
@@ -428,11 +421,13 @@ void cmtspeech_delete_sink_input(struct userdata *u) {
     ENTER();
 
     if (!u->sink_input) {
-        pa_log_warn("Delete called but no sink input exists");
+        pa_log_info("Delete called but no sink input exists");
         return;
     }
 
     pa_sink_input_unlink(u->sink_input);
     pa_sink_input_unref(u->sink_input);
     u->sink_input = NULL;
+
+    pa_log_info("cmtspeech sink-input deleted");
 }

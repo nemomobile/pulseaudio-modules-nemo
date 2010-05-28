@@ -162,9 +162,6 @@ int pa__init(pa_module*m) {
     if (cmtspeech_connection_init(u))
 	goto fail;
 
-    cmtspeech_create_sink_input(u);
-    cmtspeech_create_source_output(u);
-
     return 0;
 fail:
     if (ma)

@@ -63,53 +63,22 @@ static int mainloop_handler_process_msg(pa_msgobject *o, int code, void *userdat
 
     case CMTSPEECH_MAINLOOP_HANDLER_CMT_UL_CONNECT:
         pa_log_debug("Handling CMTSPEECH_MAINLOOP_HANDLER_CMT_UL_CONNECT");
-        if (u->source_output && PA_SOURCE_OUTPUT_IS_LINKED(u->source_output->state)) {
-            set_source_buffer_mode(u, PA_ALSA_PROP_BUFFERS_ALTERNATIVE);
-            if (u->source_output->state == PA_SOURCE_OUTPUT_RUNNING)
-                pa_log_warn("UL_CONNECT: Source output is already running");
-            else
-                pa_source_output_cork(u->source_output, FALSE);
-        }
-        else
-            pa_log_warn("UL_CONNECT: Source output not there anymore (state = %d)",
-                        u->source_output ? (int) u->source_output->state : -1);
+        cmtspeech_create_source_output(u);
         return 0;
 
     case CMTSPEECH_MAINLOOP_HANDLER_CMT_UL_DISCONNECT:
         pa_log_debug("Handling CMTSPEECH_MAINLOOP_HANDLER_CMT_UL_DISCONNECT");
-        if (u->source_output && PA_SOURCE_OUTPUT_IS_LINKED(u->source_output->state)) {
-            set_source_buffer_mode(u, PA_ALSA_PROP_BUFFERS_PRIMARY);
-            if (u->source_output->state == PA_SOURCE_OUTPUT_CORKED)
-                pa_log_warn("UL_DISCONNECT: Source output is already corked");
-            else
-                pa_source_output_cork(u->source_output, TRUE);
-        }
-        else
-            pa_log_warn("UL_DISCONNECT: Source output not there anymore");
+        cmtspeech_delete_source_output(u);
         return 0;
 
     case CMTSPEECH_MAINLOOP_HANDLER_CMT_DL_CONNECT:
         pa_log_debug("Handling CMTSPEECH_MAINLOOP_HANDLER_CMT_DL_CONNECT");
-        if (u->sink_input && PA_SINK_INPUT_IS_LINKED(u->sink_input->state)) {
-            if (u->sink_input->state == PA_SINK_INPUT_RUNNING)
-                pa_log_warn("DL_CONNECT: Sink input is already running");
-            else
-                pa_sink_input_cork(u->sink_input, FALSE);
-        }
-        else
-            pa_log_warn("DL_CONNECT: Sink input not there anymore");
+        cmtspeech_create_sink_input(u);
         return 0;
 
     case CMTSPEECH_MAINLOOP_HANDLER_CMT_DL_DISCONNECT:
         pa_log_debug("Handling CMTSPEECH_MAINLOOP_HANDLER_CMT_DL_DISCONNECT");
-        if (u->sink_input && PA_SINK_INPUT_IS_LINKED(u->sink_input->state)) {
-                if (u->sink_input->state == PA_SINK_INPUT_CORKED)
-                    pa_log_warn("DL_DISCONNECT: Sink input is already corked");
-                else
-                    pa_sink_input_cork(u->sink_input, TRUE);
-        }
-        else
-            pa_log_warn("DL_DISCONNECT: Sink input not there anymore");
+        cmtspeech_delete_sink_input(u);
         return 0;
 
    default:
