@@ -112,6 +112,7 @@ static void signal_steps(struct mv_userdata *u) {
 
 static pa_hook_result_t call_state_cb(pa_call_state_tracker *t, void *active, struct mv_userdata *u) {
     u->call_active = pa_call_state_tracker_get_active(t);
+    signal_steps(u);
 
     return PA_HOOK_OK;
 }
@@ -519,6 +520,8 @@ void mainvolume_set_current_step(DBusConnection *conn, DBusMessage *msg, DBusMes
     mv_set_step(u, set_step);
 
     pa_dbus_send_empty_reply(conn, msg);
+
+    signal_steps(u);
 }
 
 void mainvolume_get_all(DBusConnection *conn, DBusMessage *msg, void *_u) {
