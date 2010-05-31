@@ -34,6 +34,8 @@
 #include <pulsecore/hook-list.h>
 #include <pulsecore/idxset.h>
 #include <pulsecore/hashmap.h>
+#include <pulse/timeval.h>
+#include <pulse/rtclock.h>
 
 #include <pulsecore/call-state-tracker.h>
 #include <pulsecore/volume-proxy.h>
@@ -61,11 +63,51 @@ static void dbus_signal_steps(struct mv_userdata *u);
 #define XMAEMO_CALL_STEPS "x-maemo.mainvolume.call"
 #define XMAEMO_MEDIA_STEPS "x-maemo.mainvolume.media"
 
+/* Send dbus signals at most every SIGNAL_INTERVAL seconds. */
+#define SIGNAL_INTERVAL ((pa_usec_t)(1 * PA_USEC_PER_SEC))
+
 static void steps_set_free(struct mv_volume_steps_set *s, void *userdata) {
     pa_assert(s);
 
     pa_xfree(s->route);
     pa_xfree(s);
+}
+
+static void signal_timer_stop(struct mv_userdata *u) {
+    if (u->signal_time_event) {
+        u->core->mainloop->time_free(u->signal_time_event);
+        u->signal_time_event = NULL;
+    }
+}
+
+static void signal_time_callback(pa_mainloop_api *a, pa_time_event *e, const struct timeval *t, void *userdata) {
+    struct mv_userdata *u = (struct mv_userdata*)userdata;
+
+    pa_assert(a);
+    pa_assert(e);
+    pa_assert(u);
+    pa_assert(e == u->signal_time_event);
+
+    signal_timer_stop(u);
+
+    /* signal changed step settings forward */
+    dbus_signal_steps(u);
+}
+
+static void signal_steps(struct mv_userdata *u) {
+    pa_usec_t now;
+
+    now = pa_rtclock_now();
+
+    if (now - u->last_signal_timestamp > SIGNAL_INTERVAL) {
+        signal_timer_stop(u);
+        /* signal changed step settings forward */
+        dbus_signal_steps(u);
+        return;
+    }
+
+    if (!u->signal_time_event)
+        u->signal_time_event = pa_core_rttime_new(u->core, now + SIGNAL_INTERVAL, signal_time_callback, u);
 }
 
 static pa_hook_result_t call_state_cb(pa_call_state_tracker *t, void *active, struct mv_userdata *u) {
@@ -171,8 +213,8 @@ static pa_hook_result_t parameters_changed_cb(pa_core *c, struct update_args *ua
 
     /* update steps for this route */
     mv_update_step(u);
-    /* signal changed step settings forward */
-    dbus_signal_steps(u);
+
+    signal_steps(u);
 
     return PA_HOOK_OK;
 }
@@ -181,16 +223,22 @@ static pa_hook_result_t volume_changed_cb(pa_volume_proxy *r, const char *name, 
     pa_volume_t vol;
     struct mv_volume_steps *steps;
     int new_step;
+    pa_bool_t call_steps;
 
     pa_assert(u);
 
     if (!pa_volume_proxy_get_volume(r, name, &vol))
         return PA_HOOK_OK;
 
-    if (pa_streq(name, CALL_STREAM))
+    if (pa_streq(name, CALL_STREAM)) {
         steps = &u->current_steps->call;
-    else
+        call_steps = TRUE;
+    } else if (pa_streq(name, MEDIA_STREAM)) {
         steps = &u->current_steps->media;
+        call_steps = FALSE;
+    } else {
+        return PA_HOOK_OK;
+    }
 
     new_step = mv_search_step(steps->step, steps->n_steps, vol);
 
@@ -200,7 +248,8 @@ static pa_hook_result_t volume_changed_cb(pa_volume_proxy *r, const char *name, 
         steps->current_step = new_step;
 
         /* signal changed step forward */
-        dbus_signal_steps(u);
+        if (call_steps == u->call_active)
+            signal_steps(u);
     }
 
     return PA_HOOK_OK;
@@ -270,6 +319,8 @@ int pa__init(pa_module *m) {
 
 void pa__done(pa_module *m) {
     struct mv_userdata *u = m->userdata;
+
+    signal_timer_stop(u);
 
     dbus_done(u);
 
@@ -410,6 +461,8 @@ void dbus_signal_steps(struct mv_userdata *u) {
                                           DBUS_TYPE_INVALID));
     pa_dbus_protocol_send_signal(u->dbus_protocol, signal);
     dbus_message_unref(signal);
+
+    u->last_signal_timestamp = pa_rtclock_now();
 }
 
 void mainvolume_get_revision(DBusConnection *conn, DBusMessage *msg, void *_u) {
