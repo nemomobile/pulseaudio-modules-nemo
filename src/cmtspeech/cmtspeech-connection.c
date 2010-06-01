@@ -452,11 +452,13 @@ static void close_cmtspeech_on_error(struct userdata *u)
 
     reset_call_stream_states(u);
 
-    if (u->sink_input && PA_SINK_INPUT_IS_LINKED(u->sink_input->state)) {
+    if (u->sink_input && PA_SINK_INPUT_IS_LINKED(u->sink_input->state) &&
+        u->sink_input->sink && u->sink_input->sink->asyncmsgq) {
         pa_assert_se(pa_asyncmsgq_send(u->sink_input->sink->asyncmsgq, PA_MSGOBJECT(u->sink_input),
-                                       PA_SINK_INPUT_MESSAGE_FLUSH_DL, NULL, 0, NULL));
+                                       PA_SINK_INPUT_MESSAGE_FLUSH_DL, NULL, 0, NULL) == 0);
     } else {
         cmtspeech_buffer_t *buf;
+        pa_log_debug("DL stream not connected. Flushing the queue locally");
         while((buf = pa_asyncq_pop(c->dl_frame_queue, 0))) {
             if (cmtspeech_dl_buffer_release(c->cmtspeech, buf)) {
                 pa_log_error("Freeing cmtspeech buffer failed!");
