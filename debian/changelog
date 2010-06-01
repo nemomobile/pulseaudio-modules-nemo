@@ -1,8 +1,14 @@
-pulseaudio-meego (0.9.19.0-3) UNRELEASED; urgency=low
+pulseaudio-meego (0.9.19.0-3) unstable; urgency=low
 
   * Fix crash problem associated with rerouting and cascaded sinks and sources
+  * record: modify to work in stereo mode by default
+  * mainvolume-tests: add python script for monitoring step updates
+  * Changed source.raw to stereo mode
+  * Implemented: SWP#MMFRA-1238
+  * Update to LGPL license
+  * Implemented: SWP#MMFRA-1244
 
- -- Maemo Multimedia <multimedia@maemo.org>  Mon, 03 May 2010 14:29:12 +0200
+ -- Maemo Multimedia <multimedia@maemo.org>  Tue, 01 Jun 2010 14:40:12 +0200
 
 pulseaudio-meego (0.9.19.0-2) unstable; urgency=low
 
