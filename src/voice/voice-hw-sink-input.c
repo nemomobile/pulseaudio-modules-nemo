@@ -504,12 +504,13 @@ static void hw_sink_input_attach_slave_sink(struct userdata *u, pa_sink *sink, p
         pa_sink_set_rtpoll(sink, to_sink->thread_info.rtpoll);
         voice_sink_inputs_may_move(sink, TRUE);
         sink->flat_volume_sink = to_sink;
-        pa_sink_attach_within_thread(sink);
         pa_sink_set_latency_range_within_thread(sink, to_sink->thread_info.min_latency,
                                                 to_sink->thread_info.max_latency);
         pa_sink_set_fixed_latency_within_thread(sink, to_sink->thread_info.fixed_latency);
         pa_sink_set_max_request_within_thread(sink, to_sink->thread_info.max_request);
         pa_sink_set_max_rewind_within_thread(sink, to_sink->thread_info.max_rewind);
+        /* The order is important here. This should be called last: */
+        pa_sink_attach_within_thread(sink);
     }
 }
 

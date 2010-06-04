@@ -339,12 +339,13 @@ static void sink_input_attach_cb(pa_sink_input *i) {
 
     sink_inputs_may_move(u->sink, TRUE);
     pa_sink_set_rtpoll(u->sink, i->sink->thread_info.rtpoll);
-    pa_sink_attach_within_thread(u->sink);
 
     pa_sink_set_latency_range_within_thread(u->sink, i->sink->thread_info.min_latency, i->sink->thread_info.max_latency);
     pa_sink_set_fixed_latency_within_thread(u->sink, i->sink->thread_info.fixed_latency);
     pa_sink_set_max_request_within_thread(u->sink, pa_sink_input_get_max_request(i));
     pa_sink_set_max_rewind_within_thread(u->sink, i->sink->thread_info.max_rewind);
+    /* The order is important here. This should be called last: */
+    pa_sink_attach_within_thread(u->sink);
 }
 
 /* Called from main context */

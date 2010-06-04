@@ -274,10 +274,11 @@ static void source_output_attach_cb(pa_source_output *o) {
 
     source_outputs_may_move(u->source, TRUE);
     pa_source_set_rtpoll(u->source, o->source->thread_info.rtpoll);
-    pa_source_attach_within_thread(u->source);
 
     pa_source_set_fixed_latency_within_thread(u->source, o->source->thread_info.fixed_latency);
     pa_source_set_latency_range_within_thread(u->source, o->source->thread_info.min_latency, o->source->thread_info.max_latency);
+    /* The order is important here. This should be called last: */
+    pa_source_attach_within_thread(u->source);
 }
 
 /* Called from main context */

@@ -413,10 +413,11 @@ static void hw_source_output_attach_slave_source(struct userdata *u, pa_source *
 
     if (source && PA_SOURCE_IS_LINKED(source->thread_info.state)) {
         pa_source_set_rtpoll(source, to_source->thread_info.rtpoll);
-        pa_source_attach_within_thread(source);
         pa_source_set_latency_range_within_thread(source, to_source->thread_info.min_latency,
                                                   to_source->thread_info.max_latency);
         pa_source_set_fixed_latency_within_thread(source, to_source->thread_info.fixed_latency);
+        /* The order is important here. This should be called last: */
+        pa_source_attach_within_thread(source);
     }
 }
 
