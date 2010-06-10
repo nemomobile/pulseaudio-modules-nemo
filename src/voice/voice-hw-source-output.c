@@ -45,23 +45,23 @@ static pa_bool_t voice_uplink_feed(struct userdata *u, pa_memchunk *chunk) {
     pa_assert(u->aep_fragment_size == chunk->length);
 
     if (pa_memblockq_push(u->ul_memblockq, chunk) < 0) {
-	pa_log("%s %d: Failed to push %d byte chunk into memblockq (len %d).",
-	       __FILE__, __LINE__, chunk->length,
-	       pa_memblockq_get_length(u->ul_memblockq));
+        pa_log("%s %d: Failed to push %d byte chunk into memblockq (len %d).",
+               __FILE__, __LINE__, chunk->length,
+               pa_memblockq_get_length(u->ul_memblockq));
     }
 
     if (util_memblockq_to_chunk(u->core->mempool, u->ul_memblockq, &ichunk, u->voice_ul_fragment_size)) {
-	if (pa_memblockq_get_length(u->ul_memblockq) != 0)
-	    pa_log("%s %d: AEP processed UL left over %d", __FILE__, __LINE__,
-		   pa_memblockq_get_length(u->ul_memblockq));
+        if (pa_memblockq_get_length(u->ul_memblockq) != 0)
+            pa_log("%s %d: AEP processed UL left over %d", __FILE__, __LINE__,
+                   pa_memblockq_get_length(u->ul_memblockq));
 
-	if (PA_SOURCE_IS_OPENED(u->voip_source->thread_info.state))
-	    pa_source_post(u->voip_source, &ichunk);
-	pa_memblock_unref(ichunk.memblock);
-	return TRUE;
+        if (PA_SOURCE_IS_OPENED(u->voip_source->thread_info.state))
+            pa_source_post(u->voip_source, &ichunk);
+        pa_memblock_unref(ichunk.memblock);
+        return TRUE;
     }
     else
-	return FALSE;
+        return FALSE;
 }
 
 static
@@ -268,11 +268,11 @@ static void hw_source_output_push_cb_8k_mono(pa_source_output *o, const pa_memch
         }
 
         if (PA_SOURCE_IS_OPENED(u->raw_source->thread_info.state)) {
-	    pa_memchunk ochunk;
-	    voice_convert_run_8_to_48(u, u->hw8khz_source_to_raw_source_resampler, &chunk, &ochunk);
+            pa_memchunk ochunk;
+            voice_convert_run_8_to_48(u, u->hw8khz_source_to_raw_source_resampler, &chunk, &ochunk);
             /* TODO: Mabe we should fire narrowband mic eq here */
             pa_source_post(u->raw_source, &ochunk);
-	    pa_memblock_unref(ochunk.memblock);
+            pa_memblock_unref(ochunk.memblock);
         }
         pa_memblock_unref(chunk.memblock);
     }
@@ -325,13 +325,13 @@ static void hw_source_output_process_rewind_cb(pa_source_output *o, size_t nbyte
         return;
 
     if (u->raw_source && PA_SOURCE_IS_OPENED(u->raw_source->thread_info.state)) {
-	size_t amount = hw_source_output_convert_bytes(o, u->raw_source, nbytes);
-	pa_source_process_rewind(u->raw_source, amount);
+        size_t amount = hw_source_output_convert_bytes(o, u->raw_source, nbytes);
+        pa_source_process_rewind(u->raw_source, amount);
     }
 
     if (u->voip_source && PA_SOURCE_IS_OPENED(u->voip_source->thread_info.state)) {
-	size_t amount = hw_source_output_convert_bytes(o, u->voip_source, nbytes);
-	pa_source_process_rewind(u->voip_source, amount);
+        size_t amount = hw_source_output_convert_bytes(o, u->voip_source, nbytes);
+        pa_source_process_rewind(u->voip_source, amount);
     }
 }
 
@@ -360,10 +360,10 @@ static void hw_source_output_update_source_latency_range_cb(pa_source_output *o)
     pa_assert_se(u = o->userdata);
 
     if (u->raw_source && PA_SOURCE_IS_LINKED(u->raw_source->thread_info.state))
-	pa_source_set_latency_range_within_thread(u->raw_source, o->source->thread_info.min_latency, o->source->thread_info.max_latency);
+        pa_source_set_latency_range_within_thread(u->raw_source, o->source->thread_info.min_latency, o->source->thread_info.max_latency);
 
     if (u->voip_source && PA_SOURCE_IS_LINKED(u->voip_source->thread_info.state))
-	pa_source_set_latency_range_within_thread(u->voip_source, o->source->thread_info.min_latency, o->source->thread_info.max_latency);
+        pa_source_set_latency_range_within_thread(u->voip_source, o->source->thread_info.min_latency, o->source->thread_info.max_latency);
 }
 
 /* Called from I/O thread context */
@@ -380,6 +380,16 @@ static void hw_source_output_update_source_fixed_latency_cb(pa_source_output *o)
         pa_source_set_fixed_latency_within_thread(u->voip_source, o->source->thread_info.fixed_latency);
 }
 
+static void hw_source_output_detach_slave_source(pa_source *source) {
+
+    if (source && PA_SOURCE_IS_LINKED(source->thread_info.state)) {
+        pa_source_detach_within_thread(source);
+        pa_source_set_asyncmsgq(source, NULL);
+        pa_source_set_rtpoll(source, NULL);
+        voice_source_outputs_may_move(source, FALSE);
+    }
+}
+
 /* Called from I/O thread context */
 static void hw_source_output_detach_cb(pa_source_output *o) {
     struct userdata *u;
@@ -387,21 +397,10 @@ static void hw_source_output_detach_cb(pa_source_output *o) {
     pa_source_output_assert_ref(o);
     pa_assert_se(u = o->userdata);
 
-    if (!u->raw_source || !PA_SOURCE_IS_LINKED(u->raw_source->thread_info.state))
-        return;
-
     u->master_source = NULL;
 
-    /* there is no aep-source-output to drive voip_source */
-    pa_source_detach_within_thread(u->voip_source);
-    pa_source_set_asyncmsgq(u->voip_source, NULL);
-    pa_source_set_rtpoll(u->voip_source, NULL);
-    voice_source_outputs_may_move(u->voip_source, FALSE);
-
-    pa_source_detach_within_thread(u->raw_source);
-    pa_source_set_asyncmsgq(u->raw_source, NULL);
-    pa_source_set_rtpoll(u->raw_source, NULL);
-    voice_source_outputs_may_move(u->raw_source, FALSE);
+    hw_source_output_detach_slave_source(u->raw_source);
+    hw_source_output_detach_slave_source(u->voip_source);
 
     pa_log_debug("Detach called");
 }
@@ -413,9 +412,13 @@ static void hw_source_output_attach_slave_source(struct userdata *u, pa_source *
 
     if (source && PA_SOURCE_IS_LINKED(source->thread_info.state)) {
         pa_source_set_rtpoll(source, to_source->thread_info.rtpoll);
-        pa_source_set_latency_range_within_thread(source, to_source->thread_info.min_latency,
-                                                  to_source->thread_info.max_latency);
-        pa_source_set_fixed_latency_within_thread(source, to_source->thread_info.fixed_latency);
+        if (to_source->flags & PA_SOURCE_DYNAMIC_LATENCY)
+            pa_source_set_latency_range_within_thread(source, to_source->thread_info.min_latency,
+                                                      to_source->thread_info.max_latency);
+        else
+            pa_source_set_fixed_latency_within_thread(source, to_source->thread_info.fixed_latency);
+
+        pa_source_set_max_rewind_within_thread(source, to_source->thread_info.max_rewind);
         /* The order is important here. This should be called last: */
         pa_source_attach_within_thread(source);
     }
@@ -476,10 +479,10 @@ static void hw_source_output_moving_cb(pa_source_output *o, pa_source *dest) {
     u->master_source = dest;
 
     if ((o->sample_spec.rate == VOICE_SAMPLE_RATE_AEP_HZ &&
-	 dest->sample_spec.rate != VOICE_SAMPLE_RATE_AEP_HZ) ||
-	(o->sample_spec.rate != VOICE_SAMPLE_RATE_AEP_HZ &&
-	 dest->sample_spec.rate == VOICE_SAMPLE_RATE_AEP_HZ)) {
-	pa_log_info("Reinitialize due to samplerate change %d->%d.",
+         dest->sample_spec.rate != VOICE_SAMPLE_RATE_AEP_HZ) ||
+        (o->sample_spec.rate != VOICE_SAMPLE_RATE_AEP_HZ &&
+         dest->sample_spec.rate == VOICE_SAMPLE_RATE_AEP_HZ)) {
+        pa_log_info("Reinitialize due to samplerate change %d->%d.",
                     o->sample_spec.rate, dest->sample_spec.rate);
         pa_log_debug("New source format %s", pa_sample_format_to_string(dest->sample_spec.format)) ;
         pa_log_debug("New source rate %d", dest->sample_spec.rate);
@@ -570,12 +573,12 @@ static pa_source_output *voice_hw_source_output_new(struct userdata *u, pa_sourc
     pa_proplist_sets(so_data.proplist, PA_PROP_MEDIA_NAME, t);
     pa_proplist_sets(so_data.proplist, PA_PROP_APPLICATION_NAME, t); /* this is the default value used by PA modules */
     if (u->master_source->sample_spec.rate == VOICE_SAMPLE_RATE_AEP_HZ) {
-	pa_source_output_new_data_set_sample_spec(&so_data, &u->aep_sample_spec);
-	pa_source_output_new_data_set_channel_map(&so_data, &u->aep_channel_map);
+        pa_source_output_new_data_set_sample_spec(&so_data, &u->aep_sample_spec);
+        pa_source_output_new_data_set_channel_map(&so_data, &u->aep_channel_map);
     }
     else {
-	pa_source_output_new_data_set_sample_spec(&so_data, &u->hw_sample_spec);
-	pa_source_output_new_data_set_channel_map(&so_data, &u->stereo_map);
+        pa_source_output_new_data_set_sample_spec(&so_data, &u->hw_sample_spec);
+        pa_source_output_new_data_set_channel_map(&so_data, &u->stereo_map);
     }
 
     pa_source_output_new(&new_source_output, u->master_source->core, &so_data);
@@ -651,7 +654,7 @@ static void voice_hw_source_output_reinit_defer_cb(pa_mainloop_api *m, pa_defer_
     u->hw_source_output = new_so;
     pa_source_output_put(u->hw_source_output);
 
-    pa_log_debug("Detaching the old sink input %p", (void*)old_so);
+    pa_log_debug("Detaching the old source output %p", (void*)old_so);
 
     old_so->detach = NULL;
     pa_source_output_unlink(old_so);

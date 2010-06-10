@@ -465,14 +465,14 @@ static void hw_sink_input_update_sink_fixed_latency_cb(pa_sink_input *i) {
 
 /* Called from I/O thread context */
 static void hw_sink_input_detach_slave_sink(pa_sink *sink) {
-    pa_assert(sink);
 
-    pa_sink_detach_within_thread(sink);
-    sink->flat_volume_sink = NULL;
-    pa_sink_set_asyncmsgq(sink, NULL);
-    pa_sink_set_rtpoll(sink, NULL);
-
-    voice_sink_inputs_may_move(sink, FALSE);
+    if (sink && PA_SINK_IS_LINKED(sink->thread_info.state)) {
+        pa_sink_detach_within_thread(sink);
+        sink->flat_volume_sink = NULL;
+        pa_sink_set_asyncmsgq(sink, NULL);
+        pa_sink_set_rtpoll(sink, NULL);
+        voice_sink_inputs_may_move(sink, FALSE);
+    }
 }
 
 /* Called from I/O thread context */
@@ -484,13 +484,8 @@ static void hw_sink_input_detach_cb(pa_sink_input *i) {
 
     u->master_sink = NULL;
 
-    if (u->raw_sink && PA_SINK_IS_LINKED(u->raw_sink->thread_info.state)) {
-        hw_sink_input_detach_slave_sink(u->raw_sink);
-    }
-
-    if (u->voip_sink && PA_SINK_IS_LINKED(u->voip_sink->thread_info.state)) {
-        hw_sink_input_detach_slave_sink(u->voip_sink);
-    }
+    hw_sink_input_detach_slave_sink(u->raw_sink);
+    hw_sink_input_detach_slave_sink(u->voip_sink);
 
     pa_log_debug("Detach called");
 }
@@ -504,11 +499,18 @@ static void hw_sink_input_attach_slave_sink(struct userdata *u, pa_sink *sink, p
         pa_sink_set_rtpoll(sink, to_sink->thread_info.rtpoll);
         voice_sink_inputs_may_move(sink, TRUE);
         sink->flat_volume_sink = to_sink;
-        pa_sink_set_latency_range_within_thread(sink, to_sink->thread_info.min_latency,
-                                                to_sink->thread_info.max_latency);
-        pa_sink_set_fixed_latency_within_thread(sink, to_sink->thread_info.fixed_latency);
+        if (to_sink->flags & PA_SINK_DYNAMIC_LATENCY)
+            pa_sink_set_latency_range_within_thread(sink, to_sink->thread_info.min_latency,
+                                                    to_sink->thread_info.max_latency);
+        else
+            pa_sink_set_fixed_latency_within_thread(sink, to_sink->thread_info.fixed_latency);
         pa_sink_set_max_request_within_thread(sink, to_sink->thread_info.max_request);
         pa_sink_set_max_rewind_within_thread(sink, to_sink->thread_info.max_rewind);
+        pa_log_debug("%s (flags=0x%04x) updated min_l=%llu max_l=%llu fixed_l=%llu max_req=%u max_rew=%u",
+                     sink->name, sink->flags,
+                     sink->thread_info.min_latency, sink->thread_info.max_latency,
+                     sink->thread_info.fixed_latency, sink->thread_info.max_request,
+                     sink->thread_info.max_rewind);
         /* The order is important here. This should be called last: */
         pa_sink_attach_within_thread(sink);
     }

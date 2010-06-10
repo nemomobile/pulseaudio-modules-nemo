@@ -275,8 +275,13 @@ static void source_output_attach_cb(pa_source_output *o) {
     source_outputs_may_move(u->source, TRUE);
     pa_source_set_rtpoll(u->source, o->source->thread_info.rtpoll);
 
-    pa_source_set_fixed_latency_within_thread(u->source, o->source->thread_info.fixed_latency);
-    pa_source_set_latency_range_within_thread(u->source, o->source->thread_info.min_latency, o->source->thread_info.max_latency);
+    if (o->source->flags & PA_SOURCE_DYNAMIC_LATENCY)
+        pa_source_set_latency_range_within_thread(u->source, o->source->thread_info.min_latency,
+                                                  o->source->thread_info.max_latency);
+    else
+        pa_source_set_fixed_latency_within_thread(u->source, o->source->thread_info.fixed_latency);
+
+    pa_source_set_max_rewind_within_thread(u->source, pa_source_output_get_max_rewind(o));
     /* The order is important here. This should be called last: */
     pa_source_attach_within_thread(u->source);
 }

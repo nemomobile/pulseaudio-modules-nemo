@@ -209,13 +209,13 @@ static int sink_input_pop_cb(pa_sink_input *i, size_t length, pa_memchunk *chunk
         pa_sink_process_rewind(u->sink, 0);
 
     if (!PA_SINK_IS_OPENED(u->sink->thread_info.state)) {
-	/* There are no clients playing to music sink,
-	   let's just cut out silence and be done with it. */
-	pa_silence_memchunk_get(&u->core->silence_cache,
-				u->core->mempool,
-				chunk,
-				&i->sample_spec,
-				length);
+        /* There are no clients playing to music sink,
+           let's just cut out silence and be done with it. */
+        pa_silence_memchunk_get(&u->core->silence_cache,
+                                u->core->mempool,
+                                chunk,
+                                &i->sample_spec,
+                                length);
     } else {
         pa_sink_render_full(u->sink, u->window_size, chunk);
 
@@ -340,10 +340,18 @@ static void sink_input_attach_cb(pa_sink_input *i) {
     sink_inputs_may_move(u->sink, TRUE);
     pa_sink_set_rtpoll(u->sink, i->sink->thread_info.rtpoll);
 
-    pa_sink_set_latency_range_within_thread(u->sink, i->sink->thread_info.min_latency, i->sink->thread_info.max_latency);
-    pa_sink_set_fixed_latency_within_thread(u->sink, i->sink->thread_info.fixed_latency);
+    if (i->sink->flags & PA_SINK_DYNAMIC_LATENCY)
+        pa_sink_set_latency_range_within_thread(u->sink, i->sink->thread_info.min_latency,
+                                                i->sink->thread_info.max_latency);
+    else
+        pa_sink_set_fixed_latency_within_thread(u->sink, i->sink->thread_info.fixed_latency);
     pa_sink_set_max_request_within_thread(u->sink, pa_sink_input_get_max_request(i));
     pa_sink_set_max_rewind_within_thread(u->sink, i->sink->thread_info.max_rewind);
+    pa_log_debug("%s (flags=0x%04x) updated min_l=%llu max_l=%llu fixed_l=%llu max_req=%u max_rew=%u",
+                 u->sink->name, u->sink->flags,
+                 u->sink->thread_info.min_latency, u->sink->thread_info.max_latency,
+                 u->sink->thread_info.fixed_latency, u->sink->thread_info.max_request,
+                 u->sink->thread_info.max_rewind);
     /* The order is important here. This should be called last: */
     pa_sink_attach_within_thread(u->sink);
 }
