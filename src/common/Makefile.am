@@ -26,6 +26,9 @@ libmeego_common_la_LIBADD += \
 	ar x src_8_48_neon.a
 endif
 
-check_PROGRAMS = tests
-tests_SOURCES = tests.c
-tests_LDADD = liboptimized.a
+TESTS = check_common
+check_PROGRAMS = check_common
+check_common_SOURCES = tests.c
+check_common_LDADD = libmeego-common.la $(CHECK_LIBS)
+check_common_CFLAGS = $(CHECK_CFLAGS)
+
