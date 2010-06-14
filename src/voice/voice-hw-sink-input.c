@@ -129,7 +129,7 @@ static int hw_sink_input_pop_cb(pa_sink_input *i, size_t length, pa_memchunk *ch
         length += u->hw_fragment_size - (length % u->hw_fragment_size);
 
     if (u->aep_sink_input && PA_SINK_INPUT_IS_LINKED(
-	    u->aep_sink_input->thread_info.state)) {
+            u->aep_sink_input->thread_info.state)) {
         aep_volume = u->aep_sink_input->thread_info.muted ?
             PA_VOLUME_MUTED : u->aep_sink_input->thread_info.soft_volume.values[0];
     }
@@ -138,31 +138,31 @@ static int hw_sink_input_pop_cb(pa_sink_input *i, size_t length, pa_memchunk *ch
         if (u->voip_sink->thread_info.rewind_requested)
             pa_sink_process_rewind(u->voip_sink, 0);
         voice_aep_sink_process(u, &aepchunk);
-	if (aep_volume != PA_VOLUME_MUTED && !pa_memblock_is_silence(aepchunk.memblock)) {
-	    if (aep_volume != PA_VOLUME_NORM) {
-		pa_memchunk_make_writable(&aepchunk, 0);
-		pa_optimized_apply_volume(&aepchunk, aep_volume);
-	    }
-	}
-	else if (!pa_memblock_is_silence(aepchunk.memblock)) {
-	    pa_memblock_unref(aepchunk.memblock);
-	    pa_silence_memchunk_get(&u->core->silence_cache,
-				    u->core->mempool,
+        if (aep_volume != PA_VOLUME_MUTED && !pa_memblock_is_silence(aepchunk.memblock)) {
+            if (aep_volume != PA_VOLUME_NORM) {
+                pa_memchunk_make_writable(&aepchunk, 0);
+                pa_optimized_apply_volume(&aepchunk, aep_volume);
+            }
+        }
+        else if (!pa_memblock_is_silence(aepchunk.memblock)) {
+            pa_memblock_unref(aepchunk.memblock);
+            pa_silence_memchunk_get(&u->core->silence_cache,
+                                    u->core->mempool,
                                     &aepchunk,
-				    &u->aep_sample_spec,
-				    aepchunk.length);
-	}
+                                    &u->aep_sample_spec,
+                                    aepchunk.length);
+        }
         length = 2*(48/8)*aepchunk.length;
     }
 
     if (voice_raw_sink_active_iothread(u)) {
         if (u->raw_sink->thread_info.rewind_requested)
             pa_sink_process_rewind(u->raw_sink, 0);
-	if (aepchunk.length > 0) {
+        if (aepchunk.length > 0) {
             pa_sink_render_full(u->raw_sink, length, &rawchunk);
-	} else {
-	    pa_sink_render_full(u->raw_sink, length, &rawchunk);
-	}
+        } else {
+            pa_sink_render_full(u->raw_sink, length, &rawchunk);
+        }
 
         if (pa_atomic_load(&u->mixer_state) == PROP_MIXER_TUNING_ALT &&
             u->alt_mixer_compensation != PA_VOLUME_NORM &&
@@ -173,41 +173,41 @@ static int hw_sink_input_pop_cb(pa_sink_input *i, size_t length, pa_memchunk *ch
     }
 
     if (aepchunk.length > 0 && !pa_memblock_is_silence(aepchunk.memblock)) {
-	if (rawchunk.length > 0 && !pa_memblock_is_silence(rawchunk.memblock)) {
+        if (rawchunk.length > 0 && !pa_memblock_is_silence(rawchunk.memblock)) {
 #if 1 /* Use only NB IIR EQ and down mix raw sink to mono when in a call */
-	    pa_memchunk monochunk, stereochunk;
-	    pa_hook_fire(u->hooks[HOOK_NARROWBAND_EAR_EQU_MONO], &aepchunk);
-	    voice_convert_run_8_to_48(u, u->aep_to_hw_sink_resampler, &aepchunk, chunk);
-	    pa_optimized_downmix_to_mono(&rawchunk, &monochunk);
-	    pa_memblock_unref(rawchunk.memblock);
-	    pa_memchunk_reset(&rawchunk);
-	    pa_assert(monochunk.length == chunk->length);
-	    pa_optimized_equal_mix_in(chunk, &monochunk);
-	    pa_memblock_unref(monochunk.memblock);
+            pa_memchunk monochunk, stereochunk;
+            pa_hook_fire(u->hooks[HOOK_NARROWBAND_EAR_EQU_MONO], &aepchunk);
+            voice_convert_run_8_to_48(u, u->aep_to_hw_sink_resampler, &aepchunk, chunk);
+            pa_optimized_downmix_to_mono(&rawchunk, &monochunk);
+            pa_memblock_unref(rawchunk.memblock);
+            pa_memchunk_reset(&rawchunk);
+            pa_assert(monochunk.length == chunk->length);
+            pa_optimized_equal_mix_in(chunk, &monochunk);
+            pa_memblock_unref(monochunk.memblock);
             pa_hook_fire(u->hooks[HOOK_XPROT_MONO], chunk);
             pa_optimized_mono_to_stereo(chunk, &stereochunk);
             pa_memblock_unref(chunk->memblock);
             *chunk = stereochunk;
 #else /* Do full stereo processing if the raw and aep inputs are both available */
-	    voice_convert_run_8_to_48_stereo(u, u->aep_to_hw_sink_resampler, &aepchunk, chunk);
-	    pa_assert(chunk->length == rawchunk.length);
-	    pa_optimized_equal_mix_in(chunk, &rawchunk);
-	    pa_hook_fire(u->hooks[HOOK_HW_SINK_PROCESS], chunk);
+            voice_convert_run_8_to_48_stereo(u, u->aep_to_hw_sink_resampler, &aepchunk, chunk);
+            pa_assert(chunk->length == rawchunk.length);
+            pa_optimized_equal_mix_in(chunk, &rawchunk);
+            pa_hook_fire(u->hooks[HOOK_HW_SINK_PROCESS], chunk);
 #endif
-	}
-	else {
+        }
+        else {
             pa_memchunk stereochunk;
             pa_hook_fire(u->hooks[HOOK_NARROWBAND_EAR_EQU_MONO], &aepchunk);
-	    voice_convert_run_8_to_48(u, u->aep_to_hw_sink_resampler, &aepchunk, chunk);
+            voice_convert_run_8_to_48(u, u->aep_to_hw_sink_resampler, &aepchunk, chunk);
             pa_hook_fire(u->hooks[HOOK_XPROT_MONO], chunk);
             pa_optimized_mono_to_stereo(chunk, &stereochunk);
             pa_memblock_unref(chunk->memblock);
             *chunk = stereochunk;
-	}
+        }
     }
     else if (rawchunk.length > 0 && !pa_memblock_is_silence(rawchunk.memblock)) {
-	*chunk = rawchunk;
-	pa_memchunk_reset(&rawchunk);
+        *chunk = rawchunk;
+        pa_memchunk_reset(&rawchunk);
         pa_hook_fire(u->hooks[HOOK_HW_SINK_PROCESS], chunk);
     }
     else {
@@ -283,7 +283,7 @@ static int hw_sink_input_pop_8k_mono_cb(pa_sink_input *i, size_t length, pa_memc
 
     pa_volume_t aep_volume = PA_VOLUME_NORM;
     if (u->aep_sink_input && PA_SINK_INPUT_IS_LINKED(
-	    u->aep_sink_input->thread_info.state)) {
+            u->aep_sink_input->thread_info.state)) {
         aep_volume = u->aep_sink_input->thread_info.muted ?
             PA_VOLUME_MUTED : u->aep_sink_input->thread_info.soft_volume.values[0];
     }
@@ -291,16 +291,16 @@ static int hw_sink_input_pop_8k_mono_cb(pa_sink_input *i, size_t length, pa_memc
     if (voice_voip_sink_active_iothread(u)) {
         pa_memchunk ichunk;
         voice_aep_sink_process(u, &ichunk);
-	if (aep_volume != PA_VOLUME_MUTED) {
-	    *chunk = ichunk;
-	}
-	else {
-	    pa_memblock_unref(ichunk.memblock);
-	    pa_silence_memchunk_get(&u->core->silence_cache,
-				    u->core->mempool,
+        if (aep_volume != PA_VOLUME_MUTED) {
+            *chunk = ichunk;
+        }
+        else {
+            pa_memblock_unref(ichunk.memblock);
+            pa_silence_memchunk_get(&u->core->silence_cache,
+                                    u->core->mempool,
                                     chunk,
-				    &u->aep_sample_spec,
-				    ichunk.length);
+                                    &u->aep_sample_spec,
+                                    ichunk.length);
         }
         have_aep_frame = 1;
     }
@@ -311,9 +311,9 @@ static int hw_sink_input_pop_8k_mono_cb(pa_sink_input *i, size_t length, pa_memc
         if (have_aep_frame) {
             pa_memchunk tchunk, ichunk;
             pa_sink_render_full(u->raw_sink, 2*(48/8)*chunk->length, &tchunk);
-	    voice_convert_run_48_stereo_to_8(u, u->raw_sink_to_hw8khz_sink_resampler, &tchunk, &ichunk);
-	    pa_assert(ichunk.length == chunk->length);
-	    pa_memblock_unref(tchunk.memblock);
+            voice_convert_run_48_stereo_to_8(u, u->raw_sink_to_hw8khz_sink_resampler, &tchunk, &ichunk);
+            pa_assert(ichunk.length == chunk->length);
+            pa_memblock_unref(tchunk.memblock);
             if (!pa_memblock_is_silence(chunk->memblock)) {
                 if (aep_volume == PA_VOLUME_NORM)
                     pa_optimized_equal_mix_in(&ichunk, chunk);
@@ -324,23 +324,23 @@ static int hw_sink_input_pop_8k_mono_cb(pa_sink_input *i, size_t length, pa_memc
             *chunk = ichunk;
         }
         else {
-	    pa_memchunk ichunk;
-	    pa_sink_render_full(u->raw_sink, u->hw_fragment_size, &ichunk);
- 	    voice_convert_run_48_stereo_to_8(u, u->raw_sink_to_hw8khz_sink_resampler, &ichunk, chunk);
-	    pa_memblock_unref(ichunk.memblock);
+            pa_memchunk ichunk;
+            pa_sink_render_full(u->raw_sink, u->hw_fragment_size, &ichunk);
+            voice_convert_run_48_stereo_to_8(u, u->raw_sink_to_hw8khz_sink_resampler, &ichunk, chunk);
+            pa_memblock_unref(ichunk.memblock);
         }
         have_raw_frame = 1;
     } else if (have_aep_frame && aep_volume != PA_VOLUME_NORM &&
                !pa_memblock_is_silence(chunk->memblock)) {
-	pa_optimized_apply_volume(chunk, aep_volume);
+        pa_optimized_apply_volume(chunk, aep_volume);
     }
 
     if (!have_raw_frame && !have_aep_frame) {
-	pa_silence_memchunk_get(&u->core->silence_cache,
-				u->core->mempool,
-				chunk,
-				&i->sample_spec,
-				length);
+        pa_silence_memchunk_get(&u->core->silence_cache,
+                                u->core->mempool,
+                                chunk,
+                                &i->sample_spec,
+                                length);
     }
 
     /* FIXME: voice_voip_source_active_iothread() should only be called from
@@ -383,21 +383,21 @@ static void hw_sink_input_process_rewind_cb(pa_sink_input *i, size_t nbytes) {
         return;
 
     if (u->raw_sink && PA_SINK_IS_OPENED(u->raw_sink->thread_info.state)) {
-	size_t amount = hw_sink_input_convert_bytes(i, u->raw_sink, nbytes);
-	if (u->raw_sink->thread_info.rewind_nbytes > 0) {
-	    amount = PA_MIN(u->raw_sink->thread_info.rewind_nbytes, amount);
-	    u->raw_sink->thread_info.rewind_nbytes = 0;
-	}
-	pa_sink_process_rewind(u->raw_sink, amount);
+        size_t amount = hw_sink_input_convert_bytes(i, u->raw_sink, nbytes);
+        if (u->raw_sink->thread_info.rewind_nbytes > 0) {
+            amount = PA_MIN(u->raw_sink->thread_info.rewind_nbytes, amount);
+            u->raw_sink->thread_info.rewind_nbytes = 0;
+        }
+        pa_sink_process_rewind(u->raw_sink, amount);
     }
 
     if (u->voip_sink && PA_SINK_IS_OPENED(u->voip_sink->thread_info.state)) {
-	size_t amount = hw_sink_input_convert_bytes(i, u->voip_sink, nbytes);
-	if (u->voip_sink->thread_info.rewind_nbytes > 0) {
-	    amount = PA_MIN(u->voip_sink->thread_info.rewind_nbytes, amount);
-	    u->voip_sink->thread_info.rewind_nbytes = 0;
-	}
-	pa_sink_process_rewind(u->voip_sink, amount);
+        size_t amount = hw_sink_input_convert_bytes(i, u->voip_sink, nbytes);
+        if (u->voip_sink->thread_info.rewind_nbytes > 0) {
+            amount = PA_MIN(u->voip_sink->thread_info.rewind_nbytes, amount);
+            u->voip_sink->thread_info.rewind_nbytes = 0;
+        }
+        pa_sink_process_rewind(u->voip_sink, amount);
     }
 }
 
@@ -443,10 +443,10 @@ static void hw_sink_input_update_sink_latency_range_cb(pa_sink_input *i) {
     pa_assert_se(u = i->userdata);
 
     if (u->raw_sink && PA_SINK_IS_LINKED(u->raw_sink->thread_info.state))
-	pa_sink_set_latency_range_within_thread(u->raw_sink, i->sink->thread_info.min_latency, i->sink->thread_info.max_latency);
+        pa_sink_set_latency_range_within_thread(u->raw_sink, i->sink->thread_info.min_latency, i->sink->thread_info.max_latency);
 
     if (u->voip_sink && PA_SINK_IS_LINKED(u->voip_sink->thread_info.state))
-	pa_sink_set_latency_range_within_thread(u->voip_sink, i->sink->thread_info.min_latency, i->sink->thread_info.max_latency);
+        pa_sink_set_latency_range_within_thread(u->voip_sink, i->sink->thread_info.min_latency, i->sink->thread_info.max_latency);
 }
 
 /* Called from I/O thread context */
@@ -621,10 +621,10 @@ static void hw_sink_input_moving_cb(pa_sink_input *i, pa_sink *dest){
        sink->asyncmsq is NULL at that time */
 
     if ((i->sample_spec.rate == VOICE_SAMPLE_RATE_AEP_HZ &&
-	 dest->sample_spec.rate != VOICE_SAMPLE_RATE_AEP_HZ) ||
-	(i->sample_spec.rate != VOICE_SAMPLE_RATE_AEP_HZ &&
-	 dest->sample_spec.rate == VOICE_SAMPLE_RATE_AEP_HZ)) {
-	pa_log_info("Reinitialize due to samplerate change %d->%d.",
+         dest->sample_spec.rate != VOICE_SAMPLE_RATE_AEP_HZ) ||
+        (i->sample_spec.rate != VOICE_SAMPLE_RATE_AEP_HZ &&
+         dest->sample_spec.rate == VOICE_SAMPLE_RATE_AEP_HZ)) {
+        pa_log_info("Reinitialize due to samplerate change %d->%d.",
                     i->sample_spec.rate, dest->sample_spec.rate);
         pa_log_debug("New sink format %s", pa_sample_format_to_string(dest->sample_spec.format)) ;
         pa_log_debug("New sink rate %d", dest->sample_spec.rate);
@@ -697,12 +697,12 @@ static pa_sink_input *voice_hw_sink_input_new(struct userdata *u, pa_sink_input_
     pa_proplist_sets(sink_input_data.proplist, PA_PROP_MEDIA_NAME, t);
     pa_proplist_sets(sink_input_data.proplist, PA_PROP_APPLICATION_NAME, t); /* this is the default value used by PA modules */
     if (u->master_sink->sample_spec.rate == VOICE_SAMPLE_RATE_AEP_HZ) {
-	pa_sink_input_new_data_set_sample_spec(&sink_input_data, &u->aep_sample_spec);
-	pa_sink_input_new_data_set_channel_map(&sink_input_data, &u->aep_channel_map);
+        pa_sink_input_new_data_set_sample_spec(&sink_input_data, &u->aep_sample_spec);
+        pa_sink_input_new_data_set_channel_map(&sink_input_data, &u->aep_channel_map);
     }
     else {
-	pa_sink_input_new_data_set_sample_spec(&sink_input_data, &u->hw_sample_spec);
-	pa_sink_input_new_data_set_channel_map(&sink_input_data, &u->stereo_map);
+        pa_sink_input_new_data_set_sample_spec(&sink_input_data, &u->hw_sample_spec);
+        pa_sink_input_new_data_set_channel_map(&sink_input_data, &u->stereo_map);
     }
     pa_cvolume_reset(&sink_input_data.volume, sink_input_data.sample_spec.channels);
 
@@ -715,9 +715,9 @@ static pa_sink_input *voice_hw_sink_input_new(struct userdata *u, pa_sink_input_
     }
 
     if (u->master_sink->sample_spec.rate == VOICE_SAMPLE_RATE_AEP_HZ)
-	new_sink_input->pop = hw_sink_input_pop_8k_mono_cb;
+        new_sink_input->pop = hw_sink_input_pop_8k_mono_cb;
     else
-	new_sink_input->pop = hw_sink_input_pop_cb;
+        new_sink_input->pop = hw_sink_input_pop_cb;
     new_sink_input->process_rewind = hw_sink_input_process_rewind_cb;
     new_sink_input->update_max_rewind = hw_sink_input_update_max_rewind_cb;
     new_sink_input->update_max_request = hw_sink_input_update_max_request_cb;
