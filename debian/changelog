@@ -1,3 +1,12 @@
+pulseaudio-meego (0.9.19.0-4) unstable; urgency=low
+
+  * voice+music+record: Check master sink and source flags in attach cb.
+  * Fixes: NB#174674 - Pulseaudio asserts if ringtone resource is acquired in silent mode.
+  * Unit tests are now run after build.
+  * Fixed unit test compilation.
+
+ -- Maemo Multimedia <multimedia@maemo.org>  Tue, 15 Jun 2010 14:42:45 +0300
+
 pulseaudio-meego (0.9.19.0-3) unstable; urgency=low
 
   * Fix crash problem associated with rerouting and cascaded sinks and sources
