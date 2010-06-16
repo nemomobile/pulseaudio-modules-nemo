@@ -158,11 +158,8 @@ static int hw_sink_input_pop_cb(pa_sink_input *i, size_t length, pa_memchunk *ch
     if (voice_raw_sink_active_iothread(u)) {
         if (u->raw_sink->thread_info.rewind_requested)
             pa_sink_process_rewind(u->raw_sink, 0);
-        if (aepchunk.length > 0) {
-            pa_sink_render_full(u->raw_sink, length, &rawchunk);
-        } else {
-            pa_sink_render_full(u->raw_sink, length, &rawchunk);
-        }
+
+        pa_sink_render_full(u->raw_sink, length, &rawchunk);
 
         if (pa_atomic_load(&u->mixer_state) == PROP_MIXER_TUNING_ALT &&
             u->alt_mixer_compensation != PA_VOLUME_NORM &&
