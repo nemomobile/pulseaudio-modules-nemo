@@ -287,6 +287,8 @@ static int hw_sink_input_pop_8k_mono_cb(pa_sink_input *i, size_t length, pa_memc
 
     if (voice_voip_sink_active_iothread(u)) {
         pa_memchunk ichunk;
+        if (u->voip_sink->thread_info.rewind_requested)
+            pa_sink_process_rewind(u->voip_sink, 0);
         voice_aep_sink_process(u, &ichunk);
         if (aep_volume != PA_VOLUME_MUTED) {
             *chunk = ichunk;
