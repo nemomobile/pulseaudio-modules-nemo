@@ -277,7 +277,8 @@ static void hw_source_output_push_cb_8k_mono(pa_source_output *o, const pa_memch
         pa_memblock_unref(chunk.memblock);
     }
 
-    voice_uplink_timing_check(u, now, ul_frame_sent);
+    if (u->ul_deadline)
+        voice_uplink_timing_check(u, now, ul_frame_sent);
 
 #ifdef SOURCE_TIMING_DEBUG_ON
     pa_rtclock_get(&tv_new);
