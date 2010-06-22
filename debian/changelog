@@ -1,3 +1,10 @@
+pulseaudio-meego (0.9.19.0-5) unstable; urgency=low
+
+  * voice: Get rid of rare assert failure at pulsecore.
+  * voice: Fixed uplink timing issue.
+
+ -- Maemo Multimedia <multimedia@maemo.org>  Tue,22 Jun 2010 09:20:23 +0300
+
 pulseaudio-meego (0.9.19.0-4) unstable; urgency=low
 
   * voice+music+record: Check master sink and source flags in attach cb.
