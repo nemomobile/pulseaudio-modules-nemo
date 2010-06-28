@@ -1,0 +1,6 @@
+# subsystem: PulseAudio
+# src-pkg: pulseaudio-meego
+interface: PulseAudio mainvolume interface
+type: dbus
+state: unstable
+scope: internal
