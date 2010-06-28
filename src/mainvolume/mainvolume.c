@@ -108,7 +108,7 @@ pa_bool_t mv_update_step(struct mv_userdata *u) {
     pa_assert(u);
     pa_assert(u->current_steps);
 
-    if (!pa_volume_proxy_get_volume(u->volume_proxy, CALL_STREAM, &vol)) {
+    if (pa_volume_proxy_get_volume(u->volume_proxy, CALL_STREAM, &vol)) {
         step = mv_search_step(u->current_steps->call.step, u->current_steps->call.n_steps, vol);
         u->current_steps->call.current_step = step;
     } else
