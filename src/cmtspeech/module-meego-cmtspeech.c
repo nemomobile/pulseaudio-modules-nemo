@@ -101,6 +101,8 @@ int pa__init(pa_module*m) {
     pa_modargs *ma = NULL;
     struct userdata *u;
     const char *sink_name, *source_name, *dbus_type;
+    pa_sink *sink = NULL;
+    pa_source *source = NULL;
 
     pa_assert(m);
 
@@ -129,20 +131,23 @@ int pa__init(pa_module*m) {
     u->dl_frame_size = pa_usec_to_bytes(VOICE_SINK_FRAMESIZE+1, &u->ss);
     u->ul_frame_size = pa_usec_to_bytes(VOICE_SOURCE_FRAMESIZE+1, &u->ss);
 
-    if (!(u->source = pa_namereg_get(m->core, source_name, PA_NAMEREG_SOURCE))) {
+    if (!(source = pa_namereg_get(m->core, source_name, PA_NAMEREG_SOURCE))) {
         pa_log_error("Source \"%s\" not found", source_name);
         goto fail;
     }
 
-    if (!(u->sink = pa_namereg_get(m->core, sink_name, PA_NAMEREG_SINK))) {
+    if (!(sink = pa_namereg_get(m->core, sink_name, PA_NAMEREG_SINK))) {
         pa_log_error("Sink \"%s\" not found", sink_name);
         goto fail;
     }
 
-    if (cmtspeech_check_source_api(u->source))
+    u->sink_name = pa_xstrdup(sink_name);
+    u->source_name = pa_xstrdup(source_name);
+
+    if (cmtspeech_check_source_api(source))
         goto fail;
 
-    if (cmtspeech_check_sink_api(u->sink))
+    if (cmtspeech_check_sink_api(sink))
         goto fail;
 
     u->sink_input = NULL;
@@ -206,6 +211,12 @@ void pa__done(pa_module*m) {
         pa_memblockq_free(u->dl_memblockq);
         u->dl_memblockq = NULL;
     }
+
+    if (u->sink_name)
+        pa_xfree(u->sink_name);
+
+    if (u->source_name)
+        pa_xfree(u->source_name);
 
     pa_xfree(u);
 }

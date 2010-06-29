@@ -24,6 +24,9 @@
 #include <pulsecore/namereg.h>
 #include "proplist-meego.h"
 
+#include "cmtspeech-source-output.h"
+#include "cmtspeech-sink-input.h"
+
 PA_DEFINE_PUBLIC_CLASS(cmtspeech_mainloop_handler, pa_msgobject);
 
 static void mainloop_handler_free(pa_object *o) {
@@ -61,9 +64,18 @@ static int mainloop_handler_process_msg(pa_msgobject *o, int code, void *userdat
 
     switch (code) {
 
+    case CMTSPEECH_MAINLOOP_HANDLER_CREATE_STREAMS:
+        pa_log_debug("Handling CMTSPEECH_MAINLOOP_HANDLER_CREATE_STREAMS");
+        cmtspeech_create_source_output(u);
+        cmtspeech_create_sink_input(u);
+        return 0;
+
     case CMTSPEECH_MAINLOOP_HANDLER_CMT_UL_CONNECT:
         pa_log_debug("Handling CMTSPEECH_MAINLOOP_HANDLER_CMT_UL_CONNECT");
-        cmtspeech_create_source_output(u);
+        if (u->source_output->state == PA_SOURCE_OUTPUT_RUNNING)
+            pa_log_warn("UL_CONNECT: source output is already running");
+        else
+            pa_source_output_cork(u->source_output, FALSE);
         return 0;
 
     case CMTSPEECH_MAINLOOP_HANDLER_CMT_UL_DISCONNECT:
@@ -73,7 +85,10 @@ static int mainloop_handler_process_msg(pa_msgobject *o, int code, void *userdat
 
     case CMTSPEECH_MAINLOOP_HANDLER_CMT_DL_CONNECT:
         pa_log_debug("Handling CMTSPEECH_MAINLOOP_HANDLER_CMT_DL_CONNECT");
-        cmtspeech_create_sink_input(u);
+        if (u->sink_input->state == PA_SINK_INPUT_RUNNING)
+            pa_log_warn("DL_CONNECT: sink input is already running");
+        else
+            pa_sink_input_cork(u->sink_input, FALSE);
         return 0;
 
     case CMTSPEECH_MAINLOOP_HANDLER_CMT_DL_DISCONNECT:

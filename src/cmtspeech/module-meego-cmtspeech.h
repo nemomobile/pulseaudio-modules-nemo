@@ -61,6 +61,8 @@ struct userdata {
     size_t dl_frame_size;
     size_t ul_frame_size;
 
+    char *sink_name;
+    char *source_name;
     pa_sink *sink;
     pa_source *source;
 

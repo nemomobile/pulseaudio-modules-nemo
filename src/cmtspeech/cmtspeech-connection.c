@@ -269,6 +269,9 @@ static int mainloop_cmtspeech(struct userdata *u) {
                     pa_log_debug("call starting.");
                     reset_call_stream_states(u);
 
+                    pa_asyncmsgq_post(pa_thread_mq_get()->outq, u->mainloop_handler,
+                                      CMTSPEECH_MAINLOOP_HANDLER_CREATE_STREAMS, NULL, 0, NULL, NULL);
+
                 } else if (cmtevent.prev_state == CMTSPEECH_STATE_CONNECTED &&
                            cmtevent.state == CMTSPEECH_STATE_ACTIVE_DL &&
                            cmtevent.msg_type == CMTSPEECH_SPEECH_CONFIG_REQ) {

@@ -59,6 +59,8 @@ static void cmtspeech_source_output_detach_cb(pa_source_output *o) {
     pa_source_output_assert_ref(o);
     pa_assert_se(u = o->userdata);
 
+    u->source = NULL;
+
     pa_log_debug("CMT source output detach called");
 }
 
@@ -133,12 +135,21 @@ int cmtspeech_create_source_output(struct userdata *u)
     char t[256];
 
     pa_assert(u);
+    pa_assert(!u->source);
     ENTER();
 
     if (u->source_output) {
         pa_log_info("Create called but output already exists");
         return 1;
     }
+
+    if (!(u->source = pa_namereg_get(u->core, u->source_name, PA_NAMEREG_SOURCE))) {
+        pa_log_error("Couldn't find source %s", u->source_name);
+        return 2;
+    }
+
+    if (cmtspeech_check_source_api(u->source))
+        return 3;
 
     pa_source_output_new_data_init(&data);
     data.driver = __FILE__;
@@ -152,7 +163,7 @@ int cmtspeech_create_source_output(struct userdata *u)
     pa_proplist_sets(data.proplist, PA_PROP_APPLICATION_NAME, t);
     pa_source_output_new_data_set_sample_spec(&data, &u->ss);
     pa_source_output_new_data_set_channel_map(&data, &u->map);
-    data.flags = PA_SOURCE_OUTPUT_DONT_MOVE;
+    data.flags = PA_SOURCE_OUTPUT_DONT_MOVE|PA_SOURCE_OUTPUT_START_CORKED;
 
     pa_source_output_new(&u->source_output, u->core, &data);
     pa_source_output_new_data_done(&data);

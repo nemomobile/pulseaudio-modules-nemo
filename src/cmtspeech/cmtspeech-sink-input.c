@@ -23,6 +23,7 @@
 #include <config.h>
 #endif
 
+#include <pulsecore/namereg.h>
 #include <pulsecore/sink-input.h>
 #include <pulsecore/source-output.h>
 #include <pulsecore/log.h>
@@ -366,12 +367,21 @@ int cmtspeech_create_sink_input(struct userdata *u) {
     char t[256];
 
     pa_assert(u);
+    pa_assert(!u->sink);
     ENTER();
 
     if (u->sink_input) {
         pa_log_warn("Create called but input already exists");
         return 1;
     }
+
+    if (!(u->sink = pa_namereg_get(u->core, u->sink_name, PA_NAMEREG_SINK))) {
+        pa_log_error("Couldn't find sink %s", u->sink_name);
+        return 2;
+    }
+
+    if (cmtspeech_check_sink_api(u->sink))
+        return 3;
 
     pa_sink_input_new_data_init(&data);
     data.driver = __FILE__;
@@ -385,7 +395,7 @@ int cmtspeech_create_sink_input(struct userdata *u) {
     pa_proplist_sets(data.proplist, PA_PROP_APPLICATION_NAME, t);
     pa_sink_input_new_data_set_sample_spec(&data, &u->ss);
     pa_sink_input_new_data_set_channel_map(&data, &u->map);
-    data.flags = PA_SINK_INPUT_DONT_MOVE;
+    data.flags = PA_SINK_INPUT_DONT_MOVE|PA_SINK_INPUT_START_CORKED;
 
     pa_sink_input_new(&u->sink_input, u->core, &data);
     pa_sink_input_new_data_done(&data);
