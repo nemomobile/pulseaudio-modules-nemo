@@ -93,6 +93,15 @@ static void raw_sink_update_requested_latency(pa_sink *s) {
     pa_sink_assert_ref(s);
     pa_assert_se(u = s->userdata);
 
+    /* For example a2dp playback if sink is destroyed this function
+     * is called with hw_sink_input->sink = NULL, while moving sink_input
+     * elsewhere, which causes
+     * pa_sink_input_set_requested_latency_within_thread() segfault. */
+    if (!u->hw_sink_input->sink) {
+        pa_log_debug("%s() hw_sink_input->sink = NULL, won't propagate to master sink", __FUNCTION__);
+        return;
+    }
+
     /* Just hand this one over to the master sink */
     pa_sink_input_set_requested_latency_within_thread(
             u->hw_sink_input,
