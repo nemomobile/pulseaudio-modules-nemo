@@ -1,10 +1,11 @@
-pulseaudio-meego (0.9.19.0-6) UNRELEASED; urgency=low
+pulseaudio-meego (0.9.19.0-6) unstable; urgency=low
 
   * voice: Detect voip_sink usage better.
   * cmtspeech: Prevent starting sink_input with NULL sink.
   * mainvolume: Update call stream volume properly.
   * Fixes: NB#173391 - Adjusting volume during active call does not affect
     volume level.
+  * Fixes: NB#169617 - [BT_Audio] Volume level can't be changed via DUT
 
  -- Maemo Multimedia <multimedia@maemo.org>  Mon, 28 Jun 2010 12:20:23 +0300
 
