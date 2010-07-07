@@ -1,4 +1,4 @@
-pulseaudio-meego (0.9.19.0-7) UNRELEASED; urgency=low
+pulseaudio-meego (0.9.19.0-7) unstable; urgency=low
 
   * voice: Avoid segfault when moving hw_sink_input. Fixes: NB#172581
   * debian: API file for Mainvolume D-Bus interface.
