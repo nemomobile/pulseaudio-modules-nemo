@@ -103,6 +103,7 @@ struct userdata {
 	pa_bool_t first_dl_frame_received;	/* internal state */
 	pa_bool_t record_running;		/* internal state */
 	pa_bool_t playback_running;		/* internal state */
+	pa_bool_t streams_created;		/* internal state */
     } cmt_connection;
 };
 

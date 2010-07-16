@@ -204,16 +204,18 @@ static void reset_call_stream_states(struct userdata *u) {
 
     pa_assert(u);
 
+    if (c->streams_created) {
+        pa_log_warn("DL/UL streams existed at reset, closing");
+        pa_asyncmsgq_post(pa_thread_mq_get()->outq, u->mainloop_handler,
+                          CMTSPEECH_MAINLOOP_HANDLER_DELETE_STREAMS, NULL, 0, NULL, NULL);
+        c->streams_created = FALSE;
+    }
     if (c->playback_running) {
         pa_log_warn("DL stream was open, closing");
-        pa_asyncmsgq_post(pa_thread_mq_get()->outq, u->mainloop_handler,
-                          CMTSPEECH_MAINLOOP_HANDLER_CMT_DL_DISCONNECT, NULL, 0, NULL, NULL);
         c->playback_running = FALSE;
     }
     if (c->record_running) {
         pa_log_warn("UL stream was open, closing");
-        pa_asyncmsgq_post(pa_thread_mq_get()->outq, u->mainloop_handler,
-                          CMTSPEECH_MAINLOOP_HANDLER_CMT_UL_DISCONNECT, NULL, 0, NULL, NULL);
         c->record_running = FALSE;
         ul_frame_count = 0;
     }
@@ -272,6 +274,7 @@ static int mainloop_cmtspeech(struct userdata *u) {
                     pa_asyncmsgq_post(pa_thread_mq_get()->outq, u->mainloop_handler,
                                       CMTSPEECH_MAINLOOP_HANDLER_CREATE_STREAMS, NULL, 0, NULL, NULL);
 
+                    c->streams_created = TRUE;
                 } else if (cmtevent.prev_state == CMTSPEECH_STATE_CONNECTED &&
                            cmtevent.state == CMTSPEECH_STATE_ACTIVE_DL &&
                            cmtevent.msg_type == CMTSPEECH_SPEECH_CONFIG_REQ) {
@@ -327,6 +330,9 @@ static int mainloop_cmtspeech(struct userdata *u) {
                 } else if (cmtevent.prev_state == CMTSPEECH_STATE_CONNECTED &&
                          cmtevent.state == CMTSPEECH_STATE_DISCONNECTED) {
                     pa_log_debug("call terminated.");
+                    pa_asyncmsgq_post(pa_thread_mq_get()->outq, u->mainloop_handler,
+                                      CMTSPEECH_MAINLOOP_HANDLER_DELETE_STREAMS, NULL, 0, NULL, NULL);
+                    c->streams_created = FALSE;
                     reset_call_stream_states(u);
 
                 } else {
@@ -601,6 +607,7 @@ int cmtspeech_connection_init(struct userdata *u)
     c->first_dl_frame_received = FALSE;
     c->record_running = FALSE;
     c->playback_running = FALSE;
+    c->streams_created = FALSE;
 
     if (!(c->thread = pa_thread_new(thread_func, u))) {
         pa_log_error("Failed to create thread.");
