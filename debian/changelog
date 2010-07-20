@@ -1,3 +1,10 @@
+pulseaudio-meego (0.9.19.0-8) unstable; urgency=low
+
+  * cmtspeech: Fix bug in mainloop handler related to modem state changes.
+    Fixes: NB#178697
+
+ -- Maemo Multimedia <multimedia@maemo.org>  Tue, 20 Jul 2010 10:46:11 +0300
+
 pulseaudio-meego (0.9.19.0-7) unstable; urgency=low
 
   * voice: Avoid segfault when moving hw_sink_input. Fixes: NB#172581
