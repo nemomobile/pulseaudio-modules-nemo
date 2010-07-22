@@ -21,7 +21,7 @@ else
 endif
 
 ifeq ($(DEB_BUILD_ARCH),armel)
-	CFLAGS += -mfpu=neon -mfloat-abi=softfp
+	CFLAGS += -mfpu=neon
 endif
 
 ifneq (,$(findstring thumb,$(DEB_BUILD_OPTIONS)))
