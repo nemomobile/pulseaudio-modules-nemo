@@ -1,3 +1,9 @@
+pulseaudio-meego (0.9.19.0-9) unstable; urgency=low
+
+  * debian/rules: Removed -mfloat-abi=softfp. Fixes: NB#177653
+
+ -- Maemo Multimedia <multimedia@maemo.org>  Thu, 22 Jul 2010 10:51:11 +0300
+
 pulseaudio-meego (0.9.19.0-8) unstable; urgency=low
 
   * cmtspeech: Fix bug in mainloop handler related to modem state changes.
