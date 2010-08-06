@@ -8,6 +8,8 @@ DEB_BUILD_ARCH_CPU ?= $(shell dpkg-architecture -qDEB_BUILD_ARCH_CPU)
 
 CFLAGS = -Wall -g -fPIC
 
+LDFLAGS += -Wl,-z,noexecstack
+
 #To disable fastpath asserts uncomment following line
 #CFLAGS += -DFASTPATH=1
 
