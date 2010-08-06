@@ -1,3 +1,9 @@
+pulseaudio-meego (0.9.19.0-10) UNRELEASED; urgency=low
+
+  * debian/rules: Add -Wl,-z,noexecstack to LDFLAGS. Fixes: NB#182248
+
+ -- Maemo Multimedia <multimedia@maemo.org>  Fri, 06 Aug 2010 13:11:00 +0300
+
 pulseaudio-meego (0.9.19.0-9) unstable; urgency=low
 
   * debian/rules: Removed -mfloat-abi=softfp. Fixes: NB#177653
