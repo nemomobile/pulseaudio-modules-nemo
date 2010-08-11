@@ -246,6 +246,18 @@ if test "x$x86" = xyes ; then
     ENABLE_X86=yes
 fi
 
+AC_MSG_CHECKING([If we are using hardfp tool chain])
+case `echo | gcc -v -xc -o - - 2>&1 | grep COLLECT_GCC_OPTIONS | tail -1` in
+     *float-abi=hard*) hardfp=yes; AC_MSG_RESULT([yes]) ;;
+     *) hardfp=no; AC_MSG_RESULT([no]) ;;
+esac
+AM_CONDITIONAL([ARM_HARDFP], [test "x$hardfp" = xyes])
+ENABLE_ARM_HARDFP=no
+if test "x$hardfp" = xyes ; then
+    AC_DEFINE([ARM_HARDFP], 1, [ARM Hard FP toolchain used.])
+    ENABLE_ARM_HARDFP=yes
+fi
+
 AC_CONFIG_FILES([
 Makefile
 shave

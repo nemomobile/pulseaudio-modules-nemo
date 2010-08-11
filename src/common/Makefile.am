@@ -22,8 +22,13 @@ else
 libmeego_common_la_LIBADD += \
 	src-8-to-48-neon.o \
 	src-48-to-8-neon.o
+if ARM_HARDFP
+%-neon.o: src_8_48_neon.a
+	ar x src_8_48_neon_hardfp.a
+else
 %-neon.o: src_8_48_neon.a
 	ar x src_8_48_neon.a
+endif
 endif
 
 TESTS = check_common
