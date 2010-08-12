@@ -108,15 +108,14 @@ struct sidetone {
 
     ctrl_element *ctrl_element; /* The element used for controlling the sidetone loop volume */
 
-    pa_bool_t enabled_in_mode; /* Is sidetone enabled in the current audio mode? */
     pa_bool_t call_active; /* Is a call currently active? */
 
     /* If important sinks or sources are unlinked unexpectedly, paths owned by
      * them are destroyed. This flag is set in such cases to disable the
-     * sidetone altogether. In addition, enabled_in_mode and call_active are
+     * sidetone altogether. In addition,  call_active are
      * set as "FALSE" to prevent any access to possible dangling path pointers.
      * When sidetone parameters or the call state change, this flag prevents
-     * enabled_in_mode and call_active from being set. */
+     * call_active from being set. */
     pa_bool_t dead;
 
     long target_volume; /* The sidetone loop volume we want to achieve by adjusting the control element */
@@ -150,6 +149,11 @@ struct sidetone {
     int num_input_elements;
     const char **output_element_names;
     int num_output_elements;
+
+    /* this is the sink path (earpiece as of now) in which we are really interested , current
+    implementation may not work well with the hooks of other mixer sink paths i.e. IHF, headset
+    etc */
+    char *sink_path;
 };
 
 /* Go through each element in a path and update the total volume */
@@ -157,14 +161,12 @@ static pa_bool_t scan_path(sidetone *st, pa_alsa_path *path) {
     pa_assert(st);
     pa_assert(path);
     pa_assert(!st->dead);
-
     pa_alsa_element *pa_element = NULL;
     struct element_volume *element_volume = NULL;
     long new_volume = 0;
     pa_bool_t is_relevant_path = FALSE;
 
     pa_log_debug("Scanning path \"%s\"", path->name);
-
     PA_LLIST_FOREACH(pa_element, path->elements) {
         pa_log_debug("Scanning element \"%s\"", pa_element->alsa_name);
 
@@ -174,6 +176,8 @@ static pa_bool_t scan_path(sidetone *st, pa_alsa_path *path) {
         }
 
         is_relevant_path = TRUE;
+        /* handle the events which are waiting , it makes mixer volume information updated */
+        snd_mixer_handle_events(st->mixer);
 
         pa_assert_se(mixer_get_element_volume(st->mixer, pa_element->alsa_name, element_volume->channel,
                                               element_volume->playback, &new_volume) >= 0);
@@ -189,25 +193,28 @@ static pa_bool_t scan_path(sidetone *st, pa_alsa_path *path) {
 
     pa_log_debug("Path scanned. Total volume without sidetone control element = %ld, "
                  "Target volume = %ld", st->total_volume, st->target_volume);
-
     return is_relevant_path;
 }
+
 
 /* Called from an IO thread
  * Called when the volume hook for a path is fired */
 static pa_hook_result_t path_volume_changed_cb(pa_alsa_path *path, void *call_data, sidetone *st) {
+
+
     pa_assert(path);
     pa_assert(st);
 
     pa_mutex_lock(st->mutex);
 
-    if(st->enabled_in_mode && st->call_active) {
+    if(st->call_active) {
         scan_path(st, path);
         ctrl_element_set_volume(st->ctrl_element, st->target_volume - st->total_volume);
     }
 
     pa_mutex_unlock(st->mutex);
 
+    pa_log_debug(" sidetone volume changed");
     return PA_HOOK_OK;
 }
 
@@ -223,21 +230,22 @@ static void store_path(sidetone *st, pa_alsa_path *path) {
         st->max_paths = 4; /* Arbitrary constant for the initial array size */
         st->paths = pa_xmalloc0(st->max_paths * sizeof(pa_alsa_path*));
     }
-
     if(st->num_paths >= st->max_paths) {
         st->max_paths *= 2;
         st->paths = pa_xrealloc(st->paths, st->max_paths * sizeof(pa_alsa_path*));
     }
 
     st->paths[st->num_paths] = path;
+
     st->num_paths++;
 
     slot = pa_hook_connect(&path->hooks[PA_ALSA_PATH_HOOK_VOLUME_CHANGED], PA_HOOK_NORMAL,
                            (pa_hook_cb_t)path_volume_changed_cb, st);
 
-    PA_LLIST_PREPEND(pa_hook_slot, st->volume_slots, slot);
+   PA_LLIST_PREPEND(pa_hook_slot, st->volume_slots, slot);
+   pa_log_debug("Connected volume hook for path \"%s\"", path->name);
 
-    pa_log_debug("Connected volume hook for path \"%s\"", path->name);
+
 }
 
 /* Scan all paths of an alsa sink. Store interesting paths to our list and start listening to their volume hooks. */
@@ -268,15 +276,19 @@ static int scan_sink(sidetone *st, pa_sink *sink) {
         pa_alsa_sink_get_paths(sink, &path_set, &path);
     }
 
+
     /* We now have either 'path_set' or 'path'. Go through each (or the single)
      * path. If there are paths that contain elements that affect the sidetone
      * volume, store them to our 'paths' array and start listening to their
-     * volume hooks. */ 
+     * volume hooks. */
     if(path_set) {
         PA_LLIST_FOREACH(path, path_set->paths) {
-            if(scan_path(st, path)) {
-                store_path(st, path);
-                is_relevant_sink = TRUE;
+            /* we are interested in only earpiece sink path, so scan and store volumes for earpiece sink path*/
+            if(pa_streq(path->name,st->sink_path)){
+                if(scan_path(st, path)) {
+                    store_path(st, path);
+                    is_relevant_sink = TRUE;
+                }
             }
         }
     } else if(scan_path(st, path)) {
@@ -289,7 +301,7 @@ static int scan_sink(sidetone *st, pa_sink *sink) {
         return -1;
     }
 
-    pa_log_debug("Sink %s scanned", sink->name);
+   pa_log_debug("Sink %s scanned", sink->name);
 
     return 0;
 }
@@ -343,46 +355,6 @@ static int scan_source(sidetone *st, pa_source *source) {
     return 0;
 }
 
-/* Update the sidetone state based on previous and currently enabled flags. */
-static void update_sidetone_state(sidetone *st, pa_bool_t was_enabled) {
-    pa_assert(st);
-    pa_assert(!st->dead);
-
-    if(st->enabled_in_mode && st->call_active) {
-        if(!was_enabled) {
-            /* Sidetone wasn't enabled before this, so our volumes are probably
-             * not up to date. Thus, we need to scan all the relevant paths. */
-            int i;
-            for(i = 0; i < st->num_paths; i++) {
-                scan_path(st, st->paths[i]);
-            }
-        }
-        ctrl_element_set_volume(st->ctrl_element, st->target_volume - st->total_volume);
-    } else {
-        ctrl_element_mute(st->ctrl_element);
-    }
-}
-
-/* Called from the main thread
- * Sidetone parameter callback. */
-static pa_hook_result_t parameters_changed_cb(pa_core *c, struct update_args *ua, sidetone *st) {
-    pa_assert(st);
-
-    pa_mutex_lock(st->mutex);
-
-    if(st->dead) {
-        pa_log_warn("Parameter hook called, but the sidetone module is dead!");
-    } else {
-        pa_bool_t was_enabled = st->enabled_in_mode && st->call_active;
-        st->enabled_in_mode = (ua != NULL);
-        update_sidetone_state(st, was_enabled);
-    }
-
-    pa_mutex_unlock(st->mutex);
-
-    return PA_HOOK_OK;
-}
-
 /* Called from the main thread
  * Called by call state tracker. */
 static pa_hook_result_t call_state_changed_cb(pa_call_state_tracker *tracker, pa_bool_t active, sidetone *st) {
@@ -391,12 +363,12 @@ static pa_hook_result_t call_state_changed_cb(pa_call_state_tracker *tracker, pa
 
     pa_mutex_lock(st->mutex);
 
+
     if(st->dead) {
         pa_log_warn("Call state changed, but the sidetone module is dead!");
     } else {
-        pa_bool_t was_enabled = st->enabled_in_mode && st->call_active;
+        pa_bool_t was_enabled = st->call_active;
         st->call_active = active;
-        update_sidetone_state(st, was_enabled);
     }
 
     pa_mutex_unlock(st->mutex);
@@ -411,7 +383,6 @@ static void set_dead(sidetone *st) {
     pa_assert(st);
 
     st->dead = TRUE;
-    st->enabled_in_mode = FALSE;
     st->call_active = FALSE;
     ctrl_element_mute(st->ctrl_element);
 }
@@ -423,7 +394,7 @@ static pa_hook_result_t sink_unlink_cb(pa_sink *sink, void *call_data, sidetone 
     pa_assert(sink);
     pa_assert(st);
     int i;
-
+    pa_log_debug(" sink_unlink_cb");
     pa_mutex_lock(st->mutex);
 
     for(i = 0; i < st->num_sinks; i++) {
@@ -469,10 +440,10 @@ static int initialize_elements(sidetone *st, const char **element_names, const s
     pa_assert(st);
     pa_assert(element_names);
     pa_assert(channels);
-
     int i = 0;
     struct element_volume *element_volume = NULL;
     long current_volume = 0;
+
 
     for(i = 0; i < num_elements; i++) {
         if(mixer_get_element_volume(st->mixer, element_names[i], channels[i], playback, &current_volume) < 0) {
@@ -497,25 +468,90 @@ static int initialize_elements(sidetone *st, const char **element_names, const s
     return 0;
 }
 
+
+static int sync_chached_information( snd_mixer_t *mixer_handle  )
+{
+    pa_assert(mixer_handle);
+    int count, err;
+    struct pollfd *fds;
+    int num_revents = 0;
+    unsigned short revents;
+
+    /* Get count of poll descriptors for mixer handle */
+    if ((count = snd_mixer_poll_descriptors_count(mixer_handle)) < 0) {
+        pa_log_debug("Error in snd_mixer_poll_descriptors_count(%d)\n", count);
+        return -1;
+    }
+
+    fds =(struct pollfd*)calloc(count, sizeof(struct pollfd));
+    if (fds == NULL) {
+        pa_log_debug("snd_mixer fds calloc err\n");
+        return -1;
+    }
+
+    if ((err = snd_mixer_poll_descriptors(mixer_handle, fds, count)) < 0){
+        pa_log_debug ("snd_mixer_poll_descriptors err=%d\n", err);
+        free(fds);
+        return -1;
+    }
+
+    if (err != count){
+        pa_log_debug ("snd_mixer_poll_descriptors (err(%d) != count(%d))\n",err,count);
+        free(fds);
+        return -1;
+    }
+
+    num_revents = poll(fds, count, -1);
+
+    /* Graceful handling of signals recvd in poll() */
+    if (num_revents < 0 && errno == EINTR)
+        num_revents = 0;
+
+    if (num_revents > 0) {
+        if (snd_mixer_poll_descriptors_revents(mixer_handle, fds, count, &revents) >= 0) {
+            if (revents & POLLNVAL)
+                pa_log_debug ("snd_mixer_poll_descriptors (POLLNVAL)\n");
+            if (revents & POLLERR)
+                pa_log_debug ("snd_mixer_poll_descriptors (POLLERR)\n");
+            if (revents & POLLIN)
+                snd_mixer_handle_events(mixer_handle);
+        }
+    }
+
+    free(fds);
+    fds=NULL;
+    pa_log_debug(" alsa mixer cached information synced successfully");
+
+    return 0;
+}
+
+
+
 /* Create a new sidetone instance. argument contains the raw module args of the sidetone module */
 sidetone *sidetone_new(pa_core *core, const char* argument) {
     pa_assert(core);
     pa_assert(argument);
-
     sidetone *st = NULL;
     sidetone_args *st_args = NULL;
     int i = 0;
+    int sync_retval=0;
 
     if(!(st_args = sidetone_args_new(argument))) {
         goto fail;
     }
-
     st = pa_xnew0(struct sidetone, 1);
 
     st->mutex = pa_mutex_new(FALSE, FALSE);
 
     if(!(st->mixer = pa_alsa_old_open_mixer(st_args->mixer))) {
         pa_log_error("Failed to open mixer \"%s\"", st_args->mixer);
+        goto fail;
+    }
+
+    /* at the time of initialization sync the chached alsa mixer volumes */
+    sync_retval=sync_chached_information( st->mixer);
+    if( sync_retval != 0){
+        pa_log_debug("alsa mixer cached information is not synced properly ");
         goto fail;
     }
 
@@ -562,11 +598,11 @@ sidetone *sidetone_new(pa_core *core, const char* argument) {
     pa_assert(st_args->num_sinks > 0);
     st->sinks = pa_xmalloc0(st_args->num_sinks * sizeof(pa_sink*));
     st->num_sinks = st_args->num_sinks;
-
+    st->sink_path=st_args->sink_path;
     for(i = 0; i < st_args->num_sinks; i++) {
         pa_sink *sink = NULL;
 
-        if(!(sink = pa_namereg_get(core, st_args->sinks[i], PA_NAMEREG_SINK))) {
+        if(!(sink = pa_namereg_get(core,st_args->sinks[i], PA_NAMEREG_SINK))) {
             pa_log_error("Sink %s not found", st_args->sinks[i]);
             goto fail;
         }
@@ -578,7 +614,6 @@ sidetone *sidetone_new(pa_core *core, const char* argument) {
 
         st->sinks[i] = sink;
     }
-
     /* Sources are not mandatory */
     if(st_args->num_sources > 0) {
         st->sources = pa_xmalloc0(st_args->num_sources * sizeof(pa_source*));
@@ -611,20 +646,21 @@ sidetone *sidetone_new(pa_core *core, const char* argument) {
 
     st->call_active = pa_call_state_tracker_get_active(st->call_state_tracker);
 
-    st->call_state_tracker_slot = 
+    st->call_state_tracker_slot =
         pa_hook_connect(&pa_call_state_tracker_hooks(st->call_state_tracker)[PA_CALL_STATE_HOOK_CHANGED],
                         PA_HOOK_NORMAL,
                         (pa_hook_cb_t)call_state_changed_cb,
                         st);
 
-    st->enabled_in_mode = FALSE;
     st->dead = FALSE;
 
     ctrl_element_mute(st->ctrl_element);
 
-    pa_assert_se(request_parameter_updates("sidetone", (pa_hook_cb_t)parameters_changed_cb, PA_HOOK_NORMAL, st) >= 0);
+    pa_bool_t was_enabled = st->call_active;
 
     sidetone_args_free(st_args);
+
+    pa_log_debug("sidetone initialization is done successfully");
 
     return st;
 
@@ -650,8 +686,11 @@ void sidetone_free(sidetone *st) {
     int i = 0;
     pa_hook_slot *slot = NULL;
 
-    if(st->call_state_tracker_slot)
+
+    if(st->call_state_tracker_slot){
         pa_hook_slot_free(st->call_state_tracker_slot);
+        st->call_state_tracker_slot=NULL;
+    }
 
     if(st->call_state_tracker)
         pa_call_state_tracker_unref(st->call_state_tracker);
@@ -662,24 +701,29 @@ void sidetone_free(sidetone *st) {
     if(st->element_volumes)
         pa_hashmap_free(st->element_volumes, (pa_free2_cb_t)element_volume_free, NULL);
 
-    if(st->sink_unlink_slot)
+    if(st->sink_unlink_slot){
         pa_hook_slot_free(st->sink_unlink_slot);
-
+        st->sink_unlink_slot=NULL;
+    }
     if(st->sinks)
         pa_xfree(st->sinks);
 
-    if(st->source_unlink_slot)
+    if(st->source_unlink_slot){
         pa_hook_slot_free(st->source_unlink_slot);
+        st->source_unlink_slot=NULL;
+    }
 
     if(st->sources)
         pa_xfree(st->sources);
 
-    if(st->paths)
+    if(st->paths){
         pa_xfree(st->paths);
+    }
 
     while((slot = st->volume_slots)) {
         st->volume_slots = st->volume_slots->next;
         pa_hook_slot_free(slot);
+        slot=NULL;
     }
 
     if(st->input_element_names) {
@@ -700,5 +744,7 @@ void sidetone_free(sidetone *st) {
         pa_mutex_free(st->mutex);
 
     pa_xfree(st);
+
+    pa_log_debug(" sidetone freed  " );
 }
 

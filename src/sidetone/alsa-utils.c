@@ -39,7 +39,7 @@ snd_mixer_elem_t *mixer_get_element(snd_mixer_t *mixer, const char *element_name
     snd_mixer_elem_t *mixer_element = NULL;
 
     snd_mixer_selem_id_alloca(&sid);
-    snd_mixer_selem_id_set_name(sid, element_name); 
+    snd_mixer_selem_id_set_name(sid, element_name);
     snd_mixer_selem_id_set_index(sid, 0);
 
     mixer_element = snd_mixer_find_selem(mixer, sid);
@@ -47,7 +47,7 @@ snd_mixer_elem_t *mixer_get_element(snd_mixer_t *mixer, const char *element_name
     return mixer_element;
 }
 
-/* Get the volume of a mixer element 
+/* Get the volume of a mixer element
  *
  * \param mixer The mixer to search the element from.
  * \param element_name The name of the mixer element.
@@ -61,20 +61,9 @@ int mixer_get_element_volume(snd_mixer_t *mixer, const char *element_name, snd_m
     pa_assert(mixer);
     pa_assert(element_name);
     pa_assert(volume);
-
     snd_mixer_elem_t *element = NULL;
 
-    /* This is a hack (for testing purposes) to reopen the mixer handle in
-     * order to get the most up-to-date volume values, because for some reason
-     * we're getting old values if we don't open the mixer again. This is
-     * either an ALSA feature/bug or we're using the mixer wrong somehow. It
-     * might be necessary to add facilities for requesting mixer handles from
-     * ALSA sinks/sources so that we could avoid using multiple handles. Using
-     * only one handle should get us up-to-date volumes. Also, this line causes
-     * an assert at some point. */
-    //mixer = pa_alsa_old_open_mixer("hw:rx71twl4030"); //TODO: Remove this
-
-    element = mixer_get_element(mixer, element_name);
+    element = mixer_get_element(mixer,element_name);
 
     if(!element) {
         pa_log_error("Unable to open element \"%s\"", element_name);
@@ -82,7 +71,7 @@ int mixer_get_element_volume(snd_mixer_t *mixer, const char *element_name, snd_m
     }
 
     if(playback) {
-        if(snd_mixer_selem_get_playback_dB(element, channel, volume) < 0) {
+        if(snd_mixer_selem_get_playback_dB(element,channel, volume) < 0) {
             pa_log_error("Unable to get playback volume for element \"%s\"", element_name);
             return -1;
         }
@@ -92,7 +81,5 @@ int mixer_get_element_volume(snd_mixer_t *mixer, const char *element_name, snd_m
             return -1;
         }
     }
-
-    return 0;
+   return 0;
 }
-

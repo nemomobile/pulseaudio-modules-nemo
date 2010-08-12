@@ -47,6 +47,8 @@ typedef struct {
     const char **sources;
     int num_sources;
 
+    const char *sink_path;
+
     pa_modargs *modargs;
 } sidetone_args;
 

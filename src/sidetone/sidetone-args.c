@@ -39,6 +39,7 @@ static const char* const valid_modargs[] = {
     "target_volume",
     "sinks",
     "sources",
+    "sink_path",
     NULL
 };
 
@@ -310,6 +311,10 @@ sidetone_args* sidetone_args_new(const char *args) {
     /* Sources aren't mandatory.  */
     if((st_args->num_sources = parse_names(&st_args->sources, pa_modargs_get_value(ma, "sources", NULL))) == 0) {
         pa_log_debug("No sources specified");
+    }
+
+    if((st_args->sink_path = pa_modargs_get_value(ma, "sink_path", NULL))) {
+        pa_log_debug("No sink path specified");
     }
 
     return st_args;
