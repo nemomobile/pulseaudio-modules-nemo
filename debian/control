@@ -8,6 +8,7 @@ Build-Depends: debhelper (>= 5),
 	       libpulse-dev (>= 0.9.19-1maemo1),
 	       pulseaudio-dev (>= 0.9.19-1maemo1),
 	       libcmtspeechdata-devel (>> 2.0.0),
+	       autoconf (>= 2.65),
 Standards-Version: 3.8.0
 Section: sound
 
