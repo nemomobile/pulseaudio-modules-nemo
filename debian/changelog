@@ -1,10 +1,10 @@
-pulseaudio-meego (0.9.19.0-10) UNRELEASED; urgency=low
+pulseaudio-meego (0.9.19.0-10) unstable; urgency=low
 
-  * debian/rules: Add -Wl,-z,noexecstack to LDFLAGS. Fixes: NB#182248
-  * debian/control: Add build dependency to autoconf. Fixes: NB#187592
-  * Add hardfp toolchain support. Fixes: NB#177653
+  * Fixes: NB#182248 - pulseaudio-module-meego-common: GNU_STACK with "RWX" marking
+  * Fixes: NB#187592 - pulseaudio-meego: add autoconf to build-deps
+  * Fixes: NB#177653 - pulseaudio fails to build with hardfp toolchain
 
- -- Maemo Multimedia <multimedia@maemo.org>  Fri, 06 Aug 2010 13:11:00 +0300
+ -- Maemo Multimedia <multimedia@maemo.org>  Fri, 27 Aug 2010 16:37:49 +0300
 
 pulseaudio-meego (0.9.19.0-9) unstable; urgency=low
 
