@@ -1,7 +1,6 @@
 #compilation of optimized 8kHz SRCsfor Arm Neon
 
-RVCT_PATH = /scratchbox/compilers/rvct_3.1_700
-#RVCT_PATH = /usr/local/arm_ltd
+RVCT_PATH = /scratchbox/compilers/rvct_4.0_0821
 CC = $(RVCT_PATH)/bin/armcc
 CASM = $(RVCT_PATH)/bin/armasm
 AR = $(RVCT_PATH)/bin/armar -cru
@@ -11,12 +10,14 @@ CFLAGS = -c -O3 -Otime --vectorize --arm --no-unaligned-access --no_hide_all --w
 #source files
 
 OBJS = src-48-to-8-neon.o \
-       src-8-to-48-neon.o
+       src-8-to-48-neon.o \
+       src-48-to-16-neon.o \
+       src-16-to-48-neon.o
 
 
 INCLUDE_PATHS =
 
-LIB_FILE = src_8_48_neon.a
+LIB_FILE = speech_src_neon.a
 
 all: $(LIB_FILE)
 

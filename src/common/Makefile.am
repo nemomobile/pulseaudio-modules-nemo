@@ -17,17 +17,21 @@ libmeego_common_la_LIBADD = $(PULSEAUDIO_LIBS)
 if X86
 libmeego_common_la_SOURCES += \
 	src-8-to-48.c \
-	src-48-to-8.c
+	src-48-to-8.c \
+	src-16-to-48.c \
+	src-48-to-16.c
 else
 libmeego_common_la_LIBADD += \
 	src-8-to-48-neon.o \
-	src-48-to-8-neon.o
+	src-48-to-8-neon.o \
+	src-16-to-48-neon.o \
+	src-48-to-16-neon.o
 if ARM_HARDFP
-%-neon.o: src_8_48_neon.a
-	ar x src_8_48_neon_hardfp.a
+%-neon.o: speech_src_neon_hardfp.a
+	ar x speech_src_neon_hardfp.a
 else
-%-neon.o: src_8_48_neon.a
-	ar x src_8_48_neon.a
+%-neon.o: speech_src_neon.a
+	ar x speech_src_neon.a
 endif
 endif
 
