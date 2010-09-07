@@ -45,6 +45,7 @@
 #define VOICE_HOOK_NARROWBAND_EAR_EQU_MONO      "x-meego.voice.narrowband_ear_equ_mono"
 #define VOICE_HOOK_NARROWBAND_MIC_EQ_MONO       "x-meego.voice.narrowband_mic_eq_mono"
 #define VOICE_HOOK_WIDEBAND_MIC_EQ_MONO         "x-meego.voice.wideband_mic_eq_mono"
+#define VOICE_HOOK_WIDEBAND_MIC_EQ_STEREO       "x-meego.voice.wideband_mic_eq_stereo"
 #define VOICE_HOOK_XPROT_MONO                   "x-meego.voice.xport_mono"
 #define VOICE_HOOK_VOLUME                       "x-meego.voice.volume"
 #define VOICE_HOOK_CALL_VOLUME                  "x-meego.voice.call_volume"

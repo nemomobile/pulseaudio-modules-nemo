@@ -108,6 +108,7 @@ static int set_hooks(struct userdata *u) {
     u->hooks[HOOK_NARROWBAND_EAR_EQU_MONO]      = algorithm_hook_init(u->algorithm, VOICE_HOOK_NARROWBAND_EAR_EQU_MONO);
     u->hooks[HOOK_NARROWBAND_MIC_EQ_MONO]       = algorithm_hook_init(u->algorithm, VOICE_HOOK_NARROWBAND_MIC_EQ_MONO);
     u->hooks[HOOK_WIDEBAND_MIC_EQ_MONO]         = algorithm_hook_init(u->algorithm, VOICE_HOOK_WIDEBAND_MIC_EQ_MONO);
+    u->hooks[HOOK_WIDEBAND_MIC_EQ_STEREO]       = algorithm_hook_init(u->algorithm, VOICE_HOOK_WIDEBAND_MIC_EQ_STEREO);
     u->hooks[HOOK_XPROT_MONO]                   = algorithm_hook_init(u->algorithm, VOICE_HOOK_XPROT_MONO);
     u->hooks[HOOK_VOLUME]                       = algorithm_hook_init(u->algorithm, VOICE_HOOK_VOLUME);
     u->hooks[HOOK_CALL_VOLUME]                  = algorithm_hook_init(u->algorithm, VOICE_HOOK_CALL_VOLUME);
@@ -126,6 +127,7 @@ static int unset_hooks(struct userdata *u) {
     algorithm_hook_done(u->algorithm, VOICE_HOOK_NARROWBAND_EAR_EQU_MONO);
     algorithm_hook_done(u->algorithm, VOICE_HOOK_NARROWBAND_MIC_EQ_MONO);
     algorithm_hook_done(u->algorithm, VOICE_HOOK_WIDEBAND_MIC_EQ_MONO);
+    algorithm_hook_done(u->algorithm, VOICE_HOOK_WIDEBAND_MIC_EQ_STEREO);
     algorithm_hook_done(u->algorithm, VOICE_HOOK_XPROT_MONO);
     algorithm_hook_done(u->algorithm, VOICE_HOOK_VOLUME);
     algorithm_hook_done(u->algorithm, VOICE_HOOK_CALL_VOLUME);
