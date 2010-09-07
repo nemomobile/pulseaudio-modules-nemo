@@ -2,6 +2,7 @@ Source: pulseaudio-meego
 Priority: optional
 Maintainer: Maemo Multimedia <multimedia@maemo.org>
 Build-Depends: debhelper (>= 5),
+	       automake,
 	       check (>= 0.9.4),
 	       libdbus-1-dev (>= 1.2.3),
 	       libltdl7-dev (>= 2.2.6a-1~maemo1) | libltdl-dev,
