@@ -203,21 +203,7 @@ static void hw_source_output_push_cb(pa_source_output *o, const pa_memchunk *new
         } else {
             /* This branch is taken when call is not active e.g. when source.voice.raw is used */
 
-            /* used to store mono audio temporarily */
-            pa_memchunk ochunk_ch0;
-            pa_memchunk ochunk_ch1;
-
-            /* NOTE: Raw source samples are not run trough any EQ if AEP is running. */
-            pa_optimized_deinterleave_stereo_to_mono(&chunk, &ochunk_ch0, &ochunk_ch1);
-            pa_memblock_unref(chunk.memblock);
-
-            pa_hook_fire(u->hooks[HOOK_WIDEBAND_MIC_EQ_MONO], &ochunk_ch0);
-            pa_hook_fire(u->hooks[HOOK_WIDEBAND_MIC_EQ_MONO], &ochunk_ch1);
-
-            pa_optimized_interleave_stereo(&ochunk_ch0, &ochunk_ch1, &chunk);
-
-            pa_memblock_unref(ochunk_ch0.memblock);
-            pa_memblock_unref(ochunk_ch1.memblock);
+            pa_hook_fire(u->hooks[HOOK_WIDEBAND_MIC_EQ_STEREO], &chunk);
         }
 
         if (PA_SOURCE_IS_OPENED(u->raw_source->thread_info.state)) {
