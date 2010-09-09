@@ -35,5 +35,7 @@ int ctrl_element_set_volume(ctrl_element *ctrl, long volume);
 
 int ctrl_element_mute(ctrl_element *ctrl);
 
+int set_ctrl_element_volume(ctrl_element *ctrl,int step);
+
 #endif
 

@@ -37,25 +37,14 @@ PA_MODULE_VERSION(PACKAGE_VERSION);
 PA_MODULE_LOAD_ONCE(FALSE);
 PA_MODULE_USAGE(
         "mixer=<name of the ALSA mixer> "
-        "input_elements=<list of mixer element names> "
-        "output_elements=<list of mixer element names> "
         "control_element=<mixer element name> "
-        "target_volume=<initial target volume as an integer (dB * 100)> "
         "sinks=<list of sink names> "
-        "sources=<list of source names>"
-        "sink_path=<sink path we are interested in>");
-
-struct userdata {
-    pa_module *module;
-    sidetone *sidetone;
-    char* argument;
-    pa_hook_slot  *sidetone_parameters_updates;
-};
+        "mainvolume=<volume in milibels and steps>");
 
 
 
 static pa_hook_result_t parameters_changed_cb(pa_core *c, struct update_args *ua, struct userdata *u) {
-
+    
     sidetone *st;
     st=u->sidetone;
     pa_assert(u);
@@ -82,6 +71,7 @@ static pa_hook_result_t parameters_changed_cb(pa_core *c, struct update_args *ua
             u->argument=NULL;
             return -1;
         }
+
     }
     else {
         if(st){
@@ -102,8 +92,10 @@ int pa__init(pa_module *m) {
     u->module=m;
     u->argument=NULL;
     u->sidetone=NULL;
+
     u->sidetone_parameters_updates = request_parameter_updates("alsa-sidetone", (pa_hook_cb_t)parameters_changed_cb, PA_HOOK_NORMAL, u);
-    return 0;
+
+   return 0;
 }
 
 void pa__done(pa_module *m) {

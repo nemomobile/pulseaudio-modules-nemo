@@ -21,11 +21,31 @@
  */
 
 #ifndef foosidetonehfoo
-#define foosidetonehfoo 
+#define foosidetonehfoo
 
 #include <pulsecore/core.h>
+//#include <pulsecore/volume-proxy.h>
+
+#define MAX_STEPS (64)
+
+struct mv_volume_steps {
+    int step[MAX_STEPS];
+    int n_steps;
+    int current_step;
+};
+
 
 typedef struct sidetone sidetone;
+
+
+struct userdata {
+    pa_module *module;
+    sidetone *sidetone;
+    char* argument;
+    pa_hook_slot  *sidetone_parameters_updates;
+
+};
+
 
 sidetone *sidetone_new(pa_core *core, const char* argument);
 

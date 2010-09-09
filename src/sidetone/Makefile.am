@@ -1,4 +1,3 @@
-SUBDIRS = tests
 
 AM_CFLAGS = $(PULSEAUDIO_CFLAGS) $(ASOUNDLIB_CFLAGS) -L$(modlibexecdir) -lalsa-util
 

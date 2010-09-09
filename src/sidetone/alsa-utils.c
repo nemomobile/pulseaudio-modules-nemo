@@ -47,39 +47,3 @@ snd_mixer_elem_t *mixer_get_element(snd_mixer_t *mixer, const char *element_name
     return mixer_element;
 }
 
-/* Get the volume of a mixer element
- *
- * \param mixer The mixer to search the element from.
- * \param element_name The name of the mixer element.
- * \param channel The channel whose volume we want to retrieve.
- * \param playback Whether this is a playback or a capture element.
- * \param[out] volume The retrieved volume.
- * \return 0 on success, otherwise a negative error code.
- */
-int mixer_get_element_volume(snd_mixer_t *mixer, const char *element_name, snd_mixer_selem_channel_id_t channel,
-                             pa_bool_t playback, long *volume) {
-    pa_assert(mixer);
-    pa_assert(element_name);
-    pa_assert(volume);
-    snd_mixer_elem_t *element = NULL;
-
-    element = mixer_get_element(mixer,element_name);
-
-    if(!element) {
-        pa_log_error("Unable to open element \"%s\"", element_name);
-        return -1;
-    }
-
-    if(playback) {
-        if(snd_mixer_selem_get_playback_dB(element,channel, volume) < 0) {
-            pa_log_error("Unable to get playback volume for element \"%s\"", element_name);
-            return -1;
-        }
-    } else {
-        if(snd_mixer_selem_get_capture_dB(element, channel, volume) < 0) {
-            pa_log_error("Unable to get capture volume for element \"%s\"", element_name);
-            return -1;
-        }
-    }
-   return 0;
-}

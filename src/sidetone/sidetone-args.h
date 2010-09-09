@@ -26,28 +26,20 @@
 #include <asoundlib.h>
 
 #include <pulsecore/modargs.h>
-
+#include "sidetone.h"
 typedef struct {
     const char *mixer;
 
-    const char **input_elements;
-    snd_mixer_selem_channel_id_t *input_channels;
-    int num_input_elements;
-
-    const char **output_elements;
-    snd_mixer_selem_channel_id_t *output_channels;
-    int num_output_elements;
 
     const char *control_element;
-    long target_volume;
 
     const char **sinks;
     int num_sinks;
 
-    const char **sources;
-    int num_sources;
 
-    const char *sink_path;
+    const char *mainvolume;
+
+    struct mv_volume_steps *steps;
 
     pa_modargs *modargs;
 } sidetone_args;
@@ -55,6 +47,8 @@ typedef struct {
 sidetone_args* sidetone_args_new(const char* args);
 
 void sidetone_args_free(sidetone_args *args);
+
+int parse_volume_steps(struct mv_volume_steps *steps, const char *step_string);
 
 #endif
 
