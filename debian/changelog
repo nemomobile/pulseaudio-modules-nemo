@@ -1,3 +1,10 @@
+pulseaudio-meego (0.9.19.0-11) UNRELEASED; urgency=low
+
+  * Fixed NEON optimized stereo to mono downmix function.
+    This will remove the distortion in ihf playback.
+
+ -- Maemo Multimedia <multimedia@maemo.org>  Thu, 09 Sep 2010 20:15:00 +0300
+
 pulseaudio-meego (0.9.19.0-10) unstable; urgency=low
 
   * Fixes: NB#182248 - pulseaudio-module-meego-common: GNU_STACK with "RWX" marking

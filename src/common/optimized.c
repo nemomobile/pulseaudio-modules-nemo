@@ -139,12 +139,12 @@ void downmix_to_mono_from_interleaved_stereo(const short *src, short *dst, unsig
 
     for (i = 0; i < n; i += 16) {
         stereo_samples = vld2q_s16 (src + i);
-	/* Shift right before downmixing */
-	vrshrq_n_s16(stereo_samples.val[0], 1);
-	vrshrq_n_s16(stereo_samples.val[1], 1);
+        /* Shift right before downmixing */
+        stereo_samples.val[0] = vrshrq_n_s16(stereo_samples.val[0], 1);
+        stereo_samples.val[1] = vrshrq_n_s16(stereo_samples.val[1], 1);
 
-	mono_samples = vqaddq_s16(stereo_samples.val[0], stereo_samples.val[1]);
-	vst1q_s16(dst, mono_samples);
+        mono_samples = vqaddq_s16(stereo_samples.val[0], stereo_samples.val[1]);
+        vst1q_s16(dst, mono_samples);
         dst += offset;
     }
 }
