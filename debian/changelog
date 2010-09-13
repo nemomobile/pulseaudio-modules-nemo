@@ -1,3 +1,9 @@
+pulseaudio-meego (0.9.19.0-12) UNRELEASED; urgency=low
+
+  * Add some new operations to module-meego-test.
+
+ -- Maemo Multimedia <multimedia@maemo.org>  Wed, 15 Sep 2010 10:15:00 +0300
+
 pulseaudio-meego (0.9.19.0-11) unstable; urgency=low
 
   * Fixed NEON optimized stereo to mono downmix function.
