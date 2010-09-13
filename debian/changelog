@@ -4,6 +4,7 @@ pulseaudio-meego (0.9.19.0-11) UNRELEASED; urgency=low
     This will remove the distortion in ihf playback.
   * Use stereo eq hook mic hook
   * debian/control: Add build dependency to automake. Fixes:187592
+  * Add speech SRCs for WB call
 
  -- Maemo Multimedia <multimedia@maemo.org>  Thu, 09 Sep 2010 20:15:00 +0300
 
