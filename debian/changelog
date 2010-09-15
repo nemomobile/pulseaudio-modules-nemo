@@ -1,12 +1,12 @@
-pulseaudio-meego (0.9.19.0-11) UNRELEASED; urgency=low
+pulseaudio-meego (0.9.19.0-11) unstable; urgency=low
 
   * Fixed NEON optimized stereo to mono downmix function.
-    This will remove the distortion in ihf playback.
   * Use stereo eq hook mic hook
-  * debian/control: Add build dependency to automake. Fixes:187592
+  * debian/control: Add build dependency to automake. 
+  * Fixes:NB#187592
   * Add speech SRCs for WB call
 
- -- Maemo Multimedia <multimedia@maemo.org>  Thu, 09 Sep 2010 20:15:00 +0300
+ -- Maemo Multimedia <multimedia@maemo.org>  Wed, 15 Sep 2010 10:35:00 +0300
 
 pulseaudio-meego (0.9.19.0-10) unstable; urgency=low
 
