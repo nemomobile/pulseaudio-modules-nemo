@@ -150,7 +150,7 @@ static char* parse_name(const char **arg, const char *delimiters) {
  *
  * \param[out] names The resulting array of names. Allocated by this function.
  * \arg List of sinks or sources given as <name>{","<name>} */
-static int parse_names(const char ***names, const char *arg) {
+static int parse_names(const char **names, const char *arg) {
     pa_assert(!*names);
 
     char* name = NULL;
@@ -173,7 +173,7 @@ static int parse_names(const char ***names, const char *arg) {
             *names = (const char**)pa_xrealloc(*names, array_size * sizeof(char*));
         }
 
-        (*names)[num_names - 1] = name;
+        (names)[num_names - 1] = name;
     }
 
     return num_names;
@@ -217,9 +217,10 @@ sidetone_args* sidetone_args_new(const char *args) {
         pa_log_error("failed to search volume string");
     }
 
-    count = parse_volume_steps(st_args->steps,st_args->mainvolume);
+    count = parse_volume_steps(st_args->steps, st_args->mainvolume);
     if (count < 1) {
-        pa_log_warn("failed to parse call steps; %s", st_args->mainvolume);
+        pa_log_error("failed to parse call steps; %s", st_args->mainvolume);
+        goto fail;
     }
 
     return st_args;
@@ -233,18 +234,13 @@ fail:
 
 void sidetone_args_free(sidetone_args *st_args) {
 
-    int i = 0;
-
     if(st_args->sinks) {
-        for(i = 0; i < st_args->num_sinks; i++) {
-            pa_xfree((char*)st_args->sinks[i]);
-        }
         pa_xfree(st_args->sinks);
     }
 
     if(st_args->steps){
        pa_xfree(st_args->steps);
-       st_args->steps=NULL;
+       st_args->steps = NULL;
      }
 
     /* All single strings are owned by the modargs object */

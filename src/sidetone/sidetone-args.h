@@ -30,18 +30,18 @@
 typedef struct {
     const char *mixer;
 
-
     const char *control_element;
-
-    const char **sinks;
-    int num_sinks;
-
 
     const char *mainvolume;
 
     struct mv_volume_steps *steps;
 
+    const char *sinks;
+
+    int num_sinks;
+
     pa_modargs *modargs;
+
 } sidetone_args;
 
 sidetone_args* sidetone_args_new(const char* args);

@@ -31,11 +31,9 @@ ctrl_element *ctrl_element_new(snd_mixer_t *mixer, const char* name);
 
 void ctrl_element_free(ctrl_element *ctrl);
 
-int ctrl_element_set_volume(ctrl_element *ctrl, long volume);
-
 int ctrl_element_mute(ctrl_element *ctrl);
 
-int set_ctrl_element_volume(ctrl_element *ctrl,int step);
+int set_ctrl_element_volume(ctrl_element *ctrl, int step);
 
 #endif
 

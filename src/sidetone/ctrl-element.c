@@ -40,8 +40,6 @@ struct ctrl_element {
      * follow the same convention. */
     const char *element_name;
 
-    long min_dB;
-    long max_dB;
 };
 
 ctrl_element *ctrl_element_new(snd_mixer_t *mixer, const char* name) {
@@ -115,7 +113,7 @@ int set_ctrl_element_volume(ctrl_element *ctrl,int step) {
     }
 
     if((snd_mixer_selem_set_playback_volume(element, SND_MIXER_SCHN_MONO, step) < 0)) {
-        pa_log_error("Failed to mute sidetone element");
+        pa_log_error("Failed to set the volume step to the sidetone control element");
         return -1;
     }
 

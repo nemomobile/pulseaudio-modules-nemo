@@ -24,7 +24,6 @@
 #define foosidetonehfoo
 
 #include <pulsecore/core.h>
-//#include <pulsecore/volume-proxy.h>
 
 #define MAX_STEPS (64)
 
