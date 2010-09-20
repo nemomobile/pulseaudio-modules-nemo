@@ -34,11 +34,12 @@
 static const char* const valid_modargs[] = {
     "mixer",
     "control_element",
-    "sinks",
+    "master_sink",
     "mainvolume",
     NULL
 };
 
+/* parse the main volume table */
 int parse_volume_steps(struct mv_volume_steps *steps, const char *step_string) {
     int len;
     int count = 0;
@@ -146,39 +147,7 @@ static char* parse_name(const char **arg, const char *delimiters) {
     return result;
 }
 
-/* Parse sink or source names.
- *
- * \param[out] names The resulting array of names. Allocated by this function.
- * \arg List of sinks or sources given as <name>{","<name>} */
-static int parse_names(const char **names, const char *arg) {
-    pa_assert(!*names);
-
-    char* name = NULL;
-    const char* state = NULL;
-    int num_names = 0;
-    int array_size = 4;
-
-    if(!arg) {
-        return -1;
-    }
-
-    *names = (const char**)pa_xmalloc0(array_size * sizeof(char*));
-
-    while((name = parse_name(&arg, ","))) {
-
-        num_names++;
-
-        if(num_names > array_size) {
-            array_size *= 2;
-            *names = (const char**)pa_xrealloc(*names, array_size * sizeof(char*));
-        }
-
-        (names)[num_names - 1] = name;
-    }
-
-    return num_names;
-}
-
+/* parse sidetone configuration file parameters */
 sidetone_args* sidetone_args_new(const char *args) {
 
     pa_modargs* ma = NULL;
@@ -207,8 +176,8 @@ sidetone_args* sidetone_args_new(const char *args) {
     }
 
 
-    if((st_args->num_sinks = parse_names(&st_args->sinks, pa_modargs_get_value(ma, "sinks", NULL))) == 0) {
-        pa_log_error("Failed to parse sink names");
+    if( !(st_args->master_sink = pa_modargs_get_value(ma, "master_sink", NULL))) {
+        pa_log_error("Failed to parse master sink name");
         goto fail;
     }
 
@@ -233,10 +202,6 @@ fail:
 }
 
 void sidetone_args_free(sidetone_args *st_args) {
-
-    if(st_args->sinks) {
-        pa_xfree(st_args->sinks);
-    }
 
     if(st_args->steps){
        pa_xfree(st_args->steps);

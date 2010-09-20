@@ -38,7 +38,7 @@ PA_MODULE_LOAD_ONCE(FALSE);
 PA_MODULE_USAGE(
         "mixer=<name of the ALSA mixer> "
         "control_element=<mixer element name> "
-        "sinks=<list of sink names> "
+        "master_sink=<master sink name> "
         "mainvolume=<volume in millibels and steps>");
 
 

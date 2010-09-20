@@ -224,8 +224,8 @@ sidetone *sidetone_new(pa_core *core, const char* argument) {
     }
 
     /* there should be at least one sink */
-    if(!(sink = pa_namereg_get(core, st_args->sinks, PA_NAMEREG_SINK))) {
-        pa_log_error("Sink %s not found", st_args->sinks);
+    if(!(sink = pa_namereg_get(core, st_args->master_sink, PA_NAMEREG_SINK))) {
+        pa_log_error("Sink %s not found", st_args->master_sink);
         goto fail;
     }
     st->master_sink = sink;

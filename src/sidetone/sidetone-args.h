@@ -36,9 +36,7 @@ typedef struct {
 
     struct mv_volume_steps *steps;
 
-    const char *sinks;
-
-    int num_sinks;
+    const char *master_sink;
 
     pa_modargs *modargs;
 
