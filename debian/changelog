@@ -1,6 +1,7 @@
 pulseaudio-meego (0.9.19.0-12) UNRELEASED; urgency=low
 
   * Add some new operations to module-meego-test.
+  * Add alsa sidetone module.
 
  -- Maemo Multimedia <multimedia@maemo.org>  Wed, 15 Sep 2010 10:15:00 +0300
 
