@@ -64,6 +64,7 @@ static const char* const valid_modargs[] = {
     NULL,
 };
 
+/* update the volume by firing the appropriate volume hook */
 static void voice_update_volumes(struct userdata *u) {
     const pa_cvolume *cvol;
 
@@ -72,29 +73,27 @@ static void voice_update_volumes(struct userdata *u) {
 
     cvol = &u->master_sink->real_volume;
 
+    /* check the volume , if its same as previous one then return */
+    if (pa_cvolume_equal(cvol, &u->previous_volume))
+        return;
+
+    /* assign the current volume, will be used for the next time*/
+    u->previous_volume = *cvol;
+
     if (voice_voip_source_active(u))
         pa_hook_fire(u->hooks[HOOK_CALL_VOLUME], (void*)cvol);
     else
         pa_hook_fire(u->hooks[HOOK_VOLUME], (void*)cvol);
+
+    pa_log_debug("volume is updated");
 }
 
-static void sink_subscribe_cb(pa_core *c, pa_subscription_event_type_t t, uint32_t idx, void *userdata) {
+static void master_sink_volume_subscribe_cb(pa_core *c, pa_subscription_event_type_t t, uint32_t idx, void *userdata) {
     struct userdata *u = userdata;
     pa_sink *sink;
 
     pa_assert(c);
     pa_assert(u);
-
-    if (t != (PA_SUBSCRIPTION_EVENT_SINK|PA_SUBSCRIPTION_EVENT_CHANGE))
-        return;
-
-    if (!(sink = pa_idxset_get_by_index(c->sinks, idx)))
-        return;
-
-    if (sink != u->master_sink) {
-        //pa_log_debug("Not our sink %s (!= %s)", sink->name, u->master_sink->name);
-        return;
-    }
 
     voice_update_volumes(u);
 }
@@ -174,10 +173,10 @@ int pa__init(pa_module*m) {
     max_hw_frag_size_str = pa_modargs_get_value(ma, "max_hw_frag_size", "3840");
 
     pa_log_debug("Got arguments: master_sink=\"%s\" master_source=\"%s\" "
-		 "raw_sink_name=\"%s\" raw_source_name=\"%s\" max_hw_frag_size=\"%s\".",
-		 master_sink_name, master_source_name,
-		 raw_sink_name, raw_source_name,
-		 max_hw_frag_size_str);
+                 "raw_sink_name=\"%s\" raw_source_name=\"%s\" max_hw_frag_size=\"%s\".",
+                 master_sink_name, master_source_name,
+                 raw_sink_name, raw_source_name,
+                 max_hw_frag_size_str);
 
     if (!(master_sink = pa_namereg_get(m->core, master_sink_name, PA_NAMEREG_SINK))) {
         pa_log("Master sink \"%s\" not found", master_sink_name);
@@ -190,17 +189,17 @@ int pa__init(pa_module*m) {
     }
 
     if (master_sink->sample_spec.format != master_source->sample_spec.format &&
-	master_sink->sample_spec.rate != master_source->sample_spec.rate &&
-	master_sink->sample_spec.channels != master_source->sample_spec.channels) {
-	pa_log("Master source and sink must have same sample spec");
-	goto fail;
+        master_sink->sample_spec.rate != master_source->sample_spec.rate &&
+        master_sink->sample_spec.channels != master_source->sample_spec.channels) {
+        pa_log("Master source and sink must have same sample spec");
+        goto fail;
     }
 
     if (pa_atoi(max_hw_frag_size_str, &max_hw_frag_size) < 0 ||
-	max_hw_frag_size < 960 ||
-	max_hw_frag_size > 128*960) {
-	pa_log("Bad value for max_hw_frag_size: %s", max_hw_frag_size_str);
-	goto fail;
+        max_hw_frag_size < 960 ||
+        max_hw_frag_size > 128*960) {
+        pa_log("Bad value for max_hw_frag_size: %s", max_hw_frag_size_str);
+        goto fail;
     }
 
     m->userdata = u = pa_xnew0(struct userdata, 1);
@@ -243,23 +242,23 @@ int pa__init(pa_module*m) {
 
     u->voice_ul_fragment_size = pa_usec_to_bytes(VOICE_PERIOD_CMT_USECS+1, &u->aep_sample_spec);
     pa_silence_memchunk_get(&u->core->silence_cache,
-			    u->core->mempool,
-			    &u->aep_silence_memchunk,
-			    & u->aep_sample_spec,
-			    u->aep_fragment_size);
+                            u->core->mempool,
+                            &u->aep_silence_memchunk,
+                            & u->aep_sample_spec,
+                            u->aep_fragment_size);
 
     voice_memchunk_pool_load(u);
 
     if (voice_init_raw_sink(u, raw_sink_name))
-	goto fail;
+        goto fail;
     pa_sink_put(u->raw_sink);
 
     if (voice_init_voip_sink(u, voice_sink_name))
-	goto fail;
+        goto fail;
     pa_sink_put(u->voip_sink);
 
     if (voice_init_aep_sink_input(u))
-	goto fail;
+        goto fail;
 
     u->call_state_tracker = pa_call_state_tracker_get(m->core);
 
@@ -268,17 +267,17 @@ int pa__init(pa_module*m) {
     u->alt_mixer_compensation = PA_VOLUME_NORM;
 
     if (voice_init_hw_sink_input(u))
-	goto fail;
+        goto fail;
 
     u->sink_temp_buff = pa_xmalloc(2*u->hw_fragment_size_max);
     u->sink_temp_buff_len = 2*u->hw_fragment_size_max;
 
     if (voice_init_raw_source(u, raw_source_name))
-	goto fail;
+        goto fail;
     pa_source_put(u->raw_source);
 
     if (voice_init_voip_source(u, voice_source_name))
-	goto fail;
+        goto fail;
     pa_source_put(u->voip_source);
 
     if (voice_init_hw_source_output(u))
@@ -286,10 +285,10 @@ int pa__init(pa_module*m) {
 
     /* TODO: Guess we should use max_hw_frag_size here */
     u->hw_source_memblockq = // 8 * 5ms = 40ms
-	pa_memblockq_new(0, 2*u->hw_fragment_size_max, 0, pa_frame_size(&u->hw_sample_spec), 0, 0, 0, NULL);
+        pa_memblockq_new(0, 2*u->hw_fragment_size_max, 0, pa_frame_size(&u->hw_sample_spec), 0, 0, 0, NULL);
 
     u->ul_memblockq =
-	pa_memblockq_new(0, 2*u->voice_ul_fragment_size, 0, pa_frame_size(&u->aep_sample_spec), 0, 0, 0, NULL);
+        pa_memblockq_new(0, 2*u->voice_ul_fragment_size, 0, pa_frame_size(&u->aep_sample_spec), 0, 0, 0, NULL);
 
     u->dl_sideinfo_queue = pa_queue_new();
 
@@ -301,7 +300,7 @@ int pa__init(pa_module*m) {
     voice_aep_ear_ref_init(u);
 
     if (voice_convert_init(u))
-	goto fail;
+        goto fail;
 
     /* IHF mode is the default and this initialization is consistent with it. */
     u->active_mic_channel = MIC_CH0;
@@ -325,8 +324,7 @@ int pa__init(pa_module*m) {
     pa_sink_input_put(u->hw_sink_input);
     pa_sink_input_put(u->aep_sink_input);
 
-    u->sink_subscription = pa_subscription_new(m->core, PA_SUBSCRIPTION_MASK_SINK, sink_subscribe_cb, u);
-
+    u->sink_subscription = pa_subscription_new(m->core, PA_SUBSCRIPTION_MASK_SINK | PA_SUBSCRIPTION_MASK_SINK_INPUT, master_sink_volume_subscribe_cb, u);
     return 0;
 
 fail:

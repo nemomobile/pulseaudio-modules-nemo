@@ -140,11 +140,11 @@ struct userdata {
     src_8_to_48 *hw8khz_source_to_raw_source_resampler;
 
     struct voice_aep_ear_ref {
-	int loop_padding_usec;
-	pa_atomic_t loop_state;
-	volatile struct timeval loop_tstamp;
-	pa_asyncq *loop_asyncq;
-	pa_memblockq *loop_memblockq;
+        int loop_padding_usec;
+        pa_atomic_t loop_state;
+        volatile struct timeval loop_tstamp;
+        pa_asyncq *loop_asyncq;
+        pa_memblockq *loop_memblockq;
     } ear_ref;
 
     pa_hook_slot *sink_proplist_changed_slot;
@@ -158,6 +158,9 @@ struct userdata {
     pa_hook *hooks[HOOK_MAX];
 
     call_mic_ch_t active_mic_channel;
+
+    /* store the current volume , to compare next time */
+    pa_cvolume previous_volume;
 };
 
 
