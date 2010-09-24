@@ -109,10 +109,10 @@ static int sidetone_volume_get_step(struct sidetone *st){
 
     /* Search for the first step that's >= volume_mb.
      * Assume that the steps are in ascending order. */
-    for(i = 0; i < st->total_steps->n_steps && st->total_steps->step[i] < volume_mb; i++);
+    for(i = 0; (i < st->total_steps->n_steps) && (st->total_steps->step[i] < volume_mb); i++);
 
-    /* Take the lower step if it's closer */
-    if(i > 0 && st->total_steps->step[i] - volume_mb > volume_mb - st->total_steps->step[i - 1])
+    /* If we're in between steps, choose the closer one. With equal distances, choose the higher step. */
+    if(i > 0 && (st->total_steps->step[i] - volume_mb > volume_mb - st->total_steps->step[i - 1]))
         i--;
 
     st->total_steps->current_step = i;
@@ -120,8 +120,8 @@ static int sidetone_volume_get_step(struct sidetone *st){
 
     if( st->sidetone_step > MAX_SIDETONE_STEP)
         st->sidetone_step = MAX_SIDETONE_STEP;
- 
-    pa_log_debug("Sidetone step now %d (%d mB)", st->sidetone_step, st->total_steps->step[i]);
+
+    pa_log_debug("Sidetone step now %d based on volume table value %d mB", st->sidetone_step, st->total_steps->step[i]);
 
     return st->sidetone_step;
 }
