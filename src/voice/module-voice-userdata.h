@@ -161,6 +161,9 @@ struct userdata {
 
     /* store the current volume , to compare next time */
     pa_cvolume previous_volume;
+
+    pa_subscription *source_change_subscription;
+    pa_source_state_t previous_master_source_state;
 };
 
 

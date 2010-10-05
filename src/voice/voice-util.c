@@ -123,6 +123,11 @@ void voice_clear_up(struct userdata *u) {
         u->source_proplist_changed_slot = NULL;
     }
 
+    if (u->source_change_subscription) {
+        pa_subscription_free(u->source_change_subscription);
+        u->source_change_subscription = NULL;
+    }
+
     voice_convert_free(u);
     voice_memchunk_pool_unload(u);
 }

@@ -54,6 +54,7 @@
 #define VOICE_HOOK_AEP_DOWNLINK                 "x-meego.voice.aep_downlink"
 #define VOICE_HOOK_AEP_UPLINK                   "x-meego.voice.aep_uplink"
 #define VOICE_HOOK_RMC_MONO                     "x-meego.voice.rmc"
+#define VOICE_HOOK_SOURCE_RESET                 "x-meego.voice.source_reset"
 
 
 typedef struct {

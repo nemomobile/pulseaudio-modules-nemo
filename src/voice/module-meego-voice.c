@@ -98,6 +98,32 @@ static void master_sink_volume_subscribe_cb(pa_core *c, pa_subscription_event_ty
     voice_update_volumes(u);
 }
 
+static void master_source_state_subscribe_cb(pa_core *c, pa_subscription_event_type_t t, uint32_t idx, void *userdata) {
+    struct userdata *u = userdata;
+
+    pa_assert(c);
+    pa_assert(u);
+
+    if ((t & PA_SUBSCRIPTION_EVENT_TYPE_MASK) != PA_SUBSCRIPTION_EVENT_CHANGE)
+	return;
+
+    if (!u->master_source)
+	return;
+
+    if (u->master_source != pa_idxset_get_by_index(c->sources, idx))
+	return;
+
+    if (pa_source_get_state(u->master_source) == u->previous_master_source_state)
+	return;
+
+    u->previous_master_source_state = pa_source_get_state(u->master_source);
+
+    if (u->previous_master_source_state == PA_SOURCE_SUSPENDED) {
+	pa_hook_fire(u->hooks[HOOK_SOURCE_RESET], NULL);
+	pa_log_debug("VOICE_HOOK_SOURCE_RESET fired");
+    }
+}
+
 static int set_hooks(struct userdata *u) {
     pa_assert(u);
 
@@ -116,6 +142,7 @@ static int set_hooks(struct userdata *u) {
     u->hooks[HOOK_AEP_DOWNLINK]                 = algorithm_hook_init(u->algorithm, VOICE_HOOK_AEP_DOWNLINK);
     u->hooks[HOOK_AEP_UPLINK]                   = algorithm_hook_init(u->algorithm, VOICE_HOOK_AEP_UPLINK);
     u->hooks[HOOK_RMC_MONO]                     = algorithm_hook_init(u->algorithm, VOICE_HOOK_RMC_MONO);
+    u->hooks[HOOK_SOURCE_RESET]                 = algorithm_hook_init(u->algorithm, VOICE_HOOK_SOURCE_RESET);
     return 0;
 }
 
@@ -135,6 +162,7 @@ static int unset_hooks(struct userdata *u) {
     algorithm_hook_done(u->algorithm, VOICE_HOOK_AEP_DOWNLINK);
     algorithm_hook_done(u->algorithm, VOICE_HOOK_AEP_UPLINK);
     algorithm_hook_done(u->algorithm, VOICE_HOOK_RMC_MONO);
+    algorithm_hook_done(u->algorithm, VOICE_HOOK_SOURCE_RESET);
 
     algorithm_hook_unref(u->algorithm);
     u->algorithm = NULL;
@@ -325,6 +353,9 @@ int pa__init(pa_module*m) {
     pa_sink_input_put(u->aep_sink_input);
 
     u->sink_subscription = pa_subscription_new(m->core, PA_SUBSCRIPTION_MASK_SINK | PA_SUBSCRIPTION_MASK_SINK_INPUT, master_sink_volume_subscribe_cb, u);
+
+    u->previous_master_source_state = pa_source_get_state(u->master_source);
+    u->source_change_subscription = pa_subscription_new(m->core, PA_SUBSCRIPTION_MASK_SOURCE, master_source_state_subscribe_cb, u);
     return 0;
 
 fail:
