@@ -1,4 +1,4 @@
-pulseaudio-meego (0.9.19.0-12) UNRELEASED; urgency=low
+pulseaudio-meego (0.9.19.0-12) unstable; urgency=low
 
   * Add some new operations to module-meego-test.
   * Add alsa sidetone module.
@@ -10,7 +10,7 @@ pulseaudio-meego (0.9.19.0-11) unstable; urgency=low
 
   * Fixed NEON optimized stereo to mono downmix function.
   * Use stereo eq hook mic hook
-  * debian/control: Add build dependency to automake. 
+  * debian/control: Add build dependency to automake.
   * Fixes: NB#187592
   * Add speech SRCs for WB call
 
