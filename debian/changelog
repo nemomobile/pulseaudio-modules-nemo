@@ -1,3 +1,9 @@
+pulseaudio-meego (0.9.19.0-13) UNRELEASED; urgency=low
+
+  * voice: Source reset hook added. Fixes: NB#178925
+
+ -- Maemo Multimedia <multimedia@maemo.org>  Mon, 18 Oct 2010 15:34:22 +0300
+
 pulseaudio-meego (0.9.19.0-12) unstable; urgency=low
 
   * Add some new operations to module-meego-test.
