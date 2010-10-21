@@ -1,6 +1,7 @@
-pulseaudio-meego (0.9.19.0-13) UNRELEASED; urgency=low
+pulseaudio-meego (0.9.19.0-13) unstable; urgency=low
 
-  * voice: Source reset hook added. Fixes: NB#178925
+  * voice: Source reset hook added.
+  * Fixes: NB#178925 - Extra sounds are heard at the beginning of the recorded video
 
  -- Maemo Multimedia <multimedia@maemo.org>  Mon, 18 Oct 2010 15:34:22 +0300
 
