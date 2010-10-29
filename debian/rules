@@ -42,24 +42,26 @@ configure-stamp:
 	CFLAGS="${CFLAGS}" ./bootstrap.sh $(CONFIGURE_ARGS)
 	touch $@
 
-build: build-stamp test-stamp
+build: build-stamp
 build-stamp: configure-stamp
 	dh_testdir
 	$(MAKE)
 	touch $@
 
-test-stamp:
+test: test-stamp
+test-stamp: configure-stamp
+	dh_testdir
 	$(MAKE) check
 	touch $@
 
 clean:
 	dh_testdir
 	dh_testroot
-	rm -f build-stamp configure-stamp
+	rm -f build-stamp configure-stamp test-stamp
 	[ ! -f Makefile ] || $(MAKE) distclean
 	dh_clean
 
-install: build
+install: build test
 	dh_testdir
 	dh_testroot
 	dh_clean -k
