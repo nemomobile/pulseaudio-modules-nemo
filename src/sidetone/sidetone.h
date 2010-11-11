@@ -29,6 +29,7 @@
 
 struct mv_volume_steps {
     int step[MAX_STEPS];
+    int index[MAX_STEPS];
     int n_steps;
     int current_step;
 };

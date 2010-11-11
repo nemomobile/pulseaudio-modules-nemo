@@ -44,7 +44,7 @@ int parse_volume_steps(struct mv_volume_steps *steps, const char *step_string) {
     int len;
     int count = 0;
     int i = 0;
-
+    int shift = 0;
     pa_assert(steps);
     if (!step_string)
         return 0;
@@ -52,8 +52,8 @@ int parse_volume_steps(struct mv_volume_steps *steps, const char *step_string) {
     len = strlen(step_string);
 
     while (i < len && count < MAX_STEPS) {
-        char step[16];
-        int value;
+        char step[16], index[16];
+        int value, index_value, j, shift;
         size_t start, value_len;
 
         /* search for next step:value separator */
@@ -82,6 +82,21 @@ int parse_volume_steps(struct mv_volume_steps *steps, const char *step_string) {
             return -1;
         }
         steps->step[count] = value;
+
+        j = start;
+
+        for (; j > -1  && step_string[j--] != ','; shift++);
+
+        /* copy step string part to index string and convert to integer */
+        memcpy(index, &step_string[start - shift], shift);
+        index[shift - 1] = '\0';
+
+        if (pa_atoi(index, &index_value)) {
+            return -1;
+        }
+        steps->index[count] = index_value;
+
+        shift = -1;
         count++;
     }
 
@@ -91,61 +106,6 @@ int parse_volume_steps(struct mv_volume_steps *steps, const char *step_string) {
     return count;
 }
 
-/* Parse and allocate a single name from the string pointed to by arg, and
- * advance *arg by the respective amount. Trim away any preceding or following
- * whitespace. 'delimiters' specifies the characters that can separate individual
- * names. */
-static char* parse_name(const char **arg, const char *delimiters) {
-    size_t len = 0;
-    size_t len_trimmed = 0;
-    char *result = NULL;
-    const char *end = NULL;
-
-    while(isspace(**arg)) {
-        (*arg)++;
-    }
-
-    len = strcspn(*arg, delimiters);
-
-    if(len == 0) {
-        return NULL;
-    }
-
-    end = *arg + len;
-
-    /* Back away from the delimiter if one exists */
-    if(strchr(delimiters, *end)) {
-        end--;
-    }
-
-    /* Go back over any whitespaces */
-    while(isspace(*end) && end > *arg) {
-        end--;
-    }
-
-    end++;
-
-    len_trimmed = end - *arg;
-
-    if(len_trimmed == 0) {
-        return NULL;
-    }
-
-    result = pa_xmalloc0((len_trimmed + 1) * sizeof(char*));
-    strncpy(result, *arg, len_trimmed);
-    result[len_trimmed] = '\0';
-
-    /* Proceed past the name and the delimiter if we encountered one. */
-    if((*arg)[len] == '\0') {
-        *arg += len;
-    } else {
-        *arg += len + 1;
-    }
-
-    pa_assert(**arg == '\0' || strchr(delimiters, (*(*arg - 1))));
-
-    return result;
-}
 
 /* parse sidetone configuration file parameters */
 sidetone_args* sidetone_args_new(const char *args) {

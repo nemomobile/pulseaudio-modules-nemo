@@ -42,7 +42,6 @@
 #include "sidetone.h"
 
 /* we have only 7 steps in Left Digital Loopback element i.e. sidetone control element*/
-#define MAX_SIDETONE_STEP 7
 
 /* Describes the volume of an element in the sideone path. */
 struct element_volume {
@@ -115,11 +114,7 @@ static int sidetone_volume_get_step(struct sidetone *st){
     if(i > 0 && (st->total_steps->step[i] - volume_mb > volume_mb - st->total_steps->step[i - 1]))
         i--;
 
-    st->total_steps->current_step = i;
-    st->sidetone_step = (st->total_steps->n_steps - 1 - st->total_steps->current_step);
-
-    if( st->sidetone_step > MAX_SIDETONE_STEP)
-        st->sidetone_step = MAX_SIDETONE_STEP;
+    st->sidetone_step = st->total_steps->index[i];
 
     pa_log_debug("Sidetone step now %d based on volume table value %d mB", st->sidetone_step, st->total_steps->step[i]);
 
@@ -213,6 +208,7 @@ sidetone *sidetone_new(pa_core *core, const char* argument) {
     st->total_steps->current_step = st_args->steps->current_step;
     for(i = 0; i < st->total_steps->n_steps; i++){
         st->total_steps->step[i] = st_args->steps->step[i];
+        st->total_steps->index[i] = st_args->steps->index[i];
     }
 
     st->mutex = pa_mutex_new(FALSE, FALSE);
