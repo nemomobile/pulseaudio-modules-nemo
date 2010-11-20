@@ -44,7 +44,6 @@ int parse_volume_steps(struct mv_volume_steps *steps, const char *step_string) {
     int len;
     int count = 0;
     int i = 0;
-    int shift = 0;
     pa_assert(steps);
     if (!step_string)
         return 0;
@@ -53,7 +52,7 @@ int parse_volume_steps(struct mv_volume_steps *steps, const char *step_string) {
 
     while (i < len && count < MAX_STEPS) {
         char step[16], index[16];
-        int value, index_value, j, shift;
+        int value, index_value, j, shift = -1;
         size_t start, value_len;
 
         /* search for next step:value separator */
@@ -96,7 +95,6 @@ int parse_volume_steps(struct mv_volume_steps *steps, const char *step_string) {
         }
         steps->index[count] = index_value;
 
-        shift = -1;
         count++;
     }
 
