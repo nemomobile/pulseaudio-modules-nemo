@@ -110,6 +110,9 @@ static int sidetone_volume_get_step(struct sidetone *st){
      * Assume that the steps are in ascending order. */
     for(i = 0; (i < st->total_steps->n_steps) && (st->total_steps->step[i] < volume_mb); i++);
 
+    if(i == st->total_steps->n_steps)
+        i = st->total_steps->n_steps - 1;
+
     /* If we're in between steps, choose the closer one. With equal distances, choose the higher step. */
     if(i > 0 && (st->total_steps->step[i] - volume_mb > volume_mb - st->total_steps->step[i - 1]))
         i--;
