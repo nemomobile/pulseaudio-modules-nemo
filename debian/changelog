@@ -1,6 +1,7 @@
 pulseaudio-meego (0.9.19.0-14) UNRELEASED; urgency=low
 
   * sidetone: Sidetone steps are parsed from configurations and unit test added.
+  * sidetone: Made a small correction to get correct index for sidetone gain step.  
   
  -- Maemo Multimedia <multimedia@maemo.org>  Mon, 22 Nov 2010 14:10:22 +0300
 
