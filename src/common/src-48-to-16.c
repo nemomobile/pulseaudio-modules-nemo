@@ -1,16 +1,24 @@
 /*
-
-Copyright (C) 2008, 2009 Nokia Corporation.
-This material, including documentation and any related
-computer programs, is protected by copyright controlled by
-Nokia Corporation. All rights are reserved. Copying,
-including reproducing, storing,  adapting or translating, any
-or all of this material requires the prior written consent of
-Nokia Corporation. This material also contains confidential
-information which may not be disclosed to others without the
-prior written consent of Nokia Corporation.
-
-*/
+ * Copyright (C) 2010 Nokia Corporation.
+ *
+ * Contact: Maemo MMF Audio <mmf-audio@projects.maemo.org>
+ *          or Jaska Uimonen  <jaska.uimonen@nokia.com>
+ *
+ * These PulseAudio Modules are free software; you can redistribute
+ * it and/or modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation
+ * version 2.1 of the License.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301
+ * USA.
+ */
 
 #include <stdio.h>
 
@@ -81,9 +89,9 @@ static inline int src_clip16(int input)
 #endif
 
 int process_src_48_to_16(src_48_to_16 *s,
-			short *output,
-			short *input,
-			int input_frames)
+                        short *output,
+                        short *input,
+                        int input_frames)
 {
     signed short *input_samples = 0;
     signed short *poly_start = 0;
@@ -107,12 +115,12 @@ int process_src_48_to_16(src_48_to_16 *s,
 
       for (j = start_point, k = 0; j < FILTER_MEMORY; j++, k++)
       {
-	result += (int)(s->filter_memory[j]) * filter_coeffs[k];
+        result += (int)(s->filter_memory[j]) * filter_coeffs[k];
       }
 
       for (j = 0; j < start_point + 1; j++, k++)
       {
-	result += (int)(input[j]) * filter_coeffs[k];
+        result += (int)(input[j]) * filter_coeffs[k];
       }
 
 #ifdef USE_SATURATION
@@ -135,7 +143,7 @@ int process_src_48_to_16(src_48_to_16 *s,
 
       for (j = 0; j < FILTER_LENGTH; j++)
       {
-	result += (int)(*input_samples++) * filter_coeffs[j];
+        result += (int)(*input_samples++) * filter_coeffs[j];
       }
 
 #ifdef USE_SATURATION
@@ -149,17 +157,17 @@ int process_src_48_to_16(src_48_to_16 *s,
 
     /* copy filter memory to the beginning of scratch buffer */
     memcpy((void*)(&(s->filter_memory[0])),
-	   (void*)poly_start,
-	   FILTER_MEMORY * sizeof(short));
+           (void*)poly_start,
+           FILTER_MEMORY * sizeof(short));
 
 
     return output_frames;
 }
 
 int process_src_48_to_16_stereo_to_mono(src_48_to_16 *s,
-				       short *output,
-				       short *input,
-				       int input_frames)
+                                       short *output,
+                                       short *input,
+                                       int input_frames)
 {
     signed short *input_samples = 0;
     signed short *poly_start = 0;
@@ -183,7 +191,7 @@ int process_src_48_to_16_stereo_to_mono(src_48_to_16 *s,
 
       for (j = start_point, k = 0; j < FILTER_MEMORY * 2; j += 2, k++)
       {
-	result += (int)(s->filter_memory[j]) * filter_coeffs[k];
+        result += (int)(s->filter_memory[j]) * filter_coeffs[k];
       }
 
       /*
@@ -193,7 +201,7 @@ int process_src_48_to_16_stereo_to_mono(src_48_to_16 *s,
 
       for (j = 0; j < start_point + 2; j += 2, k++)
       {
-	result += (int)(input[j]) * filter_coeffs[k];
+        result += (int)(input[j]) * filter_coeffs[k];
       }
 
       /*
@@ -222,8 +230,8 @@ int process_src_48_to_16_stereo_to_mono(src_48_to_16 *s,
 
       for (j = 0; j < FILTER_LENGTH; j++)
       {
-	result += (int)(*input_samples) * filter_coeffs[j];
-	input_samples += 2;
+        result += (int)(*input_samples) * filter_coeffs[j];
+        input_samples += 2;
       }
 
 #ifdef USE_SATURATION
@@ -237,8 +245,8 @@ int process_src_48_to_16_stereo_to_mono(src_48_to_16 *s,
 
     /* copy rest of input to filter memory  */
     memcpy((void*)(&(s->filter_memory[0])),
-	   (void*)poly_start,
-	   2 * FILTER_MEMORY * sizeof(short));
+           (void*)poly_start,
+           2 * FILTER_MEMORY * sizeof(short));
 
     return output_frames;
 }
