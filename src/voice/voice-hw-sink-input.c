@@ -515,34 +515,12 @@ static void hw_sink_input_attach_slave_sink(struct userdata *u, pa_sink *sink, p
     }
 }
 
-static void voice_hw_sink_input_reset_volume_defer_cb(pa_mainloop_api *m, pa_defer_event *de, void *userdata) {
-    pa_cvolume v;
-    pa_sink_input *i;
-
-    pa_assert_se(i = userdata);
-
-    m->defer_enable(de, 0);
-
-    /* FIXME: this is kind of UGLY way to solve the volume being
-       relative to sink when detached... (ie origin_sink == NULL) */
-    pa_cvolume_reset(&v, i->sample_spec.channels);
-    i->soft_volume = v;
-
-    if (!i->sink)
-        return;
-    pa_sink_input_set_volume(i, &v, FALSE, TRUE);
-
-    pa_assert_se(pa_asyncmsgq_send(i->sink->asyncmsgq, PA_MSGOBJECT(i->sink), PA_SINK_MESSAGE_SYNC_VOLUMES, NULL, 0, NULL) == 0);
-}
-
 /* Called from I/O thread context */
 static void hw_sink_input_attach_cb(pa_sink_input *i) {
     struct userdata *u;
 
     pa_sink_input_assert_ref(i);
     pa_assert_se(u = i->userdata);
-
-    u->core->mainloop->defer_new(u->core->mainloop, voice_hw_sink_input_reset_volume_defer_cb, i);
 
     hw_sink_input_attach_slave_sink(u, u->raw_sink, i->sink);
     hw_sink_input_attach_slave_sink(u, u->voip_sink, i->sink);
@@ -692,8 +670,6 @@ static pa_sink_input *voice_hw_sink_input_new(struct userdata *u, pa_sink_input_
     sink_input_data.module = u->module;
     sink_input_data.sink = u->master_sink;
     sink_input_data.origin_sink = u->raw_sink;
-    sink_input_data.volume_is_absolute = TRUE;
-    sink_input_data.volume_is_set = TRUE;
 
     pa_proplist_sets(sink_input_data.proplist, PA_PROP_MEDIA_NAME, t);
     pa_proplist_sets(sink_input_data.proplist, PA_PROP_APPLICATION_NAME, t); /* this is the default value used by PA modules */
@@ -705,7 +681,6 @@ static pa_sink_input *voice_hw_sink_input_new(struct userdata *u, pa_sink_input_
         pa_sink_input_new_data_set_sample_spec(&sink_input_data, &u->hw_sample_spec);
         pa_sink_input_new_data_set_channel_map(&sink_input_data, &u->stereo_map);
     }
-    pa_cvolume_reset(&sink_input_data.volume, sink_input_data.sample_spec.channels);
 
     pa_sink_input_new(&new_sink_input, u->core, &sink_input_data);
     pa_sink_input_new_data_done(&sink_input_data);
