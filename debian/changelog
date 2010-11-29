@@ -1,8 +1,11 @@
 pulseaudio-meego (0.9.19.0-15) UNRELEASED; urgency=low
 
   * mainvolume: fix fallback steps calculation. Fixes: NB#205871
+  * voice: Don't mess around with the hw sink input volume.
+  * music: Before doing flat sink recursion, check if i->origin_sink->flat_volume_sink is set.
+  * Don't update origin_sink->flat_volume_sink in the moving() callback.
 
- -- Maemo Multimedia <multimedia@maemo.org>  Wed, 01 Dec 2010 16:41:11 +0200
+ -- Maemo Multimedia <multimedia@maemo.org>  Thu, 02 Dec 2010 14:26:11 +0200
 
 pulseaudio-meego (0.9.19.0-14) unstable; urgency=low
 
