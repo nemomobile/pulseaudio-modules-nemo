@@ -35,11 +35,11 @@ static int raw_source_process_msg(pa_msgobject *o, int code, void *data, int64_t
             pa_usec_t usec = 0;
 
             if (PA_MSGOBJECT(u->master_source)->process_msg(
-		    PA_MSGOBJECT(u->master_source), PA_SOURCE_MESSAGE_GET_LATENCY, &usec, 0, NULL) < 0)
+                    PA_MSGOBJECT(u->master_source), PA_SOURCE_MESSAGE_GET_LATENCY, &usec, 0, NULL) < 0)
                 usec = 0;
 
             *((pa_usec_t*) data) = usec + pa_bytes_to_usec(pa_memblockq_get_length(u->hw_source_memblockq),
-							   &u->raw_source->sample_spec);
+                                                           &u->raw_source->sample_spec);
             return 0;
         }
     }
@@ -100,7 +100,7 @@ int voice_init_raw_source(struct userdata *u, const char *name) {
 
     if (!u->raw_source) {
         pa_log_error("Failed to create source.");
-	return -1;
+        return -1;
     }
 
     u->raw_source->parent.process_msg = raw_source_process_msg;

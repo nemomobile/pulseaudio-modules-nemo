@@ -46,7 +46,7 @@ static int voip_source_process_msg(pa_msgobject *o, int code, void *data, int64_
             pa_usec_t usec = 0;
 
             if (PA_MSGOBJECT(u->master_source)->process_msg(
-		    PA_MSGOBJECT(u->master_source), PA_SOURCE_MESSAGE_GET_LATENCY, &usec, 0, NULL) < 0)
+                    PA_MSGOBJECT(u->master_source), PA_SOURCE_MESSAGE_GET_LATENCY, &usec, 0, NULL) < 0)
                 usec = 0;
 
             usec += pa_bytes_to_usec(pa_memblockq_get_length(u->ul_memblockq),
@@ -116,7 +116,7 @@ int voice_init_voip_source(struct userdata *u, const char *name) {
 
     if (!u->voip_source) {
         pa_log("Failed to create source");
-	return -1;
+        return -1;
     }
 
     u->voip_source->parent.process_msg = voip_source_process_msg;

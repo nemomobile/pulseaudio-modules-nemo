@@ -45,10 +45,10 @@ static int aep_sink_input_pop_cb(pa_sink_input *i, size_t length, pa_memchunk *c
     pa_sink_input_set_state_within_thread(i, PA_SINK_INPUT_CORKED);
 
     pa_silence_memchunk_get(&u->core->silence_cache,
-			    u->core->mempool,
-			    chunk,
-			    &i->sample_spec,
-			    length);
+                            u->core->mempool,
+                            chunk,
+                            &i->sample_spec,
+                            length);
 
     return 0;
 }
@@ -153,8 +153,8 @@ int voice_init_aep_sink_input(struct userdata *u) {
     pa_sink_input_new_data_done(&data);
 
     if (!u->aep_sink_input) {
-	pa_log_debug("Creating sink input failed");
-	return -1;
+        pa_log_debug("Creating sink input failed");
+        return -1;
     }
 
     u->aep_sink_input->pop = aep_sink_input_pop_cb;

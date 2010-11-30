@@ -57,13 +57,13 @@ static int voip_sink_process_msg(pa_msgobject *o, int code, void *data, int64_t 
 
         case PA_SINK_MESSAGE_ADD_INPUT: {
             pa_sink_input *i = PA_SINK_INPUT(data);
-	    if (i == u->hw_sink_input) {
-		pa_log_error("Denied loop connection");
-		// TODO: How to deny connection...
-		return -1;
-	    }
-	    // Pass trough to pa_sink_process_msg
-	    break;
+            if (i == u->hw_sink_input) {
+                pa_log_error("Denied loop connection");
+                // TODO: How to deny connection...
+                return -1;
+            }
+            // Pass trough to pa_sink_process_msg
+            break;
         }
 
     }
@@ -125,7 +125,7 @@ static void voip_sink_update_requested_latency(pa_sink *s) {
 
     /* Just hand this one over to the master sink */
     pa_sink_input_set_requested_latency_within_thread(
-	u->hw_sink_input,
+        u->hw_sink_input,
         voice_sink_get_requested_latency(s, u->raw_sink));
 }
 

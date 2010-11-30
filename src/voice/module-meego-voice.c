@@ -105,22 +105,22 @@ static void master_source_state_subscribe_cb(pa_core *c, pa_subscription_event_t
     pa_assert(u);
 
     if ((t & PA_SUBSCRIPTION_EVENT_TYPE_MASK) != PA_SUBSCRIPTION_EVENT_CHANGE)
-	return;
+        return;
 
     if (!u->master_source)
-	return;
+        return;
 
     if (u->master_source != pa_idxset_get_by_index(c->sources, idx))
-	return;
+        return;
 
     if (pa_source_get_state(u->master_source) == u->previous_master_source_state)
-	return;
+        return;
 
     u->previous_master_source_state = pa_source_get_state(u->master_source);
 
     if (u->previous_master_source_state == PA_SOURCE_SUSPENDED) {
-	pa_hook_fire(u->hooks[HOOK_SOURCE_RESET], NULL);
-	pa_log_debug("VOICE_HOOK_SOURCE_RESET fired");
+        pa_hook_fire(u->hooks[HOOK_SOURCE_RESET], NULL);
+        pa_log_debug("VOICE_HOOK_SOURCE_RESET fired");
     }
 }
 
