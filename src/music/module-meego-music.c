@@ -371,17 +371,25 @@ static void sink_input_moving_cb(pa_sink_input *i, pa_sink *dest){
 
     u->master_sink = dest;
     pa_sink_update_flags(u->sink, PA_SINK_LATENCY|PA_SINK_DYNAMIC_LATENCY, dest->flags);
+
+    /* FIXME: This should be done by the core. */
     pa_sink_set_asyncmsgq(u->sink, i->sink->asyncmsgq);
 
     p = pa_proplist_new();
     pa_proplist_setf(p, PA_PROP_DEVICE_DESCRIPTION, "%s connected to %s", u->sink->name, u->master_sink->name);
+
+    /* FIXME: This should be done by the core. */
     pa_proplist_sets(p, PA_PROP_DEVICE_MASTER_DEVICE, u->master_sink->name);
+
     pa_sink_update_proplist(u->sink, PA_UPDATE_REPLACE, p);
     pa_proplist_free(p);
 
-    u->sink->flat_volume_sink = u->master_sink;
-
-    /* Call moving callbacks of slave sink's sink-inputs. */
+    /* Call moving callbacks of slave sink's sink-inputs. FIXME: This code
+     * belongs in the core, except that calling the moving callback is probably
+     * semantically wrong anyway in this case... I'm not sure, but possibly the
+     * only reason for this recursion is that other filter sinks connected to
+     * this sink must update their asyncmsgqs. That should be done in the core
+     * without calling the moving() callback. */
     PA_IDXSET_FOREACH(si, u->sink->inputs, idx)
         if (si->moving)
             si->moving(si, u->sink);
@@ -518,7 +526,7 @@ int pa__init(pa_module*m) {
     sink_data.module = m;
     sink_data.driver = __FILE__;
     sink_data.flat_volume_sink = master_sink;
-      pa_sink_new_data_set_name(&sink_data, sink_name);
+    pa_sink_new_data_set_name(&sink_data, sink_name);
     pa_sink_new_data_set_sample_spec(&sink_data, &ss);
     pa_sink_new_data_set_channel_map(&sink_data, &map);
     pa_proplist_setf(sink_data.proplist, PA_PROP_DEVICE_DESCRIPTION, "%s connected to %s", sink_name, master_sink->name);

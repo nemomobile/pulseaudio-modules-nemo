@@ -467,9 +467,11 @@ static void hw_sink_input_detach_slave_sink(pa_sink *sink) {
 
     if (sink && PA_SINK_IS_LINKED(sink->thread_info.state)) {
         pa_sink_detach_within_thread(sink);
-        sink->flat_volume_sink = NULL;
+
+        /* FIXME: This should be done by the core. */
         pa_sink_set_asyncmsgq(sink, NULL);
         pa_sink_set_rtpoll(sink, NULL);
+
         voice_sink_inputs_may_move(sink, FALSE);
     }
 }
@@ -495,9 +497,11 @@ static void hw_sink_input_attach_slave_sink(struct userdata *u, pa_sink *sink, p
     pa_assert(to_sink);
 
     if (sink && PA_SINK_IS_LINKED(sink->thread_info.state)) {
+
+        /* FIXME: This should be done by the core. */
         pa_sink_set_rtpoll(sink, to_sink->thread_info.rtpoll);
+
         voice_sink_inputs_may_move(sink, TRUE);
-        sink->flat_volume_sink = to_sink;
         if (to_sink->flags & PA_SINK_DYNAMIC_LATENCY)
             pa_sink_set_latency_range_within_thread(sink, to_sink->thread_info.min_latency,
                                                     to_sink->thread_info.max_latency);
@@ -561,15 +565,21 @@ static void hw_sink_input_update_slave_sink(struct userdata *u, pa_sink *sink, p
     pa_assert(sink);
 
     pa_sink_update_flags(sink, PA_SINK_LATENCY|PA_SINK_DYNAMIC_LATENCY, to_sink->flags);
+
+    /* FIXME: This should be done by the core. */
     pa_sink_set_asyncmsgq(sink, to_sink->asyncmsgq);
 
     p = pa_proplist_new();
     pa_proplist_setf(p, PA_PROP_DEVICE_DESCRIPTION, "%s connected to %s", sink->name, u->master_sink->name);
+
+    /* FIXME: This should be done by the core. */
     pa_proplist_sets(p, PA_PROP_DEVICE_MASTER_DEVICE, u->master_sink->name);
+
     pa_sink_update_proplist(sink, PA_UPDATE_REPLACE, p);
     pa_proplist_free(p);
 
-    /* Call moving callbacks of slave sink's sink-inputs. */
+    /* Call moving callbacks of slave sink's sink-inputs. FIXME: This shouldn't
+     * be needed after asyncmsgq updating is moved to the core. */
     PA_IDXSET_FOREACH(i, sink->inputs, idx)
         if (i->moving)
             i->moving(i, sink);
