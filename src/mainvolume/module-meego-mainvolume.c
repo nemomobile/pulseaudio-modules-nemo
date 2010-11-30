@@ -127,6 +127,8 @@ static struct mv_volume_steps_set* fallback_new(const char *route, const int cal
     int i;
 
     pa_assert(route);
+    pa_assert(call_steps > 1);
+    pa_assert(media_steps > 1);
 
     fallback = pa_xnew0(struct mv_volume_steps_set, 1);
     fallback->call.n_steps = call_steps;
@@ -136,10 +138,10 @@ static struct mv_volume_steps_set* fallback_new(const char *route, const int cal
      * as max value, starting from 0 volume. */
 
     for (i = 0; i < call_steps; i++)
-        fallback->call.step[i] = (PA_VOLUME_NORM / call_steps-1)*i;
+        fallback->call.step[i] = ((double) PA_VOLUME_NORM / (double) (call_steps - 1)) * (double) i;
 
     for (i = 0; i < media_steps; i++)
-        fallback->media.step[i] = (PA_VOLUME_NORM / media_steps-1)*i;
+        fallback->media.step[i] = ((double) PA_VOLUME_NORM / (double) (media_steps - 1)) * (double) i;
 
     fallback->route = pa_xstrdup(route);
 
