@@ -97,7 +97,7 @@ static void get_max_input_volume(pa_sink *s, pa_cvolume *max_volume, const pa_ch
     PA_IDXSET_FOREACH(i, s->inputs, idx) {
         pa_cvolume remapped_volume;
 
-        if (i->origin_sink) {
+        if (i->origin_sink && i->origin_sink->flat_volume_sink) {
             /* go recursively on slaved flatten sink
              * and ignore this intermediate sink-input. (This is not really needed) */
             get_max_input_volume(i->origin_sink, max_volume, channel_map);
