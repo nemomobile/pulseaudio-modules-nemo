@@ -1,3 +1,9 @@
+pulseaudio-meego (0.9.19.0-15) UNRELEASED; urgency=low
+
+  * mainvolume: fix fallback steps calculation. Fixes: NB#205871
+
+ -- Maemo Multimedia <multimedia@maemo.org>  Wed, 01 Dec 2010 16:41:11 +0200
+
 pulseaudio-meego (0.9.19.0-14) unstable; urgency=low
 
   * sidetone: Sidetone steps are parsed from configurations and unit test added.
