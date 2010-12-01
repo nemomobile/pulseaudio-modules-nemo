@@ -4,8 +4,8 @@
  * Contact: Maemo MMF Audio <mmf-audio@projects.maemo.org>
  *          or Jaska Uimonen  <jaska.uimonen@nokia.com>
  *
- * These PulseAudio Modules are free software; you can redistribute
- * it and/or modify it under the terms of the GNU Lesser General Public
+ * PulseAudio Meego modules are free software; you can redistribute
+ * them and/or modify them under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation
  * version 2.1 of the License.
  *
