@@ -1,4 +1,4 @@
-pulseaudio-meego (0.9.19.0-15) UNRELEASED; urgency=low
+pulseaudio-meego (0.9.19.0-15) unstable; urgency=low
 
   * mainvolume: fix fallback steps calculation. Fixes: NB#205871
   * voice: Don't mess around with the hw sink input volume.
