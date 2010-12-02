@@ -4,6 +4,7 @@ pulseaudio-meego (0.9.19.0-15) unstable; urgency=low
   * voice: Don't mess around with the hw sink input volume.
   * music: Before doing flat sink recursion, check if i->origin_sink->flat_volume_sink is set.
   * Don't update origin_sink->flat_volume_sink in the moving() callback.
+  * common: use LGPL header instead of Nokia proprietary header. Fixes: NB#206435
 
  -- Maemo Multimedia <multimedia@maemo.org>  Thu, 02 Dec 2010 14:26:11 +0200
 
