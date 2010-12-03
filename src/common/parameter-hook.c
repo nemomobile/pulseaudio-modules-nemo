@@ -24,16 +24,21 @@
 #include <config.h>
 #endif
 
+#include <pulsecore/core.h>
 #include <pulsecore/hook-list.h>
 
 #include "parameter-hook.h"
+#include "parameter-hook-implementor.h"
 
-static pa_hook *parameter_update_requests = NULL;
+static pa_hook parameter_update_requests;
+static pa_hook *parameter_update_requests_ptr = NULL;
 
-int request_parameter_updates(const char *name, pa_hook_cb_t cb, pa_hook_priority_t prio, void *u) {
-    struct connect_args args;
+int meego_parameter_request_updates(const char *name, pa_hook_cb_t cb, pa_hook_priority_t prio, pa_bool_t full_updates, void *userdata) {
+    meego_parameter_connection_args args;
 
-    if (!parameter_update_requests) {
+    pa_assert(cb);
+
+    if (!parameter_update_requests_ptr) {
         pa_log_warn("Parameter update service not available");
         return -1;
     }
@@ -41,25 +46,26 @@ int request_parameter_updates(const char *name, pa_hook_cb_t cb, pa_hook_priorit
     args.name = name;
     args.cb = cb;
     args.prio = prio;
-    args.u = u;
-    
-    pa_log_warn("Requesting updates for %s", name);
+    args.full_updates = full_updates;
+    args.userdata = userdata;
 
-    pa_hook_fire(parameter_update_requests, &args);
+    pa_log_debug("Requesting updates for %s", name ? name : "mode changes");
+
+    pa_hook_fire(parameter_update_requests_ptr, &args);
 
     return 0;
 }
 
-pa_hook_slot *receive_update_requests(pa_hook_cb_t cb, void *p) {
-    if (!parameter_update_requests) {
-        parameter_update_requests = pa_xnew0(pa_hook, 1);
-        pa_hook_init(parameter_update_requests, p);
+pa_hook_slot* meego_parameter_receive_update_requests(pa_core *c, pa_hook_cb_t cb, void *userdata) {
+    if (!parameter_update_requests_ptr) {
+        parameter_update_requests_ptr = &parameter_update_requests;
+        pa_hook_init(parameter_update_requests_ptr, c);
     }
 
-    return pa_hook_connect(parameter_update_requests, PA_HOOK_NORMAL, cb, p);
+    return pa_hook_connect(parameter_update_requests_ptr, PA_HOOK_NORMAL, cb, userdata);
 }
 
-void discontinue_update_requests(pa_hook_slot *s) {
-    pa_hook_slot_free(s);
+void meego_parameter_discontinue_update_requests(pa_hook_slot *slot) {
+    pa_hook_slot_free(slot);
+    parameter_update_requests_ptr = NULL;
 }
-
