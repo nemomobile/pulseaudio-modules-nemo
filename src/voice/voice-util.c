@@ -362,11 +362,13 @@ pa_source *voice_get_original_master_source(struct userdata *u) {
     return om_source;
 }
 
-pa_hook_result_t alsa_parameter_cb(pa_core *c, struct update_args *ua, void *userdata) {
-    struct userdata *u = (struct userdata*)userdata;
+pa_hook_result_t alsa_parameter_cb(pa_core *c, meego_parameter_update_args *ua, struct userdata *u) {
     pa_proplist *p;
 
-    if (ua && ua->parameters) {
+    pa_assert(ua);
+    pa_assert(u);
+
+    if (ua->parameters) {
         p = pa_proplist_from_string(ua->parameters);
 
         pa_sink_update_proplist(u->master_sink, PA_UPDATE_REPLACE, p);
@@ -377,23 +379,26 @@ pa_hook_result_t alsa_parameter_cb(pa_core *c, struct update_args *ua, void *use
     return PA_HOOK_OK;
 }
 
-pa_hook_result_t aep_parameter_cb(pa_core *c, struct update_args *ua, void *userdata) {
-    struct userdata *u = (struct userdata*)userdata;
+pa_hook_result_t aep_parameter_cb(pa_core *c, meego_parameter_update_args *ua, struct userdata *u) {
+    pa_assert(ua);
+    pa_assert(u);
 
-    if (ua && ua->parameters)
+    if (ua->parameters)
         voice_aep_ear_ref_loop_reset(u);
 
     return PA_HOOK_OK;
 }
 
-pa_hook_result_t voice_parameter_cb(pa_core *c, struct update_args *ua, void *userdata) {
-    struct userdata *u = (struct userdata*)userdata;
+pa_hook_result_t voice_parameter_cb(pa_core *c, meego_parameter_update_args *ua, struct userdata *u) {
     pa_proplist *p;
     const char *v;
     int temp = 0;
     double tempf = 0;
 
-    if (ua && ua->parameters) {
+    pa_assert(ua);
+    pa_assert(u);
+
+    if (ua->parameters) {
         p = pa_proplist_from_string(ua->parameters);
 
         v = pa_strnull(pa_proplist_gets(p, PA_NOKIA_PROP_AUDIO_CMT_UL_TIMING_ADVANCE));

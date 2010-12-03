@@ -82,9 +82,9 @@ pa_sink *voice_get_original_master_sink(struct userdata *u);
 pa_source *voice_get_original_master_source(struct userdata *u);
 
 void voice_sink_proplist_update(struct userdata *u, pa_sink *s);
-pa_hook_result_t voice_parameter_cb(pa_core *c, struct update_args *ua, void *userdata);
-pa_hook_result_t alsa_parameter_cb(pa_core *c, struct update_args *ua, void *userdata);
-pa_hook_result_t aep_parameter_cb(pa_core *c, struct update_args *ua, void *userdata);
+pa_hook_result_t voice_parameter_cb(pa_core *c, meego_parameter_update_args *ua, struct userdata *u);
+pa_hook_result_t alsa_parameter_cb(pa_core *c, meego_parameter_update_args *ua, struct userdata *u);
+pa_hook_result_t aep_parameter_cb(pa_core *c, meego_parameter_update_args *ua, struct userdata *u);
 /* BEGIN OF AEP-SIDETONE SPAGETHI */
 void voice_update_aep_volume(int16_t aep_step);
 void voice_set_aep_runtime_switch(const char *aep_runtime_src);
