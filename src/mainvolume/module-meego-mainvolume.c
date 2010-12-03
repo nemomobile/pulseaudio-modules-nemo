@@ -148,38 +148,25 @@ static struct mv_volume_steps_set* fallback_new(const char *route, const int cal
     return fallback;
 }
 
-static pa_hook_result_t mode_changed_cb(pa_core *c, const char *mode, struct mv_userdata *u) {
-    pa_assert(u);
-
-    if (mode) {
-        if (u->route) {
-            if (pa_streq(u->route, mode))
-                return PA_HOOK_OK;
-
-            pa_xfree(u->route);
-        }
-        u->route = pa_xstrdup(mode);
-        pa_log_debug("mode changes to %s", u->route);
-    }
-
-    return PA_HOOK_OK;
-}
-
-static pa_hook_result_t parameters_changed_cb(pa_core *c, struct update_args *ua, struct mv_userdata *u) {
+static pa_hook_result_t parameters_changed_cb(pa_core *c, meego_parameter_update_args *ua, struct mv_userdata *u) {
     struct mv_volume_steps_set *set;
     pa_proplist *p = NULL;
     int ret = 0;
 
+    pa_assert(ua);
     pa_assert(u);
 
-    if (!u->route)
-        return PA_HOOK_OK;
+    if (u->route)
+        pa_xfree(u->route);
+
+    u->route = pa_xstrdup(ua->mode);
+    pa_log_debug("mode changes to %s", u->route);
 
     /* in tuning mode we always update steps when changing
      * x-maemo.mode.
      * First remove tunings in current route, then try to parse
      * normally */
-    if (u->tuning_mode && ua && ua->parameters) {
+    if (u->tuning_mode && ua->parameters) {
         if ((set = pa_hashmap_remove(u->steps, u->route))) {
             steps_set_free(set, NULL);
             set = NULL;
@@ -303,8 +290,7 @@ int pa__init(pa_module *m) {
 
     dbus_init(u);
 
-    request_parameter_updates("mode", (pa_hook_cb_t)mode_changed_cb, PA_HOOK_NORMAL, u);
-    request_parameter_updates("mainvolume", (pa_hook_cb_t)parameters_changed_cb, PA_HOOK_NORMAL, u);
+    meego_parameter_request_updates("mainvolume", (pa_hook_cb_t)parameters_changed_cb, PA_HOOK_NORMAL, TRUE, u);
 
     pa_modargs_free(ma);
 

@@ -230,7 +230,10 @@ int mv_parse_steps(struct mv_userdata *u, const char *route, const char *step_st
     set->route = pa_xstrdup(route);
     set->call = call_steps;
     set->media = media_steps;
-    pa_log_debug("adding steps with route %s", set->route);
+    pa_log_debug("adding %d call and %d media steps with route %s",
+                 set->call.n_steps,
+                 set->media.n_steps,
+                 set->route);
     pa_hashmap_put(u->steps, set->route, set);
 
     return count1 + count2;
