@@ -43,12 +43,16 @@ PA_MODULE_USAGE(
 
 
 
-static pa_hook_result_t parameters_changed_cb(pa_core *c, struct update_args *ua, struct userdata *u) {
+static pa_hook_result_t parameters_changed_cb(pa_core *c, meego_parameter_update_args *ua, struct userdata *u) {
     sidetone *st;
-    st = u->sidetone;
+
+    pa_assert(ua);
     pa_assert(u);
-    if( ua ){
-        if(ua->parameters){
+
+    st = u->sidetone;
+
+    if (ua->status == MEEGO_PARAM_UPDATE || ua->status == MEEGO_PARAM_ENABLE) {
+        if (ua->status == MEEGO_PARAM_UPDATE) {
            if(NULL != u->argument)
                 pa_xfree(u->argument);
             u->argument = pa_xmalloc0((ua->length + 1) * sizeof(char));
@@ -66,7 +70,7 @@ static pa_hook_result_t parameters_changed_cb(pa_core *c, struct update_args *ua
         if(!(u->sidetone = sidetone_new(u->module->core, u->argument))) {
             pa_xfree(u->argument);
             u->argument = NULL;
-            return PA_HOOK_CANCEL;
+            return PA_HOOK_OK;
         }
     } else {
         if(st){
@@ -88,9 +92,9 @@ int pa__init(pa_module *m) {
     u->argument = NULL;
     u->sidetone = NULL;
 
-    u->sidetone_parameters_updates = request_parameter_updates("alsa-sidetone", (pa_hook_cb_t)parameters_changed_cb, PA_HOOK_NORMAL, u);
+    meego_parameter_request_updates("alsa-sidetone", (pa_hook_cb_t)parameters_changed_cb, PA_HOOK_NORMAL, FALSE, u);
 
-   return 0;
+    return 0;
 }
 
 void pa__done(pa_module *m) {

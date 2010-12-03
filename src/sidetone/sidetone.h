@@ -42,8 +42,6 @@ struct userdata {
     pa_module *module;
     sidetone *sidetone;
     char* argument;
-    pa_hook_slot  *sidetone_parameters_updates;
-
 };
 
 
