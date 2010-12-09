@@ -1,3 +1,10 @@
+pulseaudio-meego (0.9.19.0-16) unstable; urgency=low
+
+  * common: update parameter hook interface.
+  * mainvolume, voice, sidetone: use updated parameter hook interface.
+
+ -- Maemo Multimedia <multimedia@maemo.org>  Thu, 09 Dec 2010 15:26:11 +0200
+
 pulseaudio-meego (0.9.19.0-15) unstable; urgency=low
 
   * mainvolume: fix fallback steps calculation. Fixes: NB#205871
