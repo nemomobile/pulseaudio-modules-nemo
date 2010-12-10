@@ -745,7 +745,7 @@ static void voice_hw_sink_input_reinit_defer_cb(pa_mainloop_api *m, pa_defer_eve
     pa_assert_se(u = d->u);
     pa_assert_se(old_si = u->hw_sink_input);
 
-    m->defer_enable(d->defer, 0);
+    m->defer_free(d->defer);
     pa_xfree(d);
     d = NULL;
 

@@ -622,7 +622,7 @@ static void voice_hw_source_output_reinit_defer_cb(pa_mainloop_api *m, pa_defer_
     pa_assert_se(u = d->u);
     pa_assert_se(old_so = u->hw_source_output);
 
-    m->defer_enable(d->defer, 0);
+    m->defer_free(d->defer);
     pa_xfree(d);
     d = NULL;
 
