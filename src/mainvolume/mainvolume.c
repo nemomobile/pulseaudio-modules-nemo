@@ -130,9 +130,9 @@ void mv_normalize_steps(struct mv_volume_steps *steps) {
     pa_assert(steps);
     pa_assert(steps->n_steps > 0);
 
-    /* if first step is less than equal to -6000mB (consider
-     * silent volume), set it directly to PA_VOLUME_MUTED */
-    if (steps->step[0] <= -6000) {
+    /* if first step is less than equal to -20000 mB (PA_DECIBEL_MININFTY if
+     * INFINITY is not defined), set it directly to PA_VOLUME_MUTED */
+    if (steps->step[0] <= -20000) {
         steps->step[0] = PA_VOLUME_MUTED;
         i = 1;
     }
