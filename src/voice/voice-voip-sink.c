@@ -139,7 +139,6 @@ int voice_init_voip_sink(struct userdata *u, const char *name) {
     pa_sink_new_data_init(&sink_data);
     sink_data.module = u->module;
     sink_data.driver = __FILE__;
-    sink_data.flat_volume_sink = u->raw_sink;
     pa_sink_new_data_set_name(&sink_data, name);
     pa_sink_new_data_set_sample_spec(&sink_data, &u->aep_sample_spec);
     pa_sink_new_data_set_channel_map(&sink_data, &u->aep_channel_map);
@@ -150,8 +149,8 @@ int voice_init_voip_sink(struct userdata *u, const char *name) {
     pa_proplist_sets(sink_data.proplist, PA_PROP_SINK_API_EXTENSION_PROPERTY_NAME,
                      PA_PROP_SINK_API_EXTENSION_PROPERTY_VALUE);
 
-    u->voip_sink = pa_sink_new(u->core, &sink_data, u->master_sink->flags &
-                               (PA_SINK_LATENCY|PA_SINK_DYNAMIC_LATENCY));
+    u->voip_sink = pa_sink_new(u->core, &sink_data,
+                               (u->master_sink->flags & (PA_SINK_LATENCY | PA_SINK_DYNAMIC_LATENCY)) | PA_SINK_SHARE_VOLUME_WITH_MASTER);
 
     pa_sink_new_data_done(&sink_data);
 
@@ -166,7 +165,6 @@ int voice_init_voip_sink(struct userdata *u, const char *name) {
     u->voip_sink->update_requested_latency = voip_sink_update_requested_latency;
     u->voip_sink->request_rewind = voip_sink_request_rewind;
     u->voip_sink->userdata = u;
-    u->voip_sink->flags = PA_SINK_LATENCY;
     pa_memblock_ref(u->aep_silence_memchunk.memblock);
     u->voip_sink->silence = u->aep_silence_memchunk;
 

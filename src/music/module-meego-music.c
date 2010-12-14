@@ -97,7 +97,7 @@ static void get_max_input_volume(pa_sink *s, pa_cvolume *max_volume, const pa_ch
     PA_IDXSET_FOREACH(i, s->inputs, idx) {
         pa_cvolume remapped_volume;
 
-        if (i->origin_sink && i->origin_sink->flat_volume_sink) {
+        if (i->origin_sink && (i->origin_sink->flags & PA_SINK_SHARE_VOLUME_WITH_MASTER)) {
             /* go recursively on slaved flatten sink
              * and ignore this intermediate sink-input. (This is not really needed) */
             get_max_input_volume(i->origin_sink, max_volume, channel_map);
@@ -525,7 +525,6 @@ int pa__init(pa_module*m) {
     pa_sink_new_data_init(&sink_data);
     sink_data.module = m;
     sink_data.driver = __FILE__;
-    sink_data.flat_volume_sink = master_sink;
     pa_sink_new_data_set_name(&sink_data, sink_name);
     pa_sink_new_data_set_sample_spec(&sink_data, &ss);
     pa_sink_new_data_set_channel_map(&sink_data, &map);
@@ -538,7 +537,7 @@ int pa__init(pa_module*m) {
 
     /* Create sink */
     u->sink = pa_sink_new(m->core, &sink_data,
-                          master_sink->flags & (PA_SINK_LATENCY|PA_SINK_DYNAMIC_LATENCY));
+                          (master_sink->flags & (PA_SINK_LATENCY | PA_SINK_DYNAMIC_LATENCY)) | PA_SINK_SHARE_VOLUME_WITH_MASTER);
     pa_sink_new_data_done(&sink_data);
     if (!u->sink) {
       pa_log("Failed to create sink.");
@@ -587,6 +586,8 @@ int pa__init(pa_module*m) {
     u->sink_input->state_change = sink_input_state_change_cb;
     u->sink_input->moving = sink_input_moving_cb;
     u->sink_input->userdata = u;
+
+    u->sink->flat_sink_input = u->sink_input;
 
     pa_sink_put(u->sink);
     pa_sink_input_put(u->sink_input);

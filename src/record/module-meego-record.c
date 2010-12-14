@@ -445,7 +445,6 @@ int pa__init(pa_module*m) {
     u->source->update_requested_latency = source_update_requested_latency;
 
     u->source->userdata = u;
-    u->source->flags = PA_SOURCE_LATENCY;
 
     pa_source_set_asyncmsgq(u->source, u->master_source->asyncmsgq);
     pa_source_set_rtpoll(u->source, u->master_source->thread_info.rtpoll);

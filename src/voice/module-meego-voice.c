@@ -279,14 +279,6 @@ int pa__init(pa_module*m) {
 
     if (voice_init_raw_sink(u, raw_sink_name))
         goto fail;
-    pa_sink_put(u->raw_sink);
-
-    if (voice_init_voip_sink(u, voice_sink_name))
-        goto fail;
-    pa_sink_put(u->voip_sink);
-
-    if (voice_init_aep_sink_input(u))
-        goto fail;
 
     u->call_state_tracker = pa_call_state_tracker_get(m->core);
 
@@ -295,6 +287,28 @@ int pa__init(pa_module*m) {
     u->alt_mixer_compensation = PA_VOLUME_NORM;
 
     if (voice_init_hw_sink_input(u))
+        goto fail;
+
+    /* This must be set before calling pa_sink_put(), because pa_sink_put() has
+     * assertion
+     * "!(s->flags & PA_SINK_SHARE_VOLUME_WITH_MASTER) || s->flat_sink_input".
+     */
+    u->raw_sink->flat_sink_input = u->hw_sink_input;
+
+    /* This must be called before calling voice_init_voip_sink(), because
+     * pa_sink_input_new() has assertion
+     * "PA_SINK_IS_LINKED(pa_sink_get_state(data->sink))". */
+    pa_sink_put(u->raw_sink);
+
+    /* This must be called before calling voice_init_aep_sink_input(), because
+     * the flat volume logic will otherwise mess up the aep sink input's volume
+     * when pa_sink_input_put(u->hw_sink_input) is called. */
+    pa_sink_input_put(u->hw_sink_input);
+
+    if (voice_init_voip_sink(u, voice_sink_name))
+        goto fail;
+
+    if (voice_init_aep_sink_input(u))
         goto fail;
 
     u->sink_temp_buff = pa_xmalloc(2*u->hw_fragment_size_max);
@@ -348,8 +362,11 @@ int pa__init(pa_module*m) {
     /*                < mux <------------- master-src   */
     /*  raw-src  <---                                   */
 
+    u->voip_sink->flat_sink_input = u->aep_sink_input;
+
+    pa_sink_put(u->voip_sink);
+
     pa_source_output_put(u->hw_source_output);
-    pa_sink_input_put(u->hw_sink_input);
     pa_sink_input_put(u->aep_sink_input);
 
     u->sink_subscription = pa_subscription_new(m->core, PA_SUBSCRIPTION_MASK_SINK | PA_SUBSCRIPTION_MASK_SINK_INPUT, master_sink_volume_subscribe_cb, u);

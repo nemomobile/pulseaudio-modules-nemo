@@ -118,7 +118,6 @@ int voice_init_raw_sink(struct userdata *u, const char *name) {
     pa_sink_new_data_init(&sink_data);
     sink_data.module = u->module;
     sink_data.driver = __FILE__;
-    sink_data.flat_volume_sink = u->master_sink;
     pa_sink_new_data_set_name(&sink_data, name);
     pa_sink_new_data_set_sample_spec(&sink_data, &u->master_sink->sample_spec);
     pa_sink_new_data_set_channel_map(&sink_data, &u->master_sink->channel_map);
@@ -127,8 +126,8 @@ int voice_init_raw_sink(struct userdata *u, const char *name) {
     pa_proplist_sets(sink_data.proplist, "module-suspend-on-idle.timeout", "1");
 
     /* Create sink */
-    u->raw_sink = pa_sink_new(u->core, &sink_data, u->master_sink->flags &
-                              (PA_SINK_LATENCY|PA_SINK_DYNAMIC_LATENCY));
+    u->raw_sink = pa_sink_new(u->core, &sink_data,
+                              (u->master_sink->flags & (PA_SINK_LATENCY | PA_SINK_DYNAMIC_LATENCY)) | PA_SINK_SHARE_VOLUME_WITH_MASTER);
     pa_sink_new_data_done(&sink_data);
     /* Create sink */
     if (!u->raw_sink) {
@@ -141,7 +140,6 @@ int voice_init_raw_sink(struct userdata *u, const char *name) {
     u->raw_sink->update_requested_latency = raw_sink_update_requested_latency;
     u->raw_sink->request_rewind = raw_sink_request_rewind;
     u->raw_sink->userdata = u;
-    u->raw_sink->flags = PA_SINK_LATENCY;
 
     pa_sink_set_asyncmsgq(u->raw_sink, u->master_sink->asyncmsgq);
     pa_sink_set_rtpoll(u->raw_sink, u->master_sink->thread_info.rtpoll);
