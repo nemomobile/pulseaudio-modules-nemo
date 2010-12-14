@@ -226,7 +226,7 @@ START_TEST (normalize)
         pa_sw_volume_from_dB(0.0)
     };
     steps.n_steps = 3;
-    steps.step[0] = -6000;
+    steps.step[0] = -20000; /* mute treshold is -20000 mB */
     steps.step[1] = -3000;
     steps.step[2] = 0;
 
