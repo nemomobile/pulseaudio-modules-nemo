@@ -1,8 +1,8 @@
-pulseaudio-meego (0.9.19.0-17) UNRELEASED; urgency=low
+pulseaudio-meego (0.9.19.0-17) unstable; urgency=low
 
   * mainvolume: set step mute treshold to -20000 mB.
 
- -- Maemo Multimedia <multimedia@maemo.org>  Tue, 14 Dec 2010 11:43:32 +0200
+ -- Maemo Multimedia <multimedia@maemo.org>  Thu, 16 Dec 2010 11:04:32 +0200
 
 pulseaudio-meego (0.9.19.0-16) unstable; urgency=low
 
