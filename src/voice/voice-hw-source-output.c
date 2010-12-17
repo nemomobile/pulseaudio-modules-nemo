@@ -65,7 +65,7 @@ static pa_bool_t voice_uplink_feed(struct userdata *u, pa_memchunk *chunk) {
 }
 
 static
-pa_bool_t voice_voip_source_process(struct userdata *u, pa_memchunk *chunk) {
+pa_bool_t voice_voip_source_process(struct userdata *u, pa_memchunk *chunk, pa_memchunk *amb_chunk) {
     pa_bool_t ul_frame_sent = FALSE;
 
     pa_assert(u);
@@ -89,6 +89,7 @@ pa_bool_t voice_voip_source_process(struct userdata *u, pa_memchunk *chunk) {
 
         params.chunk = chunk;
         params.rchunk = &rchunk;
+        params.achunk = amb_chunk;
 
         pa_hook_fire(u->hooks[HOOK_AEP_UPLINK], &params);
 
@@ -170,7 +171,8 @@ static void hw_source_output_push_cb(pa_source_output *o, const pa_memchunk *new
 
         if (voice_voip_source_active_iothread(u)) {
             /* This branch is taken when call is active */
-            pa_memchunk chunkmono, chunk8k;
+            pa_memchunk mic_chunk, mic_chunk8k;
+            pa_memchunk amb_chunk = { 0, 0, 0 }, amb_chunk8k;
 
             switch (u->active_mic_channel) {
             default:
@@ -178,27 +180,50 @@ static void hw_source_output_push_cb(pa_source_output *o, const pa_memchunk *new
                 pa_assert_not_reached();
 
             case MIC_BOTH:
-                pa_optimized_downmix_to_mono(&chunk, &chunkmono);
+                pa_optimized_downmix_to_mono(&chunk, &mic_chunk);
                 break;
 
             case MIC_CH0:
-                pa_optimized_take_channel(&chunk, &chunkmono, 0);
+                pa_optimized_take_channel(&chunk, &mic_chunk, 0);
                 break;
 
             case MIC_CH1:
-                pa_optimized_take_channel(&chunk, &chunkmono, 1);
+                pa_optimized_take_channel(&chunk, &mic_chunk, 1);
                 break;
+
+            case MIC_CH0_AMB_CH1:
+                pa_optimized_deinterleave_stereo_to_mono(&chunk, &mic_chunk, &amb_chunk);
+                break;
+
+            case MIC_CH1_AMB_CH0:
+                pa_optimized_deinterleave_stereo_to_mono(&chunk, &amb_chunk, &mic_chunk);
+                break;
+
             }
 
             /* RMC used only with ECI headsets that have one mic */
-            pa_hook_fire(u->hooks[HOOK_RMC_MONO], &chunkmono);
+            pa_hook_fire(u->hooks[HOOK_RMC_MONO], &mic_chunk);
 
-            voice_convert_run_48_to_8(u, u->hw_source_to_aep_resampler, &chunkmono, &chunk8k);
-            pa_memblock_unref(chunkmono.memblock);
-            pa_hook_fire(u->hooks[HOOK_NARROWBAND_MIC_EQ_MONO], &chunk8k);
+            voice_convert_run_48_to_8(u, u->hw_source_to_aep_resampler, &mic_chunk, &mic_chunk8k);
+            pa_memblock_unref(mic_chunk.memblock);
+            pa_hook_fire(u->hooks[HOOK_NARROWBAND_MIC_EQ_MONO], &mic_chunk8k);
 
-            ul_frame_sent = voice_voip_source_process(u, &chunk8k);
-            pa_memblock_unref(chunk8k.memblock);
+            if (amb_chunk.memblock) {
+                voice_convert_run_48_to_8(u, u->hw_source_to_aep_amb_resampler, &amb_chunk, &amb_chunk8k);
+                pa_memblock_unref(amb_chunk.memblock);
+
+                /* TODO: We should run the ambient reference trough EQ too,
+                         but we'd need a separate (or a multi channel) hook for that.
+                pa_hook_fire(u->hooks[HOOK_NARROWBAND_MIC_AMB_EQ_MONO], &mic_chunk8k);
+                */
+
+                ul_frame_sent = voice_voip_source_process(u, &mic_chunk8k, &amb_chunk8k);
+                pa_memblock_unref(amb_chunk8k.memblock);
+            }
+            else
+                ul_frame_sent = voice_voip_source_process(u, &mic_chunk8k, NULL);
+
+            pa_memblock_unref(mic_chunk8k.memblock);
 
         } else {
             /* This branch is taken when call is not active e.g. when source.voice.raw is used */
@@ -250,7 +275,7 @@ static void hw_source_output_push_cb_8k_mono(pa_source_output *o, const pa_memch
     /* Assume 8kHz mono */
     while (util_memblockq_to_chunk(u->core->mempool, u->hw_source_memblockq, &chunk, u->aep_fragment_size)) {
         if (voice_voip_source_active_iothread(u)) {
-            ul_frame_sent = voice_voip_source_process(u, &chunk);
+            ul_frame_sent = voice_voip_source_process(u, &chunk, NULL);
         }
 
         if (PA_SOURCE_IS_OPENED(u->raw_source->thread_info.state)) {

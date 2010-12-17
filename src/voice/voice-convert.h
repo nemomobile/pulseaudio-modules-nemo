@@ -33,6 +33,8 @@ int voice_convert_init(struct userdata *u) {
 
     u->hw_source_to_aep_resampler = alloc_src_48_to_8();
 
+    u->hw_source_to_aep_amb_resampler = alloc_src_48_to_8();
+
     u->aep_to_hw_sink_resampler = alloc_src_8_to_48();
 
     u->ear_to_aep_resampler = alloc_src_48_to_8();
@@ -49,6 +51,8 @@ int voice_convert_free(struct userdata *u) {
     pa_assert(u);
 
     free_src_48_to_8(u->hw_source_to_aep_resampler);
+
+    free_src_48_to_8(u->hw_source_to_aep_amb_resampler);
 
     free_src_8_to_48(u->aep_to_hw_sink_resampler);
 

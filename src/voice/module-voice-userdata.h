@@ -65,6 +65,8 @@ typedef enum {
     MIC_BOTH = 3,
     MIC_CH0 = 1,
     MIC_CH1 = 2,
+    MIC_CH0_AMB_CH1 = 5,
+    MIC_CH1_AMB_CH0 = 6,
 } call_mic_ch_t;
 
 
@@ -134,6 +136,7 @@ struct userdata {
     pa_queue *dl_sideinfo_queue;
 
     src_48_to_8 *hw_source_to_aep_resampler;
+    src_48_to_8 *hw_source_to_aep_amb_resampler;
     src_8_to_48 *aep_to_hw_sink_resampler;
     src_48_to_8 *ear_to_aep_resampler;
     src_48_to_8 *raw_sink_to_hw8khz_sink_resampler;

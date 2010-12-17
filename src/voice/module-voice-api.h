@@ -60,6 +60,7 @@
 typedef struct {
     pa_memchunk *chunk;
     pa_memchunk *rchunk;
+    pa_memchunk *achunk;
 } aep_uplink;
 
 typedef struct {
