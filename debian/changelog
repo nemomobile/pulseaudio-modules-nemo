@@ -1,3 +1,10 @@
+pulseaudio-meego (0.9.19.0-18) UNRELEASED; urgency=low
+
+  * voice: Don't leak defer events.
+  * Adapt to changes in PA core.
+
+ -- Maemo Multimedia <multimedia@maemo.org>  Thu, 23 Dec 2010 13:05:32 +0200
+
 pulseaudio-meego (0.9.19.0-17) unstable; urgency=low
 
   * mainvolume: set step mute treshold to -20000 mB.
