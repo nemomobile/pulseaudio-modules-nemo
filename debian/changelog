@@ -2,8 +2,10 @@ pulseaudio-meego (0.9.19.0-18) UNRELEASED; urgency=low
 
   * voice: Don't leak defer events.
   * Adapt to changes in PA core.
+  * Fixes: NB#218952 - The fix is actually done in PA core, but the changes
+    require updates also in pulseaudio-meego.
 
- -- Maemo Multimedia <multimedia@maemo.org>  Thu, 23 Dec 2010 13:05:32 +0200
+ -- Maemo Multimedia <multimedia@maemo.org>  Fri, 14 Jan 2011 10:28:32 +0200
 
 pulseaudio-meego (0.9.19.0-17) unstable; urgency=low
 
