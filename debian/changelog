@@ -1,4 +1,4 @@
-pulseaudio-meego (0.9.19.0-18) UNRELEASED; urgency=low
+pulseaudio-meego (0.9.19.0-18) unstable; urgency=low
 
   * voice: Don't leak defer events.
   * Adapt to changes in PA core.
