@@ -8,6 +8,7 @@ libmeego_common_la_SOURCES = \
 	pa-optimized.c pa-optimized.h \
 	memory.c memory.h \
 	parameter-hook.c parameter-hook.h parameter-hook-implementor.h \
+	parameter-modifier.h \
 	algorithm-hook.c algorithm-hook.h \
 	proplist-meego.h
 

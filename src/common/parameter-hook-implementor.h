@@ -32,8 +32,18 @@ typedef struct meego_parameter_connection_args {
     void *userdata;
 } meego_parameter_connection_args;
 
-pa_hook_slot* meego_parameter_receive_update_requests(pa_core *c, pa_hook_cb_t cb, void *userdata);
-void meego_parameter_discontinue_update_requests(pa_hook_slot *slot);
+typedef struct {
+    pa_hook_cb_t update_request_cb;
+    pa_hook_cb_t modifier_registration_cb;
+    pa_hook_cb_t modifier_unregistration_cb;
 
+    pa_hook_slot *update_request_slot;
+    pa_hook_slot *modifier_registration_slot;
+    pa_hook_slot *modifier_unregistration_slot;
+} meego_parameter_hook_implementor_args;
+
+void meego_parameter_receive_requests(pa_core *c, meego_parameter_hook_implementor_args *args, void *userdata);
+
+void meego_parameter_discontinue_requests(meego_parameter_hook_implementor_args *args);
 
 #endif
