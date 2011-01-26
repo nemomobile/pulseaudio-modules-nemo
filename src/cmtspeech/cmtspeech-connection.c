@@ -406,7 +406,7 @@ static int check_cmtspeech_connection(struct cmtspeech_connection *c) {
             pa_log_error("cmtspeech_open() failed");
         return -1;
     } else if (counter > 0) {
-        pa_log_error("cmtspeech_open() OK");
+        pa_log_debug("cmtspeech_open() OK");
         counter = 0;
     }
     return 0;
@@ -698,7 +698,7 @@ int cmtspeech_send_ul_frame(struct userdata *u, uint8_t *buf, size_t bytes)
 
     if (res == 0) {
         if (ul_frame_count++ < 10)
-            pa_log_error("Sending ul frame # %d", ul_frame_count);
+            pa_log_debug("Sending ul frame # %d", ul_frame_count);
 
         /* note: 'bytes' must match the fixed size of frames */
         pa_assert(bytes == (size_t)salbuf->pcount);
