@@ -1,0 +1,11 @@
+prefix=@prefix@
+exec_prefix=${prefix}
+libdir=@libdir@
+includedir=${prefix}/include
+libexecdir=@libexecdir@
+
+Name: libmeego-common
+Description: Common Meego module building interface.
+Version: @PACKAGE_VERSION@
+Libs: -L${libdir}/pulse-@PA_MAJORMINORMICRO@/modules -lmeego-common
+Cflags: -D_REENTRANT -I${includedir}/pulsecore/modules

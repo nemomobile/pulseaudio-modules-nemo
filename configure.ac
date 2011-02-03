@@ -3,8 +3,9 @@ AC_PREREQ(2.60)
 m4_define(PA_MAJOR, [0])
 m4_define(PA_MINOR, [9])
 m4_define(PA_MICRO, [19])
+m4_define(MEEGO_API, [1])
 
-AC_INIT([pulseaudio-meego], [PA_MAJOR.PA_MINOR.PA_MICRO.0], [multimedia@maemo.org])
+AC_INIT([pulseaudio-meego], [PA_MAJOR.PA_MINOR.PA_MICRO.MEEGO_API], [multimedia@maemo.org])
 AC_CONFIG_HEADER([config.h])
 AM_INIT_AUTOMAKE([foreign -Wall])
 AC_CONFIG_MACRO_DIR(m4)
@@ -268,6 +269,7 @@ shave
 shave-libtool
 src/Makefile
 src/common/Makefile
+src/common/libmeego-common.pc
 src/music/Makefile
 src/record/Makefile
 src/voice/Makefile
