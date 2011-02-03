@@ -10,6 +10,7 @@ libmeego_common_la_SOURCES = \
 	parameter-hook.c parameter-hook.h parameter-hook-implementor.h \
 	parameter-modifier.h \
 	algorithm-hook.c algorithm-hook.h \
+	algorithm-base.c algorithm-base.h
 	proplist-meego.h
 
 libmeego_common_la_LDFLAGS = -avoid-version
