@@ -33,6 +33,7 @@ endif
 endif
 
 CONFIGURE_ARGS =				\
+	--prefix=/usr				\
 	--enable-shave=no			\
 	--enable-cmtspeech
 
