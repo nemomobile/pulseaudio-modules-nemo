@@ -74,7 +74,17 @@ typedef struct meego_parameter_update_args {
  * Request updates for parameters with given name. When full_updates is true, mode changes are sent also if
  * no changes in parameters (that is, callback is called always as mode changes).
  * If caller is only interested in mode updates, use NULL for name.
+ * NOTE: The update requestor must call meego_parameter_stop_updates before being destroyed.
  */
 int meego_parameter_request_updates(const char *name, pa_hook_cb_t cb, pa_hook_priority_t prio, pa_bool_t full_updates, void *userdata);
+
+/*
+ * Stop calling the given callback "cb" with "userdata" for the algorithm
+ * called "name". Every call to meego_parameter_request_updates must have a
+ * corresponding meego_parameter_stop_updates call. cb and userdata must point
+ * to the exact memory addresses that were passed to
+ * meego_parameter_request_updates.
+ */
+int meego_parameter_stop_updates(const char *name, pa_hook_cb_t cb, void *userdata);
 
 #endif

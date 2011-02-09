@@ -34,10 +34,12 @@ typedef struct meego_parameter_connection_args {
 
 typedef struct {
     pa_hook_cb_t update_request_cb;
+    pa_hook_cb_t stop_request_cb;
     pa_hook_cb_t modifier_registration_cb;
     pa_hook_cb_t modifier_unregistration_cb;
 
     pa_hook_slot *update_request_slot;
+    pa_hook_slot *stop_request_slot;
     pa_hook_slot *modifier_registration_slot;
     pa_hook_slot *modifier_unregistration_slot;
 } meego_parameter_hook_implementor_args;

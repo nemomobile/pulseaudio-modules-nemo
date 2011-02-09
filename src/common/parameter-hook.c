@@ -34,6 +34,9 @@
 static pa_hook parameter_update_requests;
 static pa_hook *parameter_update_requests_ptr = NULL;
 
+static pa_hook parameter_stop_requests;
+static pa_hook *parameter_stop_requests_ptr = NULL;
+
 static pa_hook modifier_register_requests;
 static pa_hook *modifier_register_requests_ptr = NULL;
 
@@ -63,6 +66,26 @@ int meego_parameter_request_updates(const char *name, pa_hook_cb_t cb, pa_hook_p
     return 0;
 }
 
+int meego_parameter_stop_updates(const char *name, pa_hook_cb_t cb, void *userdata) {
+    meego_parameter_connection_args args;
+    pa_assert(name);
+
+    if (!parameter_stop_requests_ptr) {
+        pa_log_warn("Parameter update service not available");
+        return -1;
+    }
+
+    args.name = name;
+    args.cb = cb;
+    args.userdata = userdata;
+
+    pa_log_debug("Stopping updates for %s", name);
+
+    pa_hook_fire(parameter_stop_requests_ptr, &args);
+
+    return 0;
+}
+
 static pa_hook_slot* init_hook(pa_hook *hook, pa_hook **hook_ptr, pa_hook_cb_t cb, pa_core *c, void *userdata) {
     if (!*hook_ptr) {
         *hook_ptr = hook;
@@ -78,6 +101,7 @@ void meego_parameter_receive_requests(pa_core *c, meego_parameter_hook_implement
     pa_assert(c);
     pa_assert(args);
     pa_assert(args->update_request_cb);
+    pa_assert(args->stop_request_cb);
     pa_assert(args->modifier_registration_cb);
     pa_assert(args->modifier_unregistration_cb);
     pa_assert(!args->update_request_slot);
@@ -89,6 +113,12 @@ void meego_parameter_receive_requests(pa_core *c, meego_parameter_hook_implement
                                           args->update_request_cb,
                                           c,
                                           userdata);
+
+    args->stop_request_slot = init_hook(&parameter_stop_requests,
+                                        &parameter_stop_requests_ptr,
+                                        args->stop_request_cb,
+                                        c,
+                                        userdata);
 
     args->modifier_registration_slot = init_hook(&modifier_register_requests,
                                                  &modifier_register_requests_ptr,
