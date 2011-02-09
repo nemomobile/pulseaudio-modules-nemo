@@ -81,9 +81,9 @@ static void voice_update_volumes(struct userdata *u) {
     u->previous_volume = *cvol;
 
     if (voice_voip_source_active(u))
-        pa_hook_fire(u->hooks[HOOK_CALL_VOLUME], (void*)cvol);
+        meego_algorithm_hook_fire(u->hooks[HOOK_CALL_VOLUME], (void*)cvol);
     else
-        pa_hook_fire(u->hooks[HOOK_VOLUME], (void*)cvol);
+        meego_algorithm_hook_fire(u->hooks[HOOK_VOLUME], (void*)cvol);
 
     pa_log_debug("volume is updated");
 }
@@ -119,7 +119,7 @@ static void master_source_state_subscribe_cb(pa_core *c, pa_subscription_event_t
     u->previous_master_source_state = pa_source_get_state(u->master_source);
 
     if (u->previous_master_source_state == PA_SOURCE_SUSPENDED) {
-        pa_hook_fire(u->hooks[HOOK_SOURCE_RESET], NULL);
+        meego_algorithm_hook_fire(u->hooks[HOOK_SOURCE_RESET], NULL);
         pa_log_debug("VOICE_HOOK_SOURCE_RESET fired");
     }
 }
@@ -127,44 +127,34 @@ static void master_source_state_subscribe_cb(pa_core *c, pa_subscription_event_t
 static int set_hooks(struct userdata *u) {
     pa_assert(u);
 
-    u->algorithm = algorithm_hook_get(u->core);
+    u->algorithm = meego_algorithm_hook_api_get(u->core);
 
-    u->hooks[HOOK_HW_SINK_PROCESS]              = algorithm_hook_init(u->algorithm, VOICE_HOOK_HW_SINK_PROCESS);
-    u->hooks[HOOK_NARROWBAND_EAR_EQU_MONO]      = algorithm_hook_init(u->algorithm, VOICE_HOOK_NARROWBAND_EAR_EQU_MONO);
-    u->hooks[HOOK_NARROWBAND_MIC_EQ_MONO]       = algorithm_hook_init(u->algorithm, VOICE_HOOK_NARROWBAND_MIC_EQ_MONO);
-    u->hooks[HOOK_WIDEBAND_MIC_EQ_MONO]         = algorithm_hook_init(u->algorithm, VOICE_HOOK_WIDEBAND_MIC_EQ_MONO);
-    u->hooks[HOOK_WIDEBAND_MIC_EQ_STEREO]       = algorithm_hook_init(u->algorithm, VOICE_HOOK_WIDEBAND_MIC_EQ_STEREO);
-    u->hooks[HOOK_XPROT_MONO]                   = algorithm_hook_init(u->algorithm, VOICE_HOOK_XPROT_MONO);
-    u->hooks[HOOK_VOLUME]                       = algorithm_hook_init(u->algorithm, VOICE_HOOK_VOLUME);
-    u->hooks[HOOK_CALL_VOLUME]                  = algorithm_hook_init(u->algorithm, VOICE_HOOK_CALL_VOLUME);
-    u->hooks[HOOK_CALL_BEGIN]                   = algorithm_hook_init(u->algorithm, VOICE_HOOK_CALL_BEGIN);
-    u->hooks[HOOK_CALL_END]                     = algorithm_hook_init(u->algorithm, VOICE_HOOK_CALL_END);
-    u->hooks[HOOK_AEP_DOWNLINK]                 = algorithm_hook_init(u->algorithm, VOICE_HOOK_AEP_DOWNLINK);
-    u->hooks[HOOK_AEP_UPLINK]                   = algorithm_hook_init(u->algorithm, VOICE_HOOK_AEP_UPLINK);
-    u->hooks[HOOK_RMC_MONO]                     = algorithm_hook_init(u->algorithm, VOICE_HOOK_RMC_MONO);
-    u->hooks[HOOK_SOURCE_RESET]                 = algorithm_hook_init(u->algorithm, VOICE_HOOK_SOURCE_RESET);
+    u->hooks[HOOK_HW_SINK_PROCESS]              = meego_algorithm_hook_init(u->algorithm, VOICE_HOOK_HW_SINK_PROCESS);
+    u->hooks[HOOK_NARROWBAND_EAR_EQU_MONO]      = meego_algorithm_hook_init(u->algorithm, VOICE_HOOK_NARROWBAND_EAR_EQU_MONO);
+    u->hooks[HOOK_NARROWBAND_MIC_EQ_MONO]       = meego_algorithm_hook_init(u->algorithm, VOICE_HOOK_NARROWBAND_MIC_EQ_MONO);
+    u->hooks[HOOK_WIDEBAND_MIC_EQ_MONO]         = meego_algorithm_hook_init(u->algorithm, VOICE_HOOK_WIDEBAND_MIC_EQ_MONO);
+    u->hooks[HOOK_WIDEBAND_MIC_EQ_STEREO]       = meego_algorithm_hook_init(u->algorithm, VOICE_HOOK_WIDEBAND_MIC_EQ_STEREO);
+    u->hooks[HOOK_XPROT_MONO]                   = meego_algorithm_hook_init(u->algorithm, VOICE_HOOK_XPROT_MONO);
+    u->hooks[HOOK_VOLUME]                       = meego_algorithm_hook_init(u->algorithm, VOICE_HOOK_VOLUME);
+    u->hooks[HOOK_CALL_VOLUME]                  = meego_algorithm_hook_init(u->algorithm, VOICE_HOOK_CALL_VOLUME);
+    u->hooks[HOOK_CALL_BEGIN]                   = meego_algorithm_hook_init(u->algorithm, VOICE_HOOK_CALL_BEGIN);
+    u->hooks[HOOK_CALL_END]                     = meego_algorithm_hook_init(u->algorithm, VOICE_HOOK_CALL_END);
+    u->hooks[HOOK_AEP_DOWNLINK]                 = meego_algorithm_hook_init(u->algorithm, VOICE_HOOK_AEP_DOWNLINK);
+    u->hooks[HOOK_AEP_UPLINK]                   = meego_algorithm_hook_init(u->algorithm, VOICE_HOOK_AEP_UPLINK);
+    u->hooks[HOOK_RMC_MONO]                     = meego_algorithm_hook_init(u->algorithm, VOICE_HOOK_RMC_MONO);
+    u->hooks[HOOK_SOURCE_RESET]                 = meego_algorithm_hook_init(u->algorithm, VOICE_HOOK_SOURCE_RESET);
     return 0;
 }
 
 static int unset_hooks(struct userdata *u) {
+    int i;
+
     pa_assert(u);
 
-    algorithm_hook_done(u->algorithm, VOICE_HOOK_HW_SINK_PROCESS);
-    algorithm_hook_done(u->algorithm, VOICE_HOOK_NARROWBAND_EAR_EQU_MONO);
-    algorithm_hook_done(u->algorithm, VOICE_HOOK_NARROWBAND_MIC_EQ_MONO);
-    algorithm_hook_done(u->algorithm, VOICE_HOOK_WIDEBAND_MIC_EQ_MONO);
-    algorithm_hook_done(u->algorithm, VOICE_HOOK_WIDEBAND_MIC_EQ_STEREO);
-    algorithm_hook_done(u->algorithm, VOICE_HOOK_XPROT_MONO);
-    algorithm_hook_done(u->algorithm, VOICE_HOOK_VOLUME);
-    algorithm_hook_done(u->algorithm, VOICE_HOOK_CALL_VOLUME);
-    algorithm_hook_done(u->algorithm, VOICE_HOOK_CALL_BEGIN);
-    algorithm_hook_done(u->algorithm, VOICE_HOOK_CALL_END);
-    algorithm_hook_done(u->algorithm, VOICE_HOOK_AEP_DOWNLINK);
-    algorithm_hook_done(u->algorithm, VOICE_HOOK_AEP_UPLINK);
-    algorithm_hook_done(u->algorithm, VOICE_HOOK_RMC_MONO);
-    algorithm_hook_done(u->algorithm, VOICE_HOOK_SOURCE_RESET);
+    for (i = 0; i < HOOK_MAX; i++)
+        meego_algorithm_hook_done(u->hooks[i]);
 
-    algorithm_hook_unref(u->algorithm);
+    meego_algorithm_hook_api_unref(u->algorithm);
     u->algorithm = NULL;
 
     return 0;

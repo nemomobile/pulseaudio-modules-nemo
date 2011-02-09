@@ -94,7 +94,7 @@ static void voice_aep_sink_process(struct userdata *u, pa_memchunk *chunk) {
         /* TODO: I think this should be called from behind the hook */
         pa_memchunk_make_writable(chunk, u->aep_fragment_size);
 
-        pa_hook_fire(u->hooks[HOOK_AEP_DOWNLINK], &params);
+        meego_algorithm_hook_fire(u->hooks[HOOK_AEP_DOWNLINK], &params);
     }
     else {
         pa_silence_memchunk_get(&u->core->silence_cache,
@@ -176,7 +176,7 @@ static int hw_sink_input_pop_cb(pa_sink_input *i, size_t length, pa_memchunk *ch
         if (rawchunk.length > 0 && !pa_memblock_is_silence(rawchunk.memblock)) {
 #if 1 /* Use only NB IIR EQ and down mix raw sink to mono when in a call */
             pa_memchunk monochunk, stereochunk;
-            pa_hook_fire(u->hooks[HOOK_NARROWBAND_EAR_EQU_MONO], &aepchunk);
+            meego_algorithm_hook_fire(u->hooks[HOOK_NARROWBAND_EAR_EQU_MONO], &aepchunk);
             voice_convert_run_8_to_48(u, u->aep_to_hw_sink_resampler, &aepchunk, chunk);
             pa_optimized_downmix_to_mono(&rawchunk, &monochunk);
             pa_memblock_unref(rawchunk.memblock);
@@ -184,7 +184,7 @@ static int hw_sink_input_pop_cb(pa_sink_input *i, size_t length, pa_memchunk *ch
             pa_assert(monochunk.length == chunk->length);
             pa_optimized_equal_mix_in(chunk, &monochunk);
             pa_memblock_unref(monochunk.memblock);
-            pa_hook_fire(u->hooks[HOOK_XPROT_MONO], chunk);
+            meego_algorithm_hook_fire(u->hooks[HOOK_XPROT_MONO], chunk);
             pa_optimized_mono_to_stereo(chunk, &stereochunk);
             pa_memblock_unref(chunk->memblock);
             *chunk = stereochunk;
@@ -192,14 +192,14 @@ static int hw_sink_input_pop_cb(pa_sink_input *i, size_t length, pa_memchunk *ch
             voice_convert_run_8_to_48_stereo(u, u->aep_to_hw_sink_resampler, &aepchunk, chunk);
             pa_assert(chunk->length == rawchunk.length);
             pa_optimized_equal_mix_in(chunk, &rawchunk);
-            pa_hook_fire(u->hooks[HOOK_HW_SINK_PROCESS], chunk);
+            meego_algorithm_hook_fire(u->hooks[HOOK_HW_SINK_PROCESS], chunk);
 #endif
         }
         else {
             pa_memchunk stereochunk;
-            pa_hook_fire(u->hooks[HOOK_NARROWBAND_EAR_EQU_MONO], &aepchunk);
+            meego_algorithm_hook_fire(u->hooks[HOOK_NARROWBAND_EAR_EQU_MONO], &aepchunk);
             voice_convert_run_8_to_48(u, u->aep_to_hw_sink_resampler, &aepchunk, chunk);
-            pa_hook_fire(u->hooks[HOOK_XPROT_MONO], chunk);
+            meego_algorithm_hook_fire(u->hooks[HOOK_XPROT_MONO], chunk);
             pa_optimized_mono_to_stereo(chunk, &stereochunk);
             pa_memblock_unref(chunk->memblock);
             *chunk = stereochunk;
@@ -208,7 +208,7 @@ static int hw_sink_input_pop_cb(pa_sink_input *i, size_t length, pa_memchunk *ch
     else if (rawchunk.length > 0 && !pa_memblock_is_silence(rawchunk.memblock)) {
         *chunk = rawchunk;
         pa_memchunk_reset(&rawchunk);
-        pa_hook_fire(u->hooks[HOOK_HW_SINK_PROCESS], chunk);
+        meego_algorithm_hook_fire(u->hooks[HOOK_HW_SINK_PROCESS], chunk);
     }
     else {
         pa_silence_memchunk_get(&u->core->silence_cache,

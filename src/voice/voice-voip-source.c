@@ -71,7 +71,7 @@ static int voip_source_set_state(pa_source *s, pa_source_state_t state) {
 
     /* TODO: Check if we still need to fiddle with PROP_MIXER_TUNING_MODE */
     if (s->state != PA_SOURCE_RUNNING && state == PA_SOURCE_RUNNING) {
-        pa_hook_fire(u->hooks[HOOK_CALL_BEGIN], s);
+        meego_algorithm_hook_fire(u->hooks[HOOK_CALL_BEGIN], s);
     }
 
     pa_log_debug("(%p) called with %d", (void *)s, state);

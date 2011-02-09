@@ -85,10 +85,10 @@ static int voip_sink_set_state(pa_sink *s, pa_sink_state_t state) {
     /* TODO: Check if we still need to fiddle with PROP_MIXER_TUNING_MODE */
     if (s->state != PA_SINK_RUNNING && state == PA_SINK_RUNNING) {
         voice_aep_ear_ref_loop_reset(u);
-        pa_hook_fire(u->hooks[HOOK_CALL_BEGIN], s);
+        meego_algorithm_hook_fire(u->hooks[HOOK_CALL_BEGIN], s);
     }
     else if (s->state == PA_SINK_RUNNING && state != PA_SINK_RUNNING)
-        pa_hook_fire(u->hooks[HOOK_CALL_END], s);
+        meego_algorithm_hook_fire(u->hooks[HOOK_CALL_END], s);
 
     pa_log_debug("(%p): called with %d", (void *)s, state);
     return ret;

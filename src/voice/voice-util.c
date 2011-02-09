@@ -240,7 +240,7 @@ int voice_sink_set_state(pa_sink *s, pa_sink *other, pa_sink_state_t state) {
              pa_call_state_tracker_set_active(u->call_state_tracker, TRUE);
              pa_proplist_free(p);
 
-             pa_hook_fire(u->hooks[HOOK_CALL_BEGIN], s);
+             meego_algorithm_hook_fire(u->hooks[HOOK_CALL_BEGIN], s);
         }
     }
     else {
@@ -253,7 +253,7 @@ int voice_sink_set_state(pa_sink *s, pa_sink *other, pa_sink_state_t state) {
             pa_call_state_tracker_set_active(u->call_state_tracker, FALSE);
             pa_proplist_free(p);
 
-            pa_hook_fire(u->hooks[HOOK_CALL_END], s);
+            meego_algorithm_hook_fire(u->hooks[HOOK_CALL_END], s);
         }
     }
 

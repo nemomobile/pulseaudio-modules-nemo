@@ -71,7 +71,7 @@ struct userdata {
     pa_module *module;
     pa_modargs *modargs;
 
-    algorithm_hook *algorithm;
+    meego_algorithm_hook_api *algorithm;
 
     pa_msgobject *mainloop_handler;
 
@@ -154,7 +154,7 @@ struct userdata {
     pa_call_state_tracker *call_state_tracker;
 
     unsigned current_audio_mode_hwid_hash;
-    pa_hook *hooks[HOOK_MAX];
+    meego_algorithm_hook *hooks[HOOK_MAX];
 
     call_mic_ch_t active_mic_channel;
 
