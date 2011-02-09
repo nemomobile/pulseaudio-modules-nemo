@@ -81,10 +81,10 @@ struct userdata {
     pa_sink_input *sink_input;
     pa_memchunk silence_memchunk;
 
-    algorithm_hook *algorithm;
+    meego_algorithm_hook_api *algorithm;
 
-    pa_hook *hook_algorithm;
-    pa_hook *hook_volume;
+    meego_algorithm_hook *hook_algorithm;
+    meego_algorithm_hook *hook_volume;
 };
 
 
@@ -120,7 +120,7 @@ static void update_mdrc_volume(struct userdata *u) {
 
     volume = pa_sw_volume_to_dB(pa_cvolume_avg(&max_input_volume));
 
-    pa_hook_fire(u->hook_volume, &volume);
+    meego_algorithm_hook_fire(u->hook_volume, &volume);
 }
 
 /*** sink callbacks ***/
@@ -220,7 +220,7 @@ static int sink_input_pop_cb(pa_sink_input *i, size_t length, pa_memchunk *chunk
         pa_sink_render_full(u->sink, u->window_size, chunk);
 
         /* pa_log("chunk length: %d", chunk->length); */
-        pa_hook_fire(u->hook_algorithm, chunk);
+        meego_algorithm_hook_fire(u->hook_algorithm, chunk);
     }
 
     return 0;
@@ -434,16 +434,16 @@ static void sink_input_state_change_cb(pa_sink_input *i, pa_sink_input_state_t s
 }
 
 static void set_hooks(struct userdata *u) {
-    u->algorithm = algorithm_hook_get(u->core);
-    u->hook_algorithm   = algorithm_hook_init(u->algorithm, MUSIC_HOOK_DYNAMIC_ENHANCE);
-    u->hook_volume      = algorithm_hook_init(u->algorithm, MUSIC_HOOK_DYNAMIC_ENHANCE_VOLUME);
+    u->algorithm = meego_algorithm_hook_api_get(u->core);
+    u->hook_algorithm   = meego_algorithm_hook_init(u->algorithm, MUSIC_HOOK_DYNAMIC_ENHANCE);
+    u->hook_volume      = meego_algorithm_hook_init(u->algorithm, MUSIC_HOOK_DYNAMIC_ENHANCE_VOLUME);
 }
 
 static void unset_hooks(struct userdata *u) {
-    algorithm_hook_done(u->algorithm, MUSIC_HOOK_DYNAMIC_ENHANCE);
-    algorithm_hook_done(u->algorithm, MUSIC_HOOK_DYNAMIC_ENHANCE_VOLUME);
+    meego_algorithm_hook_done(u->hook_algorithm);
+    meego_algorithm_hook_done(u->hook_volume);
 
-    algorithm_hook_unref(u->algorithm);
+    meego_algorithm_hook_api_unref(u->algorithm);
     u->algorithm = NULL;
 }
 
