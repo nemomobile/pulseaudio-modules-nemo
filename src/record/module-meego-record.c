@@ -84,8 +84,8 @@ struct userdata {
     int maxblocksize;
 
     /** Algorithm variables */
-    algorithm_hook *algorithm;
-    pa_hook *hook_algorithm;
+    meego_algorithm_hook_api *algorithm;
+    meego_algorithm_hook *hook_algorithm;
     pa_memblockq *memblockq;
 };
 
@@ -172,7 +172,7 @@ static void source_output_push_cb(pa_source_output *o, const pa_memchunk *new_ch
     while (util_memblockq_to_chunk(u->core->mempool, u->memblockq, &chunk, u->maxblocksize)) {
 
         if (PA_SOURCE_IS_OPENED(u->source->thread_info.state)) {
-            pa_hook_fire(u->hook_algorithm, &chunk);
+            meego_algorithm_hook_fire(u->hook_algorithm, &chunk);
             pa_source_post(u->source, &chunk);
         }
 
@@ -337,14 +337,14 @@ static void source_output_kill_cb(pa_source_output *o) {
 }
 
 static void set_hooks(struct userdata *u) {
-    u->algorithm = algorithm_hook_get(u->core);
-    u->hook_algorithm = algorithm_hook_init(u->algorithm, RECORD_HOOK_DYNAMIC_ENHANCE);
+    u->algorithm = meego_algorithm_hook_api_get(u->core);
+    u->hook_algorithm = meego_algorithm_hook_init(u->algorithm, RECORD_HOOK_DYNAMIC_ENHANCE);
 }
 
 static void unset_hooks(struct userdata *u) {
-    algorithm_hook_done(u->algorithm, RECORD_HOOK_DYNAMIC_ENHANCE);
+    meego_algorithm_hook_done(u->hook_algorithm);
 
-    algorithm_hook_unref(u->algorithm);
+    meego_algorithm_hook_api_unref(u->algorithm);
     u->algorithm = NULL;
     u->hook_algorithm = NULL;
 }
