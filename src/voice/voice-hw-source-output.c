@@ -74,13 +74,15 @@ pa_bool_t voice_voip_source_process(struct userdata *u, pa_memchunk *chunk, pa_m
     if (u->voip_source->thread_info.soft_muted ||
         pa_cvolume_is_muted(&u->voip_source->thread_info.soft_volume) ||
         pa_memblock_is_silence(chunk->memblock)) {
+        pa_memchunk rchunk;
+        voice_aep_ear_ref_ul(u, &rchunk);
+        pa_memblock_unref(rchunk.memblock);
         pa_memblock_unref(chunk->memblock);
         pa_silence_memchunk_get(&u->core->silence_cache,
                                 u->core->mempool,
                                 chunk,
                                 &u->aep_sample_spec,
                                 chunk->length);
-        voice_aep_ear_ref_ul_drop_log(u, VOICE_PERIOD_AEP_USECS);
     } else {
         aep_uplink params;
         pa_memchunk rchunk;

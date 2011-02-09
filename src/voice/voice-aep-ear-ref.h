@@ -82,24 +82,37 @@ void voice_aep_ear_ref_unload(struct userdata *u) {
     r->loop_memblockq = NULL;
 }
 
-/* FIXME; Check underrun on in the appropriate IO thread... */
 static inline
-int voice_aep_ear_ref_check_xrun(struct userdata *u) {
+int voice_aep_ear_ref_check_dl_xrun(struct userdata *u) {
     struct voice_aep_ear_ref *r = &u->ear_ref;
-    pa_bool_t underrun, overrun;
+    pa_bool_t underrun;
 
     if (u->master_sink) {
         PA_MSGOBJECT(u->master_sink)->process_msg(
                 PA_MSGOBJECT(u->master_sink), PA_SINK_MESSAGE_GET_UNDERRUN, &underrun, (int64_t)0, NULL);
     }
 
+    if (underrun) {
+        pa_log_debug("DL XRUN -> reset");
+        pa_atomic_store(&r->loop_state, VOICE_EAR_REF_RESET);
+        return 1;
+    }
+
+    return 0;
+}
+
+static inline
+int voice_aep_ear_ref_check_ul_xrun(struct userdata *u) {
+    struct voice_aep_ear_ref *r = &u->ear_ref;
+    pa_bool_t overrun;
+
     if (u->master_source) {
         PA_MSGOBJECT(u->master_source)->process_msg(
                 PA_MSGOBJECT(u->master_source), PA_SOURCE_MESSAGE_GET_OVERRUN, &overrun, (int64_t)0, NULL);
     }
 
-    if (underrun || overrun) {
-        pa_log_debug("XRUN -> reset");
+    if (overrun) {
+        pa_log_debug("UL XRUN -> reset");
         pa_atomic_store(&r->loop_state, VOICE_EAR_REF_RESET);
         return 1;
     }
@@ -140,7 +153,7 @@ int voice_aep_ear_ref_dl(struct userdata *u, pa_memchunk *chunk) {
     switch (loop_state) {
     case  VOICE_EAR_REF_RUNNING:
     case  VOICE_EAR_REF_DL_READY: {
-        if (!voice_aep_ear_ref_check_xrun(u)) {
+        if (!voice_aep_ear_ref_check_dl_xrun(u)) {
             if (voice_aep_ear_ref_dl_push_to_syncq(u, chunk))
                 return -1;
         }
@@ -203,7 +216,7 @@ int voice_aep_ear_ref_ul(struct userdata *u, pa_memchunk *chunk) {
 	int loop_state = pa_atomic_load(&r->loop_state);
 	switch (loop_state) {
 	case VOICE_EAR_REF_RUNNING: {
-            if (!voice_aep_ear_ref_check_xrun(u)) {
+            if (!voice_aep_ear_ref_check_ul_xrun(u)) {
                 voice_aep_ear_ref_ul_drain_asyncq(u, TRUE);
                 if (util_memblockq_to_chunk(u->core->mempool, r->loop_memblockq, chunk, u->aep_fragment_size)) {
                     ret = 1;
