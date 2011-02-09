@@ -45,30 +45,57 @@
  * modules can safely fire hooks that are connected or not.
  *
  * pa_hook_slot_free should be used for pa_hook_slot pointer,
- * pa_hook pointers received from algorithm_hook_init should be cleared
+ * pa_hook pointers received from meego_algorithm_hook_init should be cleared
  * using algorithm_hook_done.
  */
 
+#include <stdint.h>
+#include <pulsecore/core.h>
 #include <pulsecore/hook-list.h>
+#include <pulsecore/memchunk.h>
 
-typedef struct algorithm_hook algorithm_hook;
+#define MEEGO_ALGORITHM_HOOK_CHANNELS_MAX (8)
+
+typedef struct meego_algorithm_hook_api meego_algorithm_hook_api;
+typedef struct meego_algorithm_hook meego_algorithm_hook;
+typedef struct meego_algorithm_hook_slot meego_algorithm_hook_slot;
+typedef struct meego_algorithm_hook_data meego_algorithm_hook_data;
+
+struct meego_algorithm_hook_data {
+    uint8_t channels;
+    pa_memchunk *channel[MEEGO_ALGORITHM_HOOK_CHANNELS_MAX];
+};
 
 /* get pointer to opaque algorithm_hook struct.
  * unref after use. */
-algorithm_hook *algorithm_hook_get(pa_core *core);
-algorithm_hook *algorithm_hook_ref(algorithm_hook *a);
-void algorithm_hook_unref(algorithm_hook *a);
+meego_algorithm_hook_api *meego_algorithm_hook_api_get(pa_core *core);
+meego_algorithm_hook_api *meego_algorithm_hook_api_ref(meego_algorithm_hook_api *a);
+void meego_algorithm_hook_api_unref(meego_algorithm_hook_api *a);
 
 /* init new hook with name. hook_data is pointer to pulseaudio
  * core struct.
  * returns pointer to newly initialized hook on success, on error
  * returns NULL */
-pa_hook *algorithm_hook_init(algorithm_hook *a, const char *name);
+/* Increases hook_api reference counter */
+meego_algorithm_hook *meego_algorithm_hook_init(meego_algorithm_hook_api *a, const char *name);
 /* clear hook with name. */
-pa_bool_t algorithm_hook_done(algorithm_hook *a, const char *name);
+/* Decreases hook_api reference counter */
+pa_bool_t meego_algorithm_hook_done(meego_algorithm_hook *hook);
+
+pa_hook_result_t meego_algorithm_hook_fire(meego_algorithm_hook *hook, void *data);
+
+pa_bool_t pa_algorithm_hook_is_firing(meego_algorithm_hook *hook);
 
 /* connect to hook with name. if no hook is initialized with
  * given name, returns NULL. */
-pa_hook_slot *algorithm_hook_connect(algorithm_hook *a, const char *name, pa_hook_priority_t prio, pa_hook_cb_t cb, void *data);
+/* Increases hook_api reference counter */
+meego_algorithm_hook_slot *meego_algorithm_hook_connect(meego_algorithm_hook_api *a, const char *name, pa_hook_priority_t prio, pa_hook_cb_t cb, void *data);
+/* Decreases hook_api reference counter */
+void meego_algorithm_hook_slot_free(meego_algorithm_hook_slot *slot);
+
+void meego_algorithm_hook_slot_set_enabled(meego_algorithm_hook_slot *slot, pa_bool_t enabled);
+pa_bool_t meego_algorithm_hook_slot_enabled(meego_algorithm_hook_slot *slot);
+pa_bool_t meego_algorithm_hook_enabled(meego_algorithm_hook *hook);
+
 
 #endif
