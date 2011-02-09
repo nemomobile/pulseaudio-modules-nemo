@@ -3,7 +3,7 @@ AM_CFLAGS =						\
 	$(PULSEAUDIO_CFLAGS)				\
 	-I$(top_srcdir)/src/record			\
 	-I$(top_srcdir)/inc				\
-	-I$(top_srcdir)/src/common
+	-I$(top_srcdir)/src/common/include/meego
 
 AM_LIBADD += $(top_builddir)/src/common/libmeego-common.la
 

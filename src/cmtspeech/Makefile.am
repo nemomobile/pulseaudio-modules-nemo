@@ -9,7 +9,7 @@ AM_CFLAGS =						\
 	$(DBUS_CFLAGS)                                  \
 	-I$(top_srcdir)/src/cmtspeech			\
 	-I$(top_srcdir)/src/voice                       \
-	-I$(top_srcdir)/src/common
+	-I$(top_srcdir)/src/common/include/meego
 
 CMTSPEECH_LIB = -lcmtspeechdata
 

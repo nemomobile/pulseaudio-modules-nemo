@@ -43,8 +43,8 @@
 #include "module-meego-mainvolume-symdef.h"
 #include "mainvolume.h"
 
-#include <src/common/parameter-hook.h>
-#include <src/common/proplist-meego.h>
+#include "parameter-hook.h"
+#include "proplist-meego.h"
 
 PA_MODULE_AUTHOR("Juho Hämäläinen");
 PA_MODULE_DESCRIPTION("Nokia mainvolume module");

@@ -44,8 +44,8 @@
 
 #include "module-meego-music-symdef.h"
 
-#include <src/common/proplist-meego.h>
-#include <src/common/algorithm-hook.h>
+#include "proplist-meego.h"
+#include "algorithm-hook.h"
 
 #include "module-music-api.h"
 

@@ -2,7 +2,7 @@ AM_LIBADD =
 AM_CFLAGS =						\
 	$(PULSEAUDIO_CFLAGS)				\
 	-I$(top_srcdir)/src/music			\
-	-I$(top_srcdir)/src/common
+	-I$(top_srcdir)/src/common/include/meego
 
 
 modlibexec_LTLIBRARIES = module-meego-music.la

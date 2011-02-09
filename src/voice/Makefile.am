@@ -1,7 +1,7 @@
 AM_CFLAGS =						\
 	$(PULSEAUDIO_CFLAGS)				\
 	-I$(top_srcdir)/src/voice			\
-	-I$(top_srcdir)/src/common
+	-I$(top_srcdir)/src/common/include/meego
 
 AM_LIBADD =							\
 	$(PULSEAUDIO_LIBS)					\

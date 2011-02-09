@@ -38,8 +38,8 @@
 #include <pulsecore/fdsem.h>
 #include <pulsecore/call-state-tracker.h>
 
-#include "src/common/src-48-to-8.h"
-#include "src/common/src-8-to-48.h"
+#include "src-48-to-8.h"
+#include "src-8-to-48.h"
 
 #include "algorithm-hook.h"
 

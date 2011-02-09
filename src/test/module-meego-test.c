@@ -40,7 +40,7 @@
 #include <pulsecore/log.h>
 #include <pulsecore/core-util.h>
 
-#include "src/common/proplist-meego.h"
+#include "proplist-meego.h"
 
 #include "module-meego-test-symdef.h"
 

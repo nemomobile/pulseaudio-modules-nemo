@@ -40,10 +40,10 @@
 
 #include "module-meego-record-symdef.h"
 
-#include <src/common/proplist-meego.h>
-#include <src/common/optimized.h>
-#include <src/common/memory.h>
-#include <src/common/algorithm-hook.h>
+#include "proplist-meego.h"
+#include "optimized.h"
+#include "memory.h"
+#include "algorithm-hook.h"
 
 #include "module-record-api.h"
 
