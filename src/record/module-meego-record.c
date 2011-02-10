@@ -41,7 +41,7 @@
 #include "module-meego-record-symdef.h"
 
 #include "proplist-meego.h"
-#include "optimized.h"
+#include "pa-optimized.h"
 #include "memory.h"
 #include "algorithm-hook.h"
 
@@ -158,6 +158,8 @@ static int source_set_state(pa_source *s, pa_source_state_t state) {
 static void source_output_push_cb(pa_source_output *o, const pa_memchunk *new_chunk) {
     struct userdata *u;
     pa_memchunk chunk;
+    meego_algorithm_hook_data data;
+    pa_memchunk out_chunk;
 
     pa_source_output_assert_ref(o);
     pa_assert_se(u = o->userdata);
@@ -172,7 +174,22 @@ static void source_output_push_cb(pa_source_output *o, const pa_memchunk *new_ch
     while (util_memblockq_to_chunk(u->core->mempool, u->memblockq, &chunk, u->maxblocksize)) {
 
         if (PA_SOURCE_IS_OPENED(u->source->thread_info.state)) {
-            meego_algorithm_hook_fire(u->hook_algorithm, &chunk);
+            if (meego_algorithm_hook_enabled(u->hook_algorithm)) {
+
+                data.channels = 2;
+                pa_optimized_deinterleave_stereo_to_mono(&chunk, &data.channel[0], &data.channel[1]);
+
+                meego_algorithm_hook_fire(u->hook_algorithm, &data);
+
+                pa_optimized_interleave_stereo(&data.channel[0], &data.channel[1], &out_chunk);
+
+                pa_memblock_unref(chunk.memblock);
+                pa_memblock_unref(data.channel[0].memblock);
+                pa_memblock_unref(data.channel[1].memblock);
+
+                chunk = out_chunk;
+            }
+
             pa_source_post(u->source, &chunk);
         }
 
