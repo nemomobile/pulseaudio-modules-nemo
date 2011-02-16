@@ -24,6 +24,7 @@
 
 #define RECORD_API_VERSION "0.1"
 
+/* Type: meego_algorithm_hook_data      Channels: 2 */
 #define RECORD_HOOK_DYNAMIC_ENHANCE              "x-meego.record.dynamic_enhance"
 
 #define PA_PROP_SOURCE_RECORD_API_EXTENSION_PROPERTY_NAME "source.api-extension.meego.record"
