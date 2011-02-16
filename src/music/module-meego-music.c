@@ -46,6 +46,8 @@
 
 #include "proplist-meego.h"
 #include "algorithm-hook.h"
+#include "optimized.h"
+#include "pa-optimized.h"
 
 #include "module-music-api.h"
 
@@ -219,8 +221,31 @@ static int sink_input_pop_cb(pa_sink_input *i, size_t length, pa_memchunk *chunk
     } else {
         pa_sink_render_full(u->sink, u->window_size, chunk);
 
-        /* pa_log("chunk length: %d", chunk->length); */
-        meego_algorithm_hook_fire(u->hook_algorithm, chunk);
+        if (!pa_memblock_is_silence(chunk->memblock)
+            && meego_algorithm_hook_enabled(u->hook_algorithm)) {
+
+            meego_algorithm_hook_data data;
+            short *dst;
+            const short *s_bufs[2];
+
+            data.channels = 2;
+            pa_optimized_deinterleave_stereo_to_mono(chunk, &data.channel[0], &data.channel[1]);
+
+            meego_algorithm_hook_fire(u->hook_algorithm, &data);
+
+            dst = pa_memblock_acquire(chunk->memblock);
+            dst += chunk->index / sizeof(short);
+            s_bufs[0] = pa_memblock_acquire(data.channel[0].memblock);
+            s_bufs[1] = pa_memblock_acquire(data.channel[1].memblock);
+
+            interleave_mono_to_stereo(s_bufs, dst, data.channel[0].length / sizeof(short));
+
+            pa_memblock_release(chunk->memblock);
+            pa_memblock_release(data.channel[0].memblock);
+            pa_memblock_release(data.channel[1].memblock);
+            pa_memblock_unref(data.channel[0].memblock);
+            pa_memblock_unref(data.channel[1].memblock);
+        }
     }
 
     return 0;
