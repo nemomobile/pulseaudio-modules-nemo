@@ -114,15 +114,12 @@ static void get_max_input_volume(pa_sink *s, pa_cvolume *max_volume, const pa_ch
 
 static void update_mdrc_volume(struct userdata *u) {
     pa_cvolume max_input_volume;
-    float volume;
     pa_assert(u);
 
     pa_cvolume_mute(&max_input_volume, u->sink->channel_map.channels);
     get_max_input_volume(u->sink, &max_input_volume, &u->sink->channel_map);
 
-    volume = pa_sw_volume_to_dB(pa_cvolume_avg(&max_input_volume));
-
-    meego_algorithm_hook_fire(u->hook_volume, &volume);
+    meego_algorithm_hook_fire(u->hook_volume, &max_input_volume);
 }
 
 /*** sink callbacks ***/

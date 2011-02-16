@@ -24,7 +24,10 @@
 
 #define MUSIC_API_VERSION "0.1"
 
+/* Type: meego_algorithm_hook_data      Channels: 2 */
 #define MUSIC_HOOK_DYNAMIC_ENHANCE              "x-meego.music.dynamic_enhance"
+
+/* Type: pa_cvolume                     Channels: > 0 */
 #define MUSIC_HOOK_DYNAMIC_ENHANCE_VOLUME       "x-meego.music.dynamic_enhance_volume"
 
 #define PA_PROP_SINK_MUSIC_API_EXTENSION_PROPERTY_NAME "sink.api-extension.meego.music"
