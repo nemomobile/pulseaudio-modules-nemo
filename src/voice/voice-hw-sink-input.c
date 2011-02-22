@@ -49,6 +49,7 @@
 #include "voice-aep-ear-ref.h"
 #include "voice-convert.h"
 #include "pa-optimized.h"
+#include "optimized.h"
 #include "memory.h"
 #include "voice-voip-source.h"
 
@@ -108,6 +109,7 @@ static void voice_aep_sink_process(struct userdata *u, pa_memchunk *chunk) {
 /*** sink_input callbacks ***/
 static int hw_sink_input_pop_cb(pa_sink_input *i, size_t length, pa_memchunk *chunk) {
     struct userdata *u;
+    meego_algorithm_hook_data hook_data;
     pa_memchunk aepchunk = { 0, 0, 0 };
     pa_memchunk rawchunk = { 0, 0, 0 };
     pa_volume_t aep_volume = PA_VOLUME_NORM;
@@ -176,7 +178,10 @@ static int hw_sink_input_pop_cb(pa_sink_input *i, size_t length, pa_memchunk *ch
         if (rawchunk.length > 0 && !pa_memblock_is_silence(rawchunk.memblock)) {
 #if 1 /* Use only NB IIR EQ and down mix raw sink to mono when in a call */
             pa_memchunk monochunk, stereochunk;
-            meego_algorithm_hook_fire(u->hooks[HOOK_NARROWBAND_EAR_EQU_MONO], &aepchunk);
+            hook_data.channels = 1;
+            hook_data.channel[0] = aepchunk;
+            meego_algorithm_hook_fire(u->hooks[HOOK_NARROWBAND_EAR_EQU_MONO], &hook_data);
+            aepchunk = hook_data.channel[0];
             voice_convert_run_8_to_48(u, u->aep_to_hw_sink_resampler, &aepchunk, chunk);
             pa_optimized_downmix_to_mono(&rawchunk, &monochunk);
             pa_memblock_unref(rawchunk.memblock);
@@ -184,33 +189,89 @@ static int hw_sink_input_pop_cb(pa_sink_input *i, size_t length, pa_memchunk *ch
             pa_assert(monochunk.length == chunk->length);
             pa_optimized_equal_mix_in(chunk, &monochunk);
             pa_memblock_unref(monochunk.memblock);
-            meego_algorithm_hook_fire(u->hooks[HOOK_XPROT_MONO], chunk);
+            hook_data.channel[0] = *chunk;
+            meego_algorithm_hook_fire(u->hooks[HOOK_XPROT_MONO], &hook_data);
+            *chunk = hook_data.channel[0];
             pa_optimized_mono_to_stereo(chunk, &stereochunk);
             pa_memblock_unref(chunk->memblock);
             *chunk = stereochunk;
 #else /* Do full stereo processing if the raw and aep inputs are both available */
+
             voice_convert_run_8_to_48_stereo(u, u->aep_to_hw_sink_resampler, &aepchunk, chunk);
             pa_assert(chunk->length == rawchunk.length);
             pa_optimized_equal_mix_in(chunk, &rawchunk);
-            meego_algorithm_hook_fire(u->hooks[HOOK_HW_SINK_PROCESS], chunk);
+
+            if (meego_algorithm_hook_enabled(u->hooks[HOOK_HW_SINK_PROCESS])) {
+                const short *src_bufs[2];
+                short *dst;
+
+                pa_memchunk_reset(&hook_data.channel[0]);
+                pa_memchunk_reset(&hook_data.channel[1]);
+                hook_data.channels = 2;
+
+                pa_optimized_deinterleave_stereo_to_mono(chunk, &hook_data.channel[0], &hook_data.channel[1]);
+
+                meego_algorithm_hook_fire(u->hooks[HOOK_HW_SINK_PROCESS], &hook_data);
+
+                /* interleave */
+                dst = pa_memblock_acquire(chunk->memblock);
+                dst += chunk->index / sizeof(short);
+
+                src_bufs[0] = pa_memblock_acquire(hook_data.channel[0].memblock);
+                src_bufs[1] = pa_memblock_acquire(hook_data.channel[1].memblock);
+                interleave_mono_to_stereo(src_bufs, dst, hook_data.channel[0].length / sizeof(short));
+                pa_memblock_release(chunk->memblock);
+                pa_memblock_release(hook_data.channel[0].memblock);
+                pa_memblock_release(hook_data.channel[1].memblock);
+                pa_memblock_unref(hook_data.channel[0].memblock);
+                pa_memblock_unref(hook_data.channel[1].memblock);
+            }
 #endif
-        }
-        else {
+        } else {
             pa_memchunk stereochunk;
-            meego_algorithm_hook_fire(u->hooks[HOOK_NARROWBAND_EAR_EQU_MONO], &aepchunk);
+            hook_data.channels = 1;
+            hook_data.channel[0] = aepchunk;
+            meego_algorithm_hook_fire(u->hooks[HOOK_NARROWBAND_EAR_EQU_MONO], &hook_data);
+            aepchunk = hook_data.channel[0];
             voice_convert_run_8_to_48(u, u->aep_to_hw_sink_resampler, &aepchunk, chunk);
-            meego_algorithm_hook_fire(u->hooks[HOOK_XPROT_MONO], chunk);
+            hook_data.channel[0] = *chunk;
+            meego_algorithm_hook_fire(u->hooks[HOOK_XPROT_MONO], &hook_data);
+            *chunk = hook_data.channel[0];
             pa_optimized_mono_to_stereo(chunk, &stereochunk);
             pa_memblock_unref(chunk->memblock);
             *chunk = stereochunk;
         }
-    }
-    else if (rawchunk.length > 0 && !pa_memblock_is_silence(rawchunk.memblock)) {
+    } else if (rawchunk.length > 0 && !pa_memblock_is_silence(rawchunk.memblock)) {
         *chunk = rawchunk;
         pa_memchunk_reset(&rawchunk);
-        meego_algorithm_hook_fire(u->hooks[HOOK_HW_SINK_PROCESS], chunk);
-    }
-    else {
+
+        if (meego_algorithm_hook_enabled(u->hooks[HOOK_HW_SINK_PROCESS])) {
+            const short *src_bufs[2];
+            short *dst;
+
+            pa_memchunk_reset(&hook_data.channel[0]);
+            pa_memchunk_reset(&hook_data.channel[1]);
+            hook_data.channels = 2;
+
+            pa_optimized_deinterleave_stereo_to_mono(chunk, &hook_data.channel[0], &hook_data.channel[1]);
+
+            meego_algorithm_hook_fire(u->hooks[HOOK_HW_SINK_PROCESS], &hook_data);
+
+            /* interleave */
+            dst = pa_memblock_acquire(chunk->memblock);
+            dst += chunk->index / sizeof(short);
+
+            src_bufs[0] = pa_memblock_acquire(hook_data.channel[0].memblock);
+            src_bufs[1] = pa_memblock_acquire(hook_data.channel[1].memblock);
+            interleave_mono_to_stereo(src_bufs, dst, hook_data.channel[0].length / sizeof(short));
+            pa_memblock_release(chunk->memblock);
+            pa_memblock_release(hook_data.channel[0].memblock);
+            pa_memblock_release(hook_data.channel[1].memblock);
+            pa_memblock_unref(hook_data.channel[0].memblock);
+            pa_memblock_unref(hook_data.channel[1].memblock);
+        }
+
+    } else {
         pa_silence_memchunk_get(&u->core->silence_cache,
                                 u->core->mempool,
                                 chunk,

@@ -33,6 +33,7 @@
 #include "voice-util.h"
 #include "voice-voip-source.h"
 #include "pa-optimized.h"
+#include "optimized.h"
 #include "voice-convert.h"
 #include "memory.h"
 
@@ -148,6 +149,7 @@ void voice_uplink_timing_check(struct userdata *u, pa_usec_t now,
 /* Called from I/O thread context */
 static void hw_source_output_push_cb(pa_source_output *o, const pa_memchunk *new_chunk) {
     struct userdata *u;
+    meego_algorithm_hook_data hook_data;
     pa_memchunk chunk;
     pa_bool_t ul_frame_sent = FALSE;
     pa_usec_t now = pa_rtclock_now();
@@ -203,12 +205,19 @@ static void hw_source_output_push_cb(pa_source_output *o, const pa_memchunk *new
 
             }
 
+            hook_data.channels = 1;
+            hook_data.channel[0] = mic_chunk;
+
             /* RMC used only with ECI headsets that have one mic */
-            meego_algorithm_hook_fire(u->hooks[HOOK_RMC_MONO], &mic_chunk);
+            meego_algorithm_hook_fire(u->hooks[HOOK_RMC_MONO], &hook_data);
+            mic_chunk = hook_data.channel[0];
 
             voice_convert_run_48_to_8(u, u->hw_source_to_aep_resampler, &mic_chunk, &mic_chunk8k);
             pa_memblock_unref(mic_chunk.memblock);
-            meego_algorithm_hook_fire(u->hooks[HOOK_NARROWBAND_MIC_EQ_MONO], &mic_chunk8k);
+
+            hook_data.channel[0] = mic_chunk8k;
+            meego_algorithm_hook_fire(u->hooks[HOOK_NARROWBAND_MIC_EQ_MONO], &hook_data);
+            mic_chunk8k = hook_data.channel[0];
 
             if (amb_chunk.memblock) {
                 voice_convert_run_48_to_8(u, u->hw_source_to_aep_amb_resampler, &amb_chunk, &amb_chunk8k);
@@ -216,6 +225,7 @@ static void hw_source_output_push_cb(pa_source_output *o, const pa_memchunk *new
 
                 /* TODO: We should run the ambient reference trough EQ too,
                          but we'd need a separate (or a multi channel) hook for that.
+                hook_data.channel[0] = &something;
                 meego_algorithm_hook_fire(u->hooks[HOOK_NARROWBAND_MIC_AMB_EQ_MONO], &mic_chunk8k);
                 */
 
@@ -229,8 +239,27 @@ static void hw_source_output_push_cb(pa_source_output *o, const pa_memchunk *new
 
         } else {
             /* This branch is taken when call is not active e.g. when source.voice.raw is used */
+            if (meego_algorithm_hook_enabled(u->hooks[HOOK_WIDEBAND_MIC_EQ_STEREO])) {
+                const short *src_bufs[2];
+                short *dst;
 
-            meego_algorithm_hook_fire(u->hooks[HOOK_WIDEBAND_MIC_EQ_STEREO], &chunk);
+                hook_data.channels = 2;
+                pa_optimized_deinterleave_stereo_to_mono(&chunk, &hook_data.channel[0], &hook_data.channel[1]);
+
+                meego_algorithm_hook_fire(u->hooks[HOOK_WIDEBAND_MIC_EQ_STEREO], &hook_data);
+
+                /* interleave */
+                dst = pa_memblock_acquire(chunk.memblock);
+                dst += chunk.index / sizeof(short);
+                src_bufs[0] = pa_memblock_acquire(hook_data.channel[0].memblock);
+                src_bufs[1] = pa_memblock_acquire(hook_data.channel[1].memblock);
+                interleave_mono_to_stereo(src_bufs, dst, hook_data.channel[0].length / sizeof(short));
+                pa_memblock_release(chunk.memblock);
+                pa_memblock_release(hook_data.channel[0].memblock);
+                pa_memblock_release(hook_data.channel[1].memblock);
+                pa_memblock_unref(hook_data.channel[0].memblock);
+                pa_memblock_unref(hook_data.channel[1].memblock);
+            }
         }
 
         if (PA_SOURCE_IS_OPENED(u->raw_source->thread_info.state)) {
