@@ -1,5 +1,6 @@
 AM_CFLAGS = \
 	-I$(top_srcdir)/src/common \
+	-I$(top_srcdir)/src/common/include \
 	-I$(top_srcdir)/src/common/include/meego \
 	$(PULSEAUDIO_CFLAGS)
 
