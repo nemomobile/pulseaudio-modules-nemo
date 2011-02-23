@@ -149,6 +149,28 @@ void downmix_to_mono_from_interleaved_stereo(const short *src, short *dst, unsig
     }
 }
 
+void downmix_to_mono_from_stereo(const short *src[2], short *dst, unsigned n)
+{
+    unsigned i;
+    unsigned offset = 8;
+    int16x8_t ch0;
+    int16x8_t ch1;
+    int16x8_t mono_samples;
+
+    for (i = 0; i < n; i += offset) {
+        ch0 = vld1q_s16(src[0] + i);
+        ch1 = vld1q_s16(src[1] + i);
+
+        /* Shift right before downmixing */
+        ch0 = vrshrq_n_s16(ch0, 1);
+        ch1 = vrshrq_n_s16(ch1, 1);
+
+        mono_samples = vqaddq_s16(ch0, ch1);
+        vst1q_s16(dst, mono_samples);
+        dst += offset;
+    }
+}
+
 void dup_mono_to_interleaved_stereo(const short *src, short *dst, unsigned n)
 {
     unsigned i;
@@ -320,6 +342,20 @@ void downmix_to_mono_from_interleaved_stereo(const short *src, short *dst, unsig
         }
 
         dst += offset;
+    }
+}
+
+void downmix_to_mono_from_stereo(const short *src[2], short *dst, unsigned n)
+{
+    unsigned i;
+    int sum;
+
+    for (i = 0; i < n; i++) {
+        sum = *(src[0] + i);
+        sum += *(src[1] + i);
+        *dst = (short)PA_CLAMP_UNLIKELY(sum, -0x8000, 0x7FFF);
+
+        dst++;
     }
 }
 

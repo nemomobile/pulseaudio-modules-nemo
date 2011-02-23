@@ -42,6 +42,7 @@ void deinterleave_stereo_to_mono(const short *src, short *dst[], unsigned n);
 */
 void extract_mono_from_interleaved_stereo(const short *src, short *dst, unsigned n, unsigned ch);
 void downmix_to_mono_from_interleaved_stereo(const short *src, short *dst, unsigned n);
+void downmix_to_mono_from_stereo(const short *src[2], short *dst, unsigned n);
 void dup_mono_to_interleaved_stereo(const short *src, short *dst, unsigned n);
 void symmetric_mix(const short *src1, const short *src2, short *dst, const unsigned n);
 void mix_in_with_volume(const short volume, const short *src, short *dst, const unsigned n);
