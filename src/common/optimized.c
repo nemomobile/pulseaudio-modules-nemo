@@ -53,7 +53,7 @@ void move_16bit_to_32bit(int32_t *dst, const short *src, unsigned n)
     int32x4x2_t mid;
     int32x4x2_t output;
 
-    for (i = 0; i < n/2; i += 8) {
+    for (i = 0; i < n; i += 8) {
         input = vld2_s16(src + i);
         mid.val[0] = vmovl_s16(input.val[0]);
         mid.val[1] = vmovl_s16(input.val[1]);
@@ -70,7 +70,7 @@ void move_32bit_to_16bit(short *dst, const int32_t *src, unsigned n)
     int32x4x2_t mid;
     int16x4x2_t output;
 
-    for (i = 0; i < n/2; i += 8) {
+    for (i = 0; i < n; i += 8) {
         input = vld2q_s32((int32_t *)src + i);
         mid.val[0] = vshrq_n_s32(input.val[0], 8);
         mid.val[1] = vshrq_n_s32(input.val[1], 8);
