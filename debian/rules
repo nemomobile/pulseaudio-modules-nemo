@@ -87,6 +87,7 @@ binary-arch: build install
 	dh_strip --dbg-package=pulseaudio-module-meego-test-dbg -p pulseaudio-module-meego-test
 	dh_strip --dbg-package=pulseaudio-module-meego-mainvolume-dbg -p pulseaudio-module-meego-mainvolume
 	dh_strip --dbg-package=pulseaudio-module-meego-sidetone-dbg -p pulseaudio-module-meego-sidetone
+	dh_strip --dbg-package=pulseaudio-module-meego-parameters-dbg -p pulseaudio-module-meego-parameters
 	dh_fixperms
 	dh_installdocs
 	dh_installchangelogs
