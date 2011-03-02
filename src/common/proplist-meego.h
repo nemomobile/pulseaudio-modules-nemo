@@ -39,4 +39,7 @@
 #define PA_NOKIA_PROP_AUDIO_EAR_REF_PADDING         "x-maemo.ear_ref_padding"               /* int:*/
 #define PA_NOKIA_PROP_AUDIO_ACTIVE_MIC_CHANNEL      "x-maemo.active_mic_channel"            /* int:1,2 or 3 (stereo) */
 
+/* Used by the parameters module */
+#define PA_NOKIA_PROP_AUDIO_TUNING                  "x-maemo.tuning"                        /* "true","false" */
+
 #endif /* _PROPLIST_NOKIA_H_ */
