@@ -277,6 +277,8 @@ src/mainvolume/Makefile
 src/mainvolume/tests/Makefile
 src/sidetone/Makefile
 src/sidetone/tests/Makefile
+src/parameters/Makefile
+src/parameters/testmodule/Makefile
 ])
 
 SHAVE_INIT
