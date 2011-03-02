@@ -1,4 +1,4 @@
-pulseaudio-meego (0.9.19.0-20) UNRELEASED; urgency=low
+pulseaudio-meego (0.9.19.0-20) unstable; urgency=low
 
   * sidetone: return when current master volume is same as previous.
   * sidetone: when master sink volume is mute then better to mute the sidetone also
