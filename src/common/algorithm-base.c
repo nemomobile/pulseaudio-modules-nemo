@@ -36,9 +36,24 @@
 
 #include "algorithm-base.h"
 
+/* Dynamic base strings for parameter and algorithm module arguments. */
+#define PARAMETER_HOOK_NAME_STR_PARAMETER   "parameter_%s"
+#define PARAMETER_HOOK_NAME_STR_ALGORITHM   "algorithm_%s"
+#define PARAMETER_HOOK_PRIORITY_STR         "priority_%s"
+
 struct meego_algorithm_base_hook {
-    char *parameter_name;
+    /* Used for initialization, these
+     * strings will be freed after
+     * successfull initialization. */
+    char *default_hook_name;
+    char *parameter_hook_name;
+    char *parameter_priority;
+
+
+    pa_bool_t enabled;
+    char *identifier;
     char *hook_name;
+
     pa_hook_priority_t priority;
     pa_hook_cb_t cb;
     meego_algorithm_hook_slot *algorithm_hook_slot;
@@ -46,15 +61,38 @@ struct meego_algorithm_base_hook {
     PA_LLIST_FIELDS(meego_algorithm_base_hook);
 };
 
+static void clean_init_data(meego_algorithm_base_hook *list) {
+    meego_algorithm_base_hook *c = NULL;
+
+    PA_LLIST_FOREACH(c, list) {
+        if (c->default_hook_name) {
+            pa_xfree(c->default_hook_name);
+            c->default_hook_name = NULL;
+        }
+
+        if (c->parameter_hook_name) {
+            pa_xfree(c->parameter_hook_name);
+            c->parameter_hook_name = NULL;
+        }
+
+        if (c->parameter_priority) {
+            pa_xfree(c->parameter_priority);
+            c->parameter_priority = NULL;
+        }
+    }
+}
+
 static void free_hooks(meego_algorithm_base_hook *list) {
     meego_algorithm_base_hook *c = NULL;
 
-    while (list) {
+    clean_init_data(list);
+
+    while ((c = list)) {
         PA_LLIST_REMOVE(meego_algorithm_base_hook, list, c);
         if (c->algorithm_hook_slot)
             meego_algorithm_hook_slot_free(c->algorithm_hook_slot);
-        if (c->parameter_name)
-            pa_xfree(c->parameter_name);
+        if (c->identifier)
+            pa_xfree(c->identifier);
         if (c->hook_name)
             pa_xfree(c->hook_name);
         pa_xfree(c);
@@ -62,48 +100,8 @@ static void free_hooks(meego_algorithm_base_hook *list) {
     }
 }
 
-static int parse_hook_names(meego_algorithm_base *b,
-                            const meego_algorithm_callback_list *parameter_list,
-                            const meego_algorithm_callback_list *algorithm_list) {
-    const meego_algorithm_callback_list *i;
-    meego_algorithm_base_hook *c;
-
-    pa_assert(b);
-
-    if (parameter_list) {
-        for (i = parameter_list; i && i->name; i++) {
-            c = pa_xnew0(meego_algorithm_base_hook, 1);
-            PA_LLIST_INIT(meego_algorithm_base_hook, c);
-
-            c->parameter_name = NULL;
-            c->hook_name = pa_xstrdup(i->name);
-            c->priority = i->priority;
-            c->cb = i->cb;
-
-            PA_LLIST_PREPEND(meego_algorithm_base_hook, b->parameter_hooks, c);
-            pa_log_debug("Add hook for %s parameters.", c->hook_name);
-        }
-    }
-
-    if (algorithm_list) {
-        for (i = algorithm_list; i && i->name; i++) {
-            c = pa_xnew0(meego_algorithm_base_hook, 1);
-            PA_LLIST_INIT(meego_algorithm_base_hook, c);
-
-            c->parameter_name = NULL;
-            c->hook_name = pa_xstrdup(i->name);
-            c->priority = i->priority;
-            c->cb = i->cb;
-
-            PA_LLIST_PREPEND(meego_algorithm_base_hook, b->algorithm_hooks, c);
-            pa_log_debug("Add algorithm hook %s", c->hook_name);
-        }
-    }
-
-    return 0;
-}
-
 static int parse_hook_names_dynamic(meego_algorithm_base *b, pa_module *m,
+                                    const char *const extra_argument_keys[],
                                     const meego_algorithm_callback_list *parameter_list,
                                     const meego_algorithm_callback_list *algorithm_list) {
     int argument_count = 0;
@@ -117,48 +115,78 @@ static int parse_hook_names_dynamic(meego_algorithm_base *b, pa_module *m,
     pa_assert(m);
 
     if (parameter_list) {
-        for (i = parameter_list; i && i->name; i++) {
+        for (i = parameter_list; i && i->identifier; i++) {
             c = pa_xnew0(meego_algorithm_base_hook, 1);
             PA_LLIST_INIT(meego_algorithm_base_hook, c);
 
-            c->parameter_name = pa_sprintf_malloc("parameter_hook_%s", i->name);
+            c->enabled = TRUE;
+            c->identifier = pa_xstrdup(i->identifier);
+            c->parameter_hook_name = pa_sprintf_malloc(PARAMETER_HOOK_NAME_STR_PARAMETER, i->identifier);
+            if (i->default_argument)
+                c->default_hook_name = pa_xstrdup(i->default_argument);
             c->priority = i->priority;
             c->cb = i->cb;
 
             PA_LLIST_PREPEND(meego_algorithm_base_hook, b->parameter_hooks, c);
-            pa_log_debug("Add parameter with argument %s", c->parameter_name);
+            pa_log_debug("Adding argument %s", c->parameter_hook_name);
             argument_count++;
         }
     }
 
     if (algorithm_list) {
-        for (i = algorithm_list; i && i->name; i++) {
+        for (i = algorithm_list; i && i->identifier; i++) {
             c = pa_xnew0(meego_algorithm_base_hook, 1);
             PA_LLIST_INIT(meego_algorithm_base_hook, c);
 
-            c->parameter_name = pa_sprintf_malloc("algorithm_hook_%s", i->name);
+            c->enabled = TRUE;
+            c->identifier = pa_xstrdup(i->identifier);
+            c->parameter_hook_name = pa_sprintf_malloc(PARAMETER_HOOK_NAME_STR_ALGORITHM, i->identifier);
+            c->parameter_priority = pa_sprintf_malloc(PARAMETER_HOOK_PRIORITY_STR, i->identifier);
+            if (i->default_argument)
+                c->default_hook_name = pa_xstrdup(i->default_argument);
             c->priority = i->priority;
             c->cb = i->cb;
 
             PA_LLIST_PREPEND(meego_algorithm_base_hook, b->algorithm_hooks, c);
-            pa_log_debug("Add algorithm with argument %s", c->parameter_name);
-            argument_count++;
+            pa_log_debug("Adding argument %s (default priority %d)", c->parameter_hook_name, c->priority);
+
+            /* one algorithm hook name and one priority parameter */
+            argument_count += 2;
         }
     }
 
+    /* Count additional arguments */
+    if (extra_argument_keys) {
+        unsigned k;
+        for (k = 0; extra_argument_keys[k]; k++)
+            argument_count++;
+
+        pa_log_debug("Adding %u module defined arguments.", k);
+    }
+
     if (argument_count == 0) {
-        pa_log_error("No parameter or algorithm hooks defined in implementor.");
+        pa_log_error("No parameter or algorithm hooks or extra module arguments defined in implementor.");
         goto fail;
     }
 
-    valid_modargs = pa_xnew0(const char*, argument_count+1);
+    valid_modargs = pa_xnew0(const char*, argument_count + 1);
     valid_modargs[argument_count] = NULL;
 
     PA_LLIST_FOREACH(c, b->parameter_hooks)
-        valid_modargs[arg++] = c->parameter_name;
+        valid_modargs[arg++] = c->parameter_hook_name;
 
-    PA_LLIST_FOREACH(c, b->algorithm_hooks)
-        valid_modargs[arg++] = c->parameter_name;
+    PA_LLIST_FOREACH(c, b->algorithm_hooks) {
+        valid_modargs[arg++] = c->parameter_hook_name;
+        valid_modargs[arg++] = c->parameter_priority;
+    }
+
+    if (extra_argument_keys) {
+        unsigned k;
+        for (k = 0; extra_argument_keys[k]; k++)
+            valid_modargs[arg++] = extra_argument_keys[k];
+    }
+
+    pa_assert(arg == argument_count);
 
     if (!(ma = pa_modargs_new(m->argument, valid_modargs))) {
         pa_log("Failed to parse module arguments.");
@@ -167,25 +195,47 @@ static int parse_hook_names_dynamic(meego_algorithm_base *b, pa_module *m,
 
     PA_LLIST_FOREACH(c, b->parameter_hooks) {
         const char *v;
-        if (!(v = pa_modargs_get_value(ma, c->parameter_name, NULL))) {
-            pa_log("Missing argument for parameter hook %s", c->parameter_name);
-            goto fail;
+        if (!(v = pa_modargs_get_value(ma, c->parameter_hook_name, NULL))) {
+            if (c->default_hook_name)
+                v = c->default_hook_name;
+            else {
+                pa_log_info("Missing argument for parameter hook %s", c->parameter_hook_name);
+                c->enabled = FALSE;
+            }
         }
         c->hook_name = pa_xstrdup(v);
     }
 
     PA_LLIST_FOREACH(c, b->algorithm_hooks) {
         const char *v;
-        if (!(v = pa_modargs_get_value(ma, c->parameter_name, NULL))) {
-            pa_log("Missing argument for algorithm hook %s", c->parameter_name);
-            goto fail;
+        int32_t priority;
+
+        if (!(v = pa_modargs_get_value(ma, c->parameter_hook_name, NULL))) {
+            if (c->default_hook_name)
+                v = c->default_hook_name;
+            else {
+                pa_log_info("Missing argument for algorithm hook %s", c->parameter_hook_name);
+                c->enabled = FALSE;
+            }
         }
         c->hook_name = pa_xstrdup(v);
+
+        if ((v = pa_modargs_get_value(ma, c->parameter_priority, NULL))) {
+            if (pa_atoi(v, &priority) < 0) {
+                pa_log_error("Failed to get value for priority %s", c->parameter_priority);
+                goto fail;
+            } else {
+                pa_log_debug("Updating algorithm hook %s priority %d", c->hook_name, priority);
+                c->priority = priority;
+            }
+        }
     }
 
     pa_xfree(valid_modargs);
 
-    pa_modargs_free(ma);
+    /* Save module arguments if algorithm module implementor
+     * needs it's extra arguments. */
+    b->arguments = ma;
 
     return 0;
 
@@ -195,9 +245,6 @@ fail:
 
     if (valid_modargs)
         pa_xfree(valid_modargs);
-
-    free_hooks(b->parameter_hooks);
-    free_hooks(b->algorithm_hooks);
 
     return -1;
 }
@@ -220,35 +267,20 @@ static meego_algorithm_base* new_base(pa_module *m, void *userdata) {
     return b;
 }
 
-static meego_algorithm_base *init_base(pa_bool_t dynamic,
-                                       pa_module *m,
-                                       const meego_algorithm_callback_list *parameter_list,
-                                       const meego_algorithm_callback_list *algorithm_list,
-                                       void *userdata) {
+meego_algorithm_base* meego_algorithm_base_init(pa_module *m,
+                                                const char *const extra_argument_keys[],
+                                                const meego_algorithm_callback_list *parameter_list,
+                                                const meego_algorithm_callback_list *algorithm_list,
+                                                void *userdata) {
     meego_algorithm_base *b;
-    meego_algorithm_base_hook *i;
 
     pa_assert(m);
 
     b = new_base(m, userdata);
 
-    if (dynamic) {
-        if (parse_hook_names_dynamic(b, m, parameter_list, algorithm_list)) {
-            pa_log_error("Failed to parse dynamic hook names.");
-            goto fail;
-        }
-    } else {
-        if (parse_hook_names(b, parameter_list, algorithm_list)) {
-            pa_log_error("Failed to parse hook names.");
-            goto fail;
-        }
-    }
-
-    if (b->parameter_hooks) {
-        PA_LLIST_FOREACH(i, b->parameter_hooks) {
-            pa_log_debug("Request parameter updates for %s", i->hook_name);
-            meego_parameter_request_updates(i->hook_name, i->cb, i->priority, FALSE, b->userdata);
-        }
+    if (parse_hook_names_dynamic(b, m, extra_argument_keys, parameter_list, algorithm_list) < 0) {
+        pa_log_error("Failed to parse dynamic hook names.");
+        goto fail;
     }
 
     if (b->algorithm_hooks) {
@@ -257,15 +289,6 @@ static meego_algorithm_base *init_base(pa_bool_t dynamic,
             pa_log("Failed to get algorithm interface.");
             goto fail;
         }
-
-        PA_LLIST_FOREACH(i, b->algorithm_hooks) {
-            i->algorithm_hook_slot = meego_algorithm_hook_connect(b->algorithm, i->hook_name, i->priority, i->cb, b->userdata);
-            if (i->algorithm_hook_slot)
-                pa_log_debug("Connected to algorithm hook %s", i->hook_name);
-            else
-                pa_log_error("Failed to connect to algorithm hook %s", i->hook_name);
-        }
-
     }
 
     return b;
@@ -287,22 +310,47 @@ static meego_algorithm_base *init_base(pa_bool_t dynamic,
     return NULL;
 }
 
-meego_algorithm_base* meego_algorithm_base_init_dynamic(pa_module *m,
-                                                        const meego_algorithm_callback_list *parameter_list,
-                                                        const meego_algorithm_callback_list *algorithm_list,
-                                                        void *userdata) {
-    return init_base(TRUE, m, parameter_list, algorithm_list, userdata);
-}
+void meego_algorithm_base_connect(meego_algorithm_base *b) {
+    unsigned count = 0;
+    meego_algorithm_base_hook *i;
 
-meego_algorithm_base* meego_algorithm_base_init(pa_module *m,
-                                                const meego_algorithm_callback_list *parameter_list,
-                                                const meego_algorithm_callback_list *algorithm_list,
-                                                void *userdata) {
-    return init_base(FALSE, m, parameter_list, algorithm_list, userdata);
+    pa_assert(b);
+
+    pa_log_info("(Connected) algorithm hooks:");
+
+    PA_LLIST_FOREACH(i, b->algorithm_hooks) {
+        if (!i->enabled)
+            continue;
+
+        i->algorithm_hook_slot = meego_algorithm_hook_connect(b->algorithm, i->hook_name, i->priority, i->cb, b->userdata);
+        pa_log_info("[%s] %s: %s (priority %d)", i->algorithm_hook_slot ? "X" : " ", i->parameter_hook_name, i->hook_name, i->priority);
+        count++;
+    }
+
+    PA_LLIST_FOREACH(i, b->parameter_hooks) {
+        if (!i->enabled)
+            continue;
+
+        pa_log_info("Request parameter updates for %s", i->hook_name);
+        meego_parameter_request_updates(i->hook_name, i->cb, i->priority, FALSE, b->userdata);
+        count++;
+    }
+
+    if (count == 0)
+        pa_log_warn("No connected algorithm or parameter hooks! (This module will do nothing)");
+
+    clean_init_data(b->algorithm_hooks);
+    clean_init_data(b->parameter_hooks);
 }
 
 void meego_algorithm_base_done(meego_algorithm_base *b) {
+    meego_algorithm_base_hook *i;
+
     pa_assert(b);
+
+    /* Stop parameter updates */
+    PA_LLIST_FOREACH(i, b->parameter_hooks)
+        meego_parameter_stop_updates(i->hook_name, i->cb, b->userdata);
 
     free_hooks(b->algorithm_hooks);
     free_hooks(b->parameter_hooks);
@@ -310,5 +358,51 @@ void meego_algorithm_base_done(meego_algorithm_base *b) {
     if (b->algorithm)
         meego_algorithm_hook_api_unref(b->algorithm);
 
+    if (b->arguments)
+        pa_modargs_free(b->arguments);
+
     pa_xfree(b);
+}
+
+void meego_algorithm_base_set_enabled(meego_algorithm_base *b, const char *algorithm_identifier, pa_bool_t enabled) {
+    meego_algorithm_base_hook *i;
+
+    pa_assert(b);
+    pa_assert(algorithm_identifier);
+
+    PA_LLIST_FOREACH(i, b->algorithm_hooks) {
+        if (pa_streq(i->identifier, algorithm_identifier) && i->algorithm_hook_slot) {
+            meego_algorithm_hook_slot_set_enabled(i->algorithm_hook_slot, enabled);
+            break;
+        }
+    }
+}
+
+void meego_algorithm_base_set_all_enabled(meego_algorithm_base *b, pa_bool_t enabled) {
+    meego_algorithm_base_hook *i;
+
+    pa_assert(b);
+
+    PA_LLIST_FOREACH(i, b->algorithm_hooks) {
+        if (i->algorithm_hook_slot)
+            meego_algorithm_hook_slot_set_enabled(i->algorithm_hook_slot, enabled);
+    }
+}
+
+meego_algorithm_hook_slot *meego_algorithm_base_get_hook_slot(meego_algorithm_base *b, const char *algorithm_identifier) {
+    meego_algorithm_hook_slot *slot = NULL;
+    meego_algorithm_base_hook *i;
+
+    pa_assert(b);
+    pa_assert(algorithm_identifier);
+
+    PA_LLIST_FOREACH(i, b->algorithm_hooks) {
+        if (pa_streq(i->identifier, algorithm_identifier)) {
+            if (i->enabled)
+                slot = i->algorithm_hook_slot;
+            break;
+        }
+    }
+
+    return slot;
 }
