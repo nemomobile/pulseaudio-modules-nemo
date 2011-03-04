@@ -31,31 +31,52 @@
 #include <pulsecore/shared.h>
 #include <pulsecore/hashmap.h>
 #include <pulsecore/idxset.h>
+#include <pulsecore/aupdate.h>
 
 #include "algorithm-hook.h"
+
+#define ALGORITHM_API_IDENTIFIER "meego-algorithm-hook-1"
 
 struct meego_algorithm_hook_api {
     PA_REFCNT_DECLARE;
 
     pa_core *core;
+    /* Algorithm hooks stored by string-key "name" */
     pa_hashmap *hooks;
+    /* List of algorithm hooks that were deleted while
+     * still having connected hook slots. */
+    PA_LLIST_HEAD(meego_algorithm_hook, dead_hooks);
 };
 
 struct meego_algorithm_hook {
     meego_algorithm_hook_api *api;
 
-    char *name;
-    pa_hook hook;
-    pa_bool_t initialized;
-    pa_bool_t enabled;
-    pa_bool_t dead;
+    char *name;             /* Name of the hook, used as identifier when connecting slots. */
+    pa_bool_t enabled;      /* Hook enabled state, if all slots are disabled, hook is disabled. */
+    pa_bool_t dead;         /* Dead hooks are hooks that are removed, but had slots
+                             * connected to them at that time. Removed at _unref() */
+
+    pa_aupdate *aupdate;
+    meego_algorithm_hook_slot *slots[2];
+
+    /* Hooks are llist type, to be able to add to dead_hooks list. */
+    PA_LLIST_FIELDS(meego_algorithm_hook);
 };
 
+/* Hook slots are stored twice for aupdate. To keep both lists identical and to be able
+ * to work with correct list when doing operations to meego_algorithm_hook_slot pointer
+ * (remember, caller might use slot from list that is currently not in use!) correct
+ * slot is identified by id that is identical to both structs. */
 struct meego_algorithm_hook_slot {
-    meego_algorithm_hook_api *api;
-    meego_algorithm_hook *hook;
+    meego_algorithm_hook *hook;     /* Hook this slot is connected to. */
+    unsigned id;                    /* Slots are identified by order number, when doing enabled/free operations.
+                                     * This id changes if list changes. */
+    pa_bool_t enabled;              /* Enabled state of slot, disabled slots aren't fired in _fire(). */
+    pa_hook_priority_t priority;    /* Slots are ordered in llist by rising priority value. */
+    pa_hook_cb_t callback;          /* Slot callback */
+    void *userdata;
 
-    pa_hook_slot *hook_slot;
+    PA_LLIST_FIELDS(meego_algorithm_hook_slot);
 };
 
 static meego_algorithm_hook_api *algorithm_hook_new(pa_core *c) {
@@ -68,8 +89,9 @@ static meego_algorithm_hook_api *algorithm_hook_new(pa_core *c) {
     a->core = pa_core_ref(c);
     a->hooks = pa_hashmap_new(pa_idxset_string_hash_func,
                               pa_idxset_string_compare_func);
+    PA_LLIST_HEAD_INIT(meego_algorithm_hook, a->dead_hooks);
 
-    pa_assert_se(pa_shared_set(c, "algorithm-hook-0", a) >= 0);
+    pa_assert_se(pa_shared_set(c, ALGORITHM_API_IDENTIFIER, a) >= 0);
 
     return a;
 }
@@ -77,7 +99,7 @@ static meego_algorithm_hook_api *algorithm_hook_new(pa_core *c) {
 meego_algorithm_hook_api *meego_algorithm_hook_api_get(pa_core *c) {
     meego_algorithm_hook_api *a;
 
-    if ((a = pa_shared_get(c, "algorithm-hook-0")))
+    if ((a = pa_shared_get(c, ALGORITHM_API_IDENTIFIER)))
         return meego_algorithm_hook_api_ref(a);
 
     return algorithm_hook_new(c);
@@ -92,45 +114,105 @@ meego_algorithm_hook_api *meego_algorithm_hook_api_ref(meego_algorithm_hook_api 
     return a;
 }
 
+/* Must be called with write lock */
+static void slot_free(meego_algorithm_hook_slot **list, meego_algorithm_hook_slot *slot) {
+    pa_assert(slot);
+    pa_assert(slot->hook);
+    pa_assert(list);
+
+    PA_LLIST_REMOVE(meego_algorithm_hook_slot, *list, slot);
+    pa_xfree(slot);
+}
+
+/* Must be called with write lock */
+static void reset_ids(meego_algorithm_hook_slot *list) {
+    meego_algorithm_hook_slot *slot;
+    unsigned i;
+
+    i = 0;
+    PA_LLIST_FOREACH(slot, list)
+        slot->id = i++;
+}
+
+/* Must be called with read or write lock */
+static meego_algorithm_hook_slot *find_slot(meego_algorithm_hook_slot *list, unsigned id) {
+    pa_assert(list);
+
+    while (list) {
+        if (id == list->id)
+            break;
+        list = list->next;
+    }
+
+    /* If list is now NULL it means slot with id wasn't in the list. It should be. */
+    pa_assert(list);
+
+    return list;
+}
+
 static void algorithm_hook_free(meego_algorithm_hook *hook, void *userdata) {
+    meego_algorithm_hook_slot *slot;
+    unsigned j;
+
     pa_assert(hook);
     pa_assert(hook->name);
 
+    j = pa_aupdate_write_begin(hook->aupdate);
+
+    while ((slot = hook->slots[j]))
+        slot_free(&hook->slots[j], slot);
+
+    j = pa_aupdate_write_swap(hook->aupdate);
+
+    while ((slot = hook->slots[j]))
+        slot_free(&hook->slots[j], slot);
+
+    pa_aupdate_write_end(hook->aupdate);
+
+    pa_aupdate_free(hook->aupdate);
     pa_xfree(hook->name);
     pa_xfree(hook);
 }
 
 void meego_algorithm_hook_api_unref(meego_algorithm_hook_api *a) {
+    meego_algorithm_hook *hook;
+
     pa_assert(a);
     pa_assert(PA_REFCNT_VALUE(a) >= 1);
 
     if (PA_REFCNT_DEC(a) > 0)
         return;
 
-    pa_assert_se(pa_shared_remove(a->core, "algorithm-hook-0") >= 0);
+    pa_assert_se(pa_shared_remove(a->core, ALGORITHM_API_IDENTIFIER) >= 0);
 
-    pa_hashmap_free(a->hooks, (pa_free2_cb_t)algorithm_hook_free, NULL);
+    pa_hashmap_free(a->hooks, (pa_free2_cb_t) algorithm_hook_free, NULL);
+
+    /* clean up dead hooks */
+    while ((hook = a->dead_hooks)) {
+        PA_LLIST_REMOVE(meego_algorithm_hook, a->dead_hooks, hook);
+        algorithm_hook_free(hook, NULL);
+    }
 
     pa_core_unref(a->core);
 
     pa_xfree(a);
 }
 
-static meego_algorithm_hook* get_hook(meego_algorithm_hook_api *a, const char *name) {
+static meego_algorithm_hook* hook_new(meego_algorithm_hook_api *a, const char *name) {
     meego_algorithm_hook *hook;
 
     pa_assert(a);
     pa_assert(name);
 
-    if (!(hook = pa_hashmap_get(a->hooks, name))) {
-        hook = pa_xnew0(meego_algorithm_hook, 1);
-        hook->api = a;
-        hook->name = pa_xstrdup(name);
-        hook->initialized = FALSE;
-        hook->enabled = FALSE;
-        hook->dead = FALSE;
-        pa_hashmap_put(a->hooks, hook->name, hook);
-    }
+    hook = pa_xnew0(meego_algorithm_hook, 1);
+    hook->api = a;
+    hook->name = pa_xstrdup(name);
+    hook->aupdate = pa_aupdate_new();
+    hook->enabled = FALSE;
+    hook->dead = FALSE;
+    PA_LLIST_HEAD_INIT(meego_algorithm_hook_slot, hook->slots[0]);
+    PA_LLIST_HEAD_INIT(meego_algorithm_hook_slot, hook->slots[1]);
+    PA_LLIST_INIT(meego_algorithm_hook, hook);
 
     return hook;
 }
@@ -142,59 +224,117 @@ meego_algorithm_hook *meego_algorithm_hook_init(meego_algorithm_hook_api *a, con
     pa_assert(PA_REFCNT_VALUE(a) >= 1);
     pa_assert(name);
 
-    hook = get_hook(a, name);
-
-    /* hook with same name already initialized */
-    if (hook->initialized) {
+    if (pa_hashmap_get(a->hooks, name)) {
         pa_log_warn("meego_algorithm_hook_init: Algorithm with name \"%s\" already registered.", name);
         return NULL;
     }
 
-    pa_hook_init(&hook->hook, a->core);
-    hook->initialized = TRUE;
+    hook = hook_new(a, name);
+    pa_hashmap_put(a->hooks, hook->name, hook);
+
     return hook;
 }
 
-pa_bool_t meego_algorithm_hook_done(meego_algorithm_hook *hook) {
+void meego_algorithm_hook_done(meego_algorithm_hook *hook) {
+    pa_bool_t done = TRUE;
+    unsigned j;
+
     pa_assert(hook);
     pa_assert(hook->name);
     pa_assert(hook->api);
     pa_assert(PA_REFCNT_VALUE(hook->api) >= 1);
 
-    if (pa_hashmap_get(hook->api->hooks, hook->name)) {
-        /* if there are still hook_slots connected to our hook
-         * we cannot clean up the hook yet. we'll mark this hook as
-         * dead and clean up when meego_algorithm_hook_api struct is
-         * cleaned up in meego_algorithm_hook_api_unref. */
-        if (!hook->hook.slots) {
-            pa_hook_done(&hook->hook);
-            pa_hashmap_remove(hook->api->hooks, hook->name);
-            algorithm_hook_free(hook, NULL);
-        } else {
-            hook->dead = TRUE;
-        }
-        return TRUE;
-    } else {
-        pa_log_warn("meego_algorithm_hook_done: Couldn't unregister algorithm with name \"%s\": doesn't exist.", hook->name);
-        return FALSE;
-    }
+    hook->dead = TRUE;
+    pa_hashmap_remove(hook->api->hooks, hook->name);
+
+    /* Check from both copies if there are still slots connected */
+
+    j = pa_aupdate_write_begin(hook->aupdate);
+
+    if (hook->slots[j])
+        done = FALSE;
+
+    j = pa_aupdate_write_swap(hook->aupdate);
+
+    if (hook->slots[j])
+        done = FALSE;
+
+    pa_aupdate_write_end(hook->aupdate);
+
+    /* if there are still hook_slots connected to our hook
+     * we cannot clean up the hook yet. we'll add this hook to
+     * dead_hooks list and clean up when meego_algorithm_hook_api struct is
+     * cleaned up in meego_algorithm_hook_api_unref. */
+    if (done)
+        algorithm_hook_free(hook, NULL);
+    else
+        PA_LLIST_PREPEND(meego_algorithm_hook, hook->api->dead_hooks, hook);
 }
 
 pa_hook_result_t meego_algorithm_hook_fire(meego_algorithm_hook *hook, void *data) {
-    pa_assert(hook);
+    meego_algorithm_hook_slot *slot;
+    pa_hook_result_t result = PA_HOOK_OK;
+    unsigned j;
 
-    return pa_hook_fire(&hook->hook, data);
+    pa_assert_fp(hook);
+    pa_assert_fp(hook->aupdate);
+    pa_assert_fp(!hook->dead);
+
+    j = pa_aupdate_read_begin(hook->aupdate);
+
+    /* Go through algorithm hook slots in priority order and fire hook slot
+     * callback for enabled ones. */
+    PA_LLIST_FOREACH(slot, hook->slots[j]) {
+
+        if (!slot->enabled)
+            continue;
+
+        if ((result = slot->callback(hook->api->core, data, slot->userdata)) != PA_HOOK_OK)
+            break;
+    }
+
+    pa_aupdate_read_end(hook->aupdate);
+
+    return result;
 }
 
-pa_bool_t pa_algorithm_hook_is_firing(meego_algorithm_hook *hook) {
-    pa_assert(hook);
+static meego_algorithm_hook_slot *slot_new(meego_algorithm_hook *hook, pa_hook_priority_t prio, pa_hook_cb_t cb, void *data) {
+    meego_algorithm_hook_slot *slot;
 
-    return pa_hook_is_firing(&hook->hook);
+    pa_assert(hook);
+    pa_assert(cb);
+
+    slot = pa_xnew0(meego_algorithm_hook_slot, 1);
+    slot->hook = hook;
+    slot->id = 0;
+    slot->priority = prio;
+    slot->callback = cb;
+    slot->userdata = data;
+    slot->enabled = FALSE;
+    PA_LLIST_INIT(meego_algorithm_hook_slot, slot);
+
+    return slot;
+}
+
+/* Must be called with write lock */
+static void list_add(meego_algorithm_hook_slot **list, meego_algorithm_hook_slot *slot) {
+    meego_algorithm_hook_slot *prev, *where;
+
+    /* Order extended hook slots by priority */
+    prev = NULL;
+    for (where = *list; where; where = where->next) {
+        if (slot->priority < where->priority)
+            break;
+        prev = where;
+    }
+
+    PA_LLIST_INSERT_AFTER(meego_algorithm_hook_slot, *list, prev, slot);
 }
 
 meego_algorithm_hook_slot *meego_algorithm_hook_connect(meego_algorithm_hook_api *a, const char *name, pa_hook_priority_t prio, pa_hook_cb_t cb, void *data) {
     meego_algorithm_hook *hook;
-    meego_algorithm_hook_slot *slot;
+    meego_algorithm_hook_slot *slot, *slot2;
+    unsigned j;
 
     pa_assert(a);
     pa_assert(PA_REFCNT_VALUE(a) >= 1);
@@ -203,50 +343,111 @@ meego_algorithm_hook_slot *meego_algorithm_hook_connect(meego_algorithm_hook_api
 
     slot = NULL;
 
-    if ((hook = pa_hashmap_get(a->hooks, name))) {
-        if (hook->initialized && !hook->dead) {
-            slot = pa_xnew0(meego_algorithm_hook_slot, 1);
-            slot->api = a;
-            slot->hook = hook;
-            slot->hook_slot = pa_hook_connect(&hook->hook, prio, cb, data);
-            meego_algorithm_hook_api_ref(a);
-            pa_log_debug("Connected hook slot %p to %s", (void*) slot, hook->name);
-        }
-    }
+    if ((hook = pa_hashmap_get(a->hooks, name)) && !hook->dead) {
+
+        j = pa_aupdate_write_begin(hook->aupdate);
+
+        slot = slot_new(hook, prio, cb, data);
+        list_add(&hook->slots[j], slot);
+        /* Recalculate slot ids after list order has changed. */
+        reset_ids(hook->slots[j]);
+
+        j = pa_aupdate_write_swap(hook->aupdate);
+
+        slot2 = slot_new(hook, prio, cb, data);
+        list_add(&hook->slots[j], slot2);
+        /* Recalculate slot ids after list order has changed. */
+        reset_ids(hook->slots[j]);
+
+        pa_aupdate_write_end(hook->aupdate);
+
+        pa_log_debug("Connected hook slot %u to %s", slot->id, hook->name);
+    } else
+        pa_log_debug("No hook with name %s registered.", name);
 
     return slot;
 }
 
 void meego_algorithm_hook_slot_free(meego_algorithm_hook_slot *slot) {
-    meego_algorithm_hook_api *a;
+    meego_algorithm_hook *hook;
+    unsigned id;
+    unsigned j;
 
     pa_assert(slot);
+    pa_assert(slot->hook);
 
-    pa_log_debug("Disconnect hook slot %p from %s", (void*) slot, slot->hook->name);
+    j = pa_aupdate_write_begin(slot->hook->aupdate);
 
-    a = slot->api;
-    pa_hook_slot_free(slot->hook_slot);
-    pa_xfree(slot);
-    meego_algorithm_hook_api_unref(a);
+    hook = slot->hook;
+    id = slot->id;
+
+    slot = find_slot(hook->slots[j], id);
+    slot_free(&hook->slots[j], slot);
+    /* Recalculate slot ids after list order has changed. */
+    reset_ids(hook->slots[j]);
+
+    pa_log_debug("Disconnect hook slot %u from %s", id, hook->name);
+
+    j = pa_aupdate_write_swap(hook->aupdate);
+
+    slot = find_slot(hook->slots[j], id);
+    slot_free(&hook->slots[j], slot);
+    /* Recalculate slot ids after list order has changed. */
+    reset_ids(hook->slots[j]);
+
+    pa_aupdate_write_end(hook->aupdate);
 }
 
 void meego_algorithm_hook_slot_set_enabled(meego_algorithm_hook_slot *slot, pa_bool_t enabled) {
+    meego_algorithm_hook_slot *s;
+    unsigned j;
+    pa_bool_t hook_enabled = FALSE;
+
     pa_assert(slot);
     pa_assert(slot->hook);
 
-    /*slot->enabled = enabled;*/
-    /*check_hook_enabled(slot->hook);*/
-    /* TODO: all slots have their own enabled status, and
-     * if any of those is enabled, hook is enabled also. */
+    j = pa_aupdate_write_begin(slot->hook->aupdate);
 
-    slot->hook->enabled = enabled;
+    slot = find_slot(slot->hook->slots[j], slot->id);
+    slot->enabled = enabled;
+
+    /* If any of the slots is enabled, hook is enabled.
+     * If all slots are disabled, hook is disabled. */
+    PA_LLIST_FOREACH(s, slot->hook->slots[j])
+        if (s->enabled) {
+            hook_enabled = TRUE;
+            break;
+        }
+
+    if (slot->hook->enabled != hook_enabled)
+        pa_log_debug("Hook %s state changes to %s", slot->hook->name, hook_enabled ? "enabled" : "disabled");
+    slot->hook->enabled = hook_enabled;
+
+    /* Update copy as well */
+    j = pa_aupdate_write_swap(slot->hook->aupdate);
+
+    slot = find_slot(slot->hook->slots[j], slot->id);
+    slot->enabled = enabled;
+
+    pa_aupdate_write_end(slot->hook->aupdate);
 }
 
 pa_bool_t meego_algorithm_hook_slot_enabled(meego_algorithm_hook_slot *slot) {
+    pa_bool_t enabled;
+    unsigned j;
+
     pa_assert(slot);
     pa_assert(slot->hook);
 
-    return slot->hook->enabled;
+    j = pa_aupdate_read_begin(slot->hook->aupdate);
+
+    /* Search and select active slot */
+    slot = find_slot(slot->hook->slots[j], slot->id);
+    enabled = slot->enabled;
+
+    pa_aupdate_read_end(slot->hook->aupdate);
+
+    return enabled;
 }
 
 pa_bool_t meego_algorithm_hook_enabled(meego_algorithm_hook *hook) {

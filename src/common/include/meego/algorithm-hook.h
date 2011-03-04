@@ -25,28 +25,18 @@
 /* Many modules may need to run audio enhancement etc algorithms on
  * audio data. Algorithm hook provides a mechanism to separate normal
  * module functions and the actual algorithm code from each other.
- * Module requiring processing should define it's hooks names and
+ * Module requiring processing should define its hooks names and
  * export those for modules that wish to implement the processing.
  *
- * For example module-meego-music defines two hooks, and uses
- * aglorithm_hook_init to register those hooks. After hooks are registered
- * and module-meego-music receives pointer to created hook,
- * module-meego-music can use normal hook firing defined in
- * pulsecore/hook-list.h.
- *
  * If a module wishes to implement processing, it needs to call
- * algorithm_hook_connect with a name that has already been registered
- * (for example by module-meego-music). After this, whenever
- * module-meego-music fires the hook, algorithm implementer's callback
+ * meego_algorithm_hook_connect() with a name that has already been registered
+ * using meego_algorithm_hook_init(). After this, whenever
+ * hook owner fires the hook, algorithm implementer's callback
  * is called with the data passed when firing.
  *
  * Algorithm implementors should be created so that modules firing the
  * hooks don't need to know anything implementation specific, ie.
  * modules can safely fire hooks that are connected or not.
- *
- * pa_hook_slot_free should be used for pa_hook_slot pointer,
- * pa_hook pointers received from meego_algorithm_hook_init should be cleared
- * using algorithm_hook_done.
  */
 
 #include <stdint.h>
@@ -56,45 +46,65 @@
 
 #define MEEGO_ALGORITHM_HOOK_CHANNELS_MAX (8)
 
+/* Struct for algorithm hook internals. */
 typedef struct meego_algorithm_hook_api meego_algorithm_hook_api;
+/* Module implementor creates new hook for processing, and receives new pointer
+ * to meego_algorithm_hook. This is then used when firing the hook. */
 typedef struct meego_algorithm_hook meego_algorithm_hook;
+/* When hook processing implementors connect to algorithm hooks, they receive
+ * pointer to hook slot for changing algorithm state or disconnecting. */
 typedef struct meego_algorithm_hook_slot meego_algorithm_hook_slot;
+
+/* Default type for call_data in algorithm hook slot processing callback.
+ * This may be different for your hook, exact data type is defined in hook APIs. */
 typedef struct meego_algorithm_hook_data meego_algorithm_hook_data;
 
 struct meego_algorithm_hook_data {
     uint8_t channels;
-    pa_memchunk *channel[MEEGO_ALGORITHM_HOOK_CHANNELS_MAX];
+    pa_memchunk channel[MEEGO_ALGORITHM_HOOK_CHANNELS_MAX];
 };
 
-/* get pointer to opaque algorithm_hook struct.
- * unref after use. */
+
+/* Get pointer to opaque meego_algorithm_hook_api struct.
+ * Unref after use. */
 meego_algorithm_hook_api *meego_algorithm_hook_api_get(pa_core *core);
 meego_algorithm_hook_api *meego_algorithm_hook_api_ref(meego_algorithm_hook_api *a);
 void meego_algorithm_hook_api_unref(meego_algorithm_hook_api *a);
 
-/* init new hook with name. hook_data is pointer to pulseaudio
- * core struct.
- * returns pointer to newly initialized hook on success, on error
+/* Create a new hook with given name.
+ * returns pointer to meego_algorithm_hook on success, on error
  * returns NULL */
-/* Increases hook_api reference counter */
 meego_algorithm_hook *meego_algorithm_hook_init(meego_algorithm_hook_api *a, const char *name);
-/* clear hook with name. */
-/* Decreases hook_api reference counter */
-pa_bool_t meego_algorithm_hook_done(meego_algorithm_hook *hook);
+/* Clean up hook. */
+void meego_algorithm_hook_done(meego_algorithm_hook *hook);
 
+/* Fire hook for processing in algorithm hook implementors. It is guaranteed that all hook slots
+ * that are connected to hook are in one enabled state for the duration of single hook firing. */
 pa_hook_result_t meego_algorithm_hook_fire(meego_algorithm_hook *hook, void *data);
 
-pa_bool_t pa_algorithm_hook_is_firing(meego_algorithm_hook *hook);
-
-/* connect to hook with name. if no hook is initialized with
- * given name, returns NULL. */
-/* Increases hook_api reference counter */
-meego_algorithm_hook_slot *meego_algorithm_hook_connect(meego_algorithm_hook_api *a, const char *name, pa_hook_priority_t prio, pa_hook_cb_t cb, void *data);
-/* Decreases hook_api reference counter */
+/* Connect to hook with name. Returns new meego_algorithm_hook_slot on success,
+ * if no hook is initialized with given name, returns NULL.
+ * Hook slot is disabled by default after connecting, so you need to change its state
+ * with meego_algorithm_hook_slot_set_enabled().
+ *
+ * Data for algorithm processing is received in pa_hook_cb_t.
+ * hook_data is pointer to pa_core.
+ * call_data is pointer to data to process, default is meego_algorithm_hook_data.
+ * slot_data is pointer to userdata given in meego_algorithm_hook_connect().
+ */
+meego_algorithm_hook_slot *meego_algorithm_hook_connect(meego_algorithm_hook_api *a, const char *name, pa_hook_priority_t prio, pa_hook_cb_t cb, void *userdata);
+/* Release hook slot */
 void meego_algorithm_hook_slot_free(meego_algorithm_hook_slot *slot);
 
+/* Set hook slot enabled state. This changes hook enabled state as well, so that
+ * if at least one connected hook slot is enabled, hook is also enabled. If there
+ * are no connected hook slots or all connected hook slots are disabled, hook is disabled.
+ * Callbacks for hook slots that are disabled won't be called when firing the hook. */
 void meego_algorithm_hook_slot_set_enabled(meego_algorithm_hook_slot *slot, pa_bool_t enabled);
 pa_bool_t meego_algorithm_hook_slot_enabled(meego_algorithm_hook_slot *slot);
+
+/* If hook is disabled (all slots are disabled), there is no need to call
+ * meego_algorithm_hook_fire() for data. */
 pa_bool_t meego_algorithm_hook_enabled(meego_algorithm_hook *hook);
 
 
