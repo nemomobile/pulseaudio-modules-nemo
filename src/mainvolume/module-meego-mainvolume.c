@@ -94,12 +94,27 @@ static void signal_time_callback(pa_mainloop_api *a, pa_time_event *e, const str
     dbus_signal_steps(u);
 }
 
-static void signal_steps(struct mv_userdata *u) {
+static void signal_steps(struct mv_userdata *u, pa_bool_t wait_for_mode_change) {
     pa_usec_t now;
+    pa_bool_t update_now;
 
     now = pa_rtclock_now();
 
-    if (now - u->last_signal_timestamp > SIGNAL_INTERVAL) {
+    /* If we are in the middle of a mode change, complete mode change consists of two
+     * callbacks, first is for getting the name of the new mode and step tunings for it,
+     * and second is for getting the volume from stream-restore in that mode. To avoid signalling
+     * twice (with wrong step value as the first signal), we have booleans for volume change
+     * and mode change. If for some reason only other one is updated (for example volume
+     * is changed from stream-restore, then stream-restore forwards that to us), we'll signal
+     * our new step SIGNAL_INTERVAL late, but hopefully that's acceptable. (That scenario shouldn't
+     * happen that often.) */
+    if (wait_for_mode_change)
+        update_now = u->volume_change_ready && u->mode_change_ready;
+    else
+        update_now = TRUE;
+
+    if (update_now && now - u->last_signal_timestamp > SIGNAL_INTERVAL) {
+
         signal_timer_stop(u);
         /* signal changed step settings forward */
         dbus_signal_steps(u);
@@ -111,8 +126,15 @@ static void signal_steps(struct mv_userdata *u) {
 }
 
 static pa_hook_result_t call_state_cb(pa_call_state_tracker *t, void *active, struct mv_userdata *u) {
+    pa_assert(t);
+    pa_assert(u);
+    pa_assert(u->current_steps);
+
     u->call_active = pa_call_state_tracker_get_active(t);
-    signal_steps(u);
+
+    pa_log_debug("call is %s (media step %u call step %u)", u->call_active ? "active" : "inactive",
+                 u->current_steps->media.current_step, u->current_steps->call.current_step);
+    signal_steps(u, FALSE);
 
     return PA_HOOK_OK;
 }
@@ -160,7 +182,6 @@ static pa_hook_result_t parameters_changed_cb(pa_core *c, meego_parameter_update
         pa_xfree(u->route);
 
     u->route = pa_xstrdup(ua->mode);
-    pa_log_debug("mode changes to %s", u->route);
 
     /* in tuning mode we always update steps when changing
      * x-maemo.mode.
@@ -203,8 +224,11 @@ static pa_hook_result_t parameters_changed_cb(pa_core *c, meego_parameter_update
 
     /* update steps for this route */
     mv_update_step(u);
+    pa_log_debug("mode changes to %s (media step %d, call step %d)",
+                 u->route, u->current_steps->media.current_step, u->current_steps->call.current_step);
 
-    signal_steps(u);
+    u->mode_change_ready = TRUE;
+    signal_steps(u, TRUE);
 
     return PA_HOOK_OK;
 }
@@ -233,13 +257,15 @@ static pa_hook_result_t volume_changed_cb(pa_volume_proxy *r, const char *name, 
     new_step = mv_search_step(steps->step, steps->n_steps, vol);
 
     if (new_step != steps->current_step) {
-        pa_log_debug("volume changed for stream %s, vol %d new step %d", name, vol, new_step);
+        pa_log_debug("volume changed for stream %s, vol %d (step %d)", name, vol, new_step);
 
         steps->current_step = new_step;
 
         /* signal changed step forward */
-        if (call_steps == u->call_active)
-            signal_steps(u);
+        if (call_steps == u->call_active) {
+            u->volume_change_ready = TRUE;
+            signal_steps(u, TRUE);
+        }
     }
 
     return PA_HOOK_OK;
@@ -451,6 +477,8 @@ void dbus_signal_steps(struct mv_userdata *u) {
     pa_dbus_protocol_send_signal(u->dbus_protocol, signal);
     dbus_message_unref(signal);
 
+    u->volume_change_ready = FALSE;
+    u->mode_change_ready = FALSE;
     u->last_signal_timestamp = pa_rtclock_now();
 }
 
@@ -470,6 +498,8 @@ void mainvolume_get_step_count(DBusConnection *conn, DBusMessage *msg, void *_u)
 
     steps = mv_active_steps(u);
     step_count = steps->n_steps;
+    pa_log_debug("D-Bus: Get step count (%u)", step_count);
+
     pa_dbus_send_basic_variant_reply(conn, msg, DBUS_TYPE_UINT32, &step_count);
 }
 
@@ -484,6 +514,8 @@ void mainvolume_get_current_step(DBusConnection *conn, DBusMessage *msg, void *_
 
     steps = mv_active_steps(u);
     step = steps->current_step;
+    pa_log_debug("D-Bus: Get current step (%u)", step);
+
     pa_dbus_send_basic_variant_reply(conn, msg, DBUS_TYPE_UINT32, &step);
 }
 
@@ -500,8 +532,11 @@ void mainvolume_set_current_step(DBusConnection *conn, DBusMessage *msg, DBusMes
 
     dbus_message_iter_get_basic(iter,  &set_step);
 
+    pa_log_debug("D-Bus: Set step (%u)", set_step);
+
     if (set_step >= steps->n_steps) {
-        pa_dbus_send_error(conn, msg, DBUS_ERROR_INVALID_ARGS, "Step %d out of bounds.", set_step);
+        pa_log_debug("D-Bus: Step %u out of bounds.", set_step);
+        pa_dbus_send_error(conn, msg, DBUS_ERROR_INVALID_ARGS, "Step %u out of bounds.", set_step);
         return;
     }
 
@@ -509,7 +544,7 @@ void mainvolume_set_current_step(DBusConnection *conn, DBusMessage *msg, DBusMes
 
     pa_dbus_send_empty_reply(conn, msg);
 
-    signal_steps(u);
+    signal_steps(u, FALSE);
 }
 
 void mainvolume_get_all(DBusConnection *conn, DBusMessage *msg, void *_u) {
@@ -546,6 +581,7 @@ void mainvolume_get_all(DBusConnection *conn, DBusMessage *msg, void *_u) {
                                             mainvolume_handlers[MAINVOLUME_HANDLER_CURRENT_STEP].property_name,
                                             DBUS_TYPE_UINT32, &current_step);
 
+    pa_log_debug("D-Bus: Get all, revision %u, step count %u, current step %u", rev, step_count, current_step);
     pa_assert_se(dbus_message_iter_close_container(&msg_iter, &dict_iter));
     pa_assert_se(dbus_connection_send(conn, reply, NULL));
     dbus_message_unref(reply);
