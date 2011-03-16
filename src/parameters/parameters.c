@@ -600,9 +600,8 @@ int update_mode(struct userdata *u, const char *mode) {
         return -1;
 
     u->hash = 0;
-    switch_mode(u, mode);
 
-    return 0;
+    return switch_mode(u, mode);
 }
 
 static pa_hook_result_t update_requests(pa_core *c, meego_parameter_connection_args *args, struct userdata *u) {
@@ -756,7 +755,7 @@ static pa_hook_result_t unregister_modifier(pa_core *c, meego_parameter_modifier
     return PA_HOOK_OK;
 }
 
-void initme(struct userdata *u) {
+int initme(struct userdata *u, const char *initial_mode) {
     PA_LLIST_HEAD_INIT(struct mode, u->parameters.modes);
     PA_LLIST_HEAD_INIT(struct algorithm, u->parameters.algorithms);
 
@@ -773,8 +772,8 @@ void initme(struct userdata *u) {
     u->hash = 0;
     u->mode = NULL;
 
-    /* Let's start in ihf mode */
-    switch_mode(u, "ihf");
+    /* Let's start in the initial mode */
+    return switch_mode(u, initial_mode);
 }
 
 void unloadme(struct userdata *u) {
@@ -795,21 +794,21 @@ void unloadme(struct userdata *u) {
         algorithm_free(u, &u->parameters.algorithms, a);
 }
 
-void switch_mode(struct userdata *u, const char *mode) {
+int switch_mode(struct userdata *u, const char *mode) {
     struct mode *m;
     struct algorithm *a;
     struct algorithm_enabler *e;
     unsigned hash = pa_idxset_string_hash_func(mode);
 
     if (hash == u->hash)
-        return;
+        return 0;
 
     if ((m = find_mode_by_name(&u->parameters.modes, mode)) == NULL)
         m = add_mode(u, mode);
 
     if (!m) {
-        pa_log_debug("No such mode: %s", mode);
-        return;
+        pa_log_error("No such mode: %s", mode);
+        return -1;
     }
 
     u->hash = hash;
@@ -865,4 +864,6 @@ void switch_mode(struct userdata *u, const char *mode) {
 
         a->fired = FALSE;
     }
+
+    return 0;
 }

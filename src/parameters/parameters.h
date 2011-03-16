@@ -23,8 +23,8 @@
 #ifndef _parameters_h_
 #define _parameters_h_
 
-void initme(struct userdata *u);
-void switch_mode(struct userdata *u, const char *mode);
+int initme(struct userdata *u, const char *initial_mode);
+int switch_mode(struct userdata *u, const char *mode);
 int update_mode(struct userdata *u, const char *mode);
 void unloadme(struct userdata *u);
 int algorithm_reload(struct userdata *u, const char *alg);

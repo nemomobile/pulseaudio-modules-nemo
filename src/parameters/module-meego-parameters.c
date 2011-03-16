@@ -36,14 +36,20 @@
 
 PA_MODULE_AUTHOR("Pekka Ervasti");
 PA_MODULE_DESCRIPTION("Meego parameters module");
-PA_MODULE_USAGE("directory=<parameter directory> cache=<boolean>");
+PA_MODULE_USAGE("directory=<parameter directory> "
+                "cache=<boolean> "
+                "initial_mode=<the mode in which to start>");
 PA_MODULE_VERSION(PACKAGE_VERSION);
 
 static const char* const valid_modargs[] = {
     "directory",
     "cache",
+    "initial_mode",
     NULL,
 };
+
+static const char *DEFAULT_INITIAL_MODE = "ihf";
+static const char *DEFAULT_DIRECTORY = "/var/lib/pulse-nokia";
 
 static void check_mode(pa_sink *s, struct userdata *u) {
     const char *tuning_alg;
@@ -108,14 +114,17 @@ int pa__init(pa_module *m) {
     u->core = m->core;
     u->module = m;
 
-    u->parameters.directory = pa_xstrdup(pa_modargs_get_value(ma, "directory", "/var/lib/pulse-nokia"));
+    u->parameters.directory = pa_xstrdup(pa_modargs_get_value(ma, "directory", DEFAULT_DIRECTORY));
 
     if (pa_modargs_get_value_boolean(ma, "cache", &u->parameters.cache) < 0) {
         pa_log("cache= expects a boolean argument.");
         goto fail;
     }
 
-    initme(u);
+    if (initme(u, pa_modargs_get_value(ma, "initial_mode", DEFAULT_INITIAL_MODE)) < 0) {
+        unloadme(u);
+        goto fail;
+    }
 
     u->sink_proplist_changed_slot = pa_hook_connect(&m->core->hooks[PA_CORE_HOOK_SINK_PROPLIST_CHANGED], PA_HOOK_NORMAL, (pa_hook_cb_t) sink_proplist_changed_hook_callback, u);
     u->sink_input_move_finished_slot = pa_hook_connect(&m->core->hooks[PA_CORE_HOOK_SINK_INPUT_MOVE_FINISH], PA_HOOK_NORMAL, (pa_hook_cb_t) hw_sink_input_move_finish_cb, u);
