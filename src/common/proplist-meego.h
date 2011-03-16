@@ -19,8 +19,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301
  * USA.
  */
-#ifndef _PROPLIST_NOKIA_H_
-#define _PROPLIST_NOKIA_H_
+#ifndef _PROPLIST_MEEGO_H_
+#define _PROPLIST_MEEGO_H_
 
 /* Generic */
 #define PA_NOKIA_PROP_AUDIO_MODE                    "x-maemo.mode"                          /* "ihf","hp","hs","hf","a2dp","hsp" */
@@ -42,4 +42,4 @@
 /* Used by the parameters module */
 #define PA_NOKIA_PROP_AUDIO_TUNING                  "x-maemo.tuning"                        /* "true","false" */
 
-#endif /* _PROPLIST_NOKIA_H_ */
+#endif /* _PROPLIST_MEEGO_H_ */
