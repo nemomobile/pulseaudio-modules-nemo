@@ -40,9 +40,9 @@ PA_MODULE_USAGE("");
 PA_MODULE_VERSION(PACKAGE_VERSION);
 
 struct algorithm {
-    char* mode;
-    char* parameters;
-    char* modified_parameters;
+    char *mode;
+    char *parameters;
+    char *modified_parameters;
     meego_parameter_status_t status;
 };
 
@@ -64,8 +64,8 @@ static void algorithm_reset(struct algorithm *alg) {
     }
 }
 
-static inline const char* status_to_string(meego_parameter_status_t status) {
-    switch(status) {
+static inline const char *status_to_string(meego_parameter_status_t status) {
+    switch (status) {
         case MEEGO_PARAM_ENABLE:
             return "MEEGO_PARAM_ENABLE";
         case MEEGO_PARAM_DISABLE:
@@ -135,8 +135,7 @@ static void verify(struct algorithm *params, const char *mode, const char *param
     pa_assert(params->status == expected_status);
 }
 
-static void disable_algs(struct userdata *u)
-{
+static void disable_algs(struct userdata *u) {
     /* A hackish way of disabling all algs and setting all statuses to MEEGO_PARAM_DISABLE.
        mode_reset1 contains unique params for all algorithms while mode_reset2 contains nothing. */
     switch_mode(u, "mode_reset1");
@@ -216,7 +215,7 @@ static pa_bool_t get_parameters_cb(const void *base_parameters, unsigned len_bas
 
     /* As the modifier implementor, we own the modified data */
     if (base_parameters) {
-        char* params = pa_xstrndup(base_parameters, len_base_parameters);
+        char *params = pa_xstrndup(base_parameters, len_base_parameters);
         alg->modified_parameters = pa_sprintf_malloc("%s-modified", params);
         pa_xfree(params);
     } else

@@ -91,10 +91,10 @@ static char *readlink_malloc(const char *filename) {
         buffer = (char *)realloc(buffer, size);
         int nchars = readlink(filename, buffer, size);
         if (nchars < 0) {
-            free (buffer);
+            free(buffer);
             return NULL;
         }
-        if (nchars < (size-1)) {
+        if (nchars < (size - 1)) {
             buffer[nchars] = '\0';
             return buffer;
         }
@@ -297,7 +297,7 @@ static pa_hook_result_t algorithm_disable(struct userdata *u, struct algorithm *
     ua.length = 0;
     a->enabled = FALSE;
 
-    pa_log_debug("Disabling %s (%s)", a->name, (a->active_set?a->active_set->name:"not initialized"));
+    pa_log_debug("Disabling %s (%s)", a->name, (a->active_set ? a->active_set->name : "not initialized"));
 
     return pa_hook_fire(&a->hook, &ua);
 }

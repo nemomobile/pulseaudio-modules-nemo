@@ -59,7 +59,7 @@ static void check_mode(pa_sink *s, struct userdata *u) {
     hwid = pa_proplist_gets(s->proplist, PA_NOKIA_PROP_AUDIO_ACCESSORY_HWID);
 
     if (mode != NULL) {
-        mode = pa_sprintf_malloc("%s%s", mode, (hwid?hwid:""));
+        mode = pa_sprintf_malloc("%s%s", mode, (hwid ? hwid : ""));
 
         if ((tuning_alg = pa_proplist_gets(s->proplist, PA_NOKIA_PROP_AUDIO_TUNING)) != NULL) {
             if (pa_streq(tuning_alg, "update_mode"))
