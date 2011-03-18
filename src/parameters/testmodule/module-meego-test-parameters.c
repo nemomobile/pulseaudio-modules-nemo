@@ -29,10 +29,10 @@
 
 #include "module-meego-test-parameters-symdef.h"
 
-#include <pulsecore/modules/meego/proplist-meego.h>
-#include <pulsecore/modules/meego/parameter-hook.h>
-#include <pulsecore/modules/meego/parameter-modifier.h>
-#include <pulsecore/modules/meego/module-voice-api.h>
+#include "common/proplist-meego.h"
+#include "common/parameter-hook.h"
+#include "common/parameter-modifier.h"
+#include "voice/module-voice-api.h"
 
 PA_MODULE_AUTHOR("Antti-Ville Jansson");
 PA_MODULE_DESCRIPTION("Test module for parameters module");

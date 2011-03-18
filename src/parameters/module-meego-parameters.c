@@ -31,8 +31,8 @@
 
 #include <parameters.h>
 
-#include <pulsecore/modules/meego/proplist-meego.h>
-#include <pulsecore/modules/meego/module-voice-api.h>
+#include "common/proplist-meego.h"
+#include "voice/module-voice-api.h"
 
 PA_MODULE_AUTHOR("Pekka Ervasti");
 PA_MODULE_DESCRIPTION("Meego parameters module");

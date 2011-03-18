@@ -40,10 +40,10 @@
 #include "module-meego-parameters-userdata.h"
 #include "parameters.h"
 
-#include <pulsecore/modules/meego/parameter-hook-implementor.h>
-#include <pulsecore/modules/meego/parameter-modifier.h>
+#include "common/parameter-hook-implementor.h"
+#include "common/parameter-modifier.h"
 
-#include <pulsecore/modules/meego/proplist-meego.h>
+#include "common/proplist-meego.h"
 
 struct set {
     char *name;
