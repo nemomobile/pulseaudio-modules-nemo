@@ -1,10 +1,13 @@
-pulseaudio-meego (0.9.19.0-20) unstable; urgency=low
+pulseaudio-meego (0.9.19.0-20) UNRELEASED; urgency=low
 
   * sidetone: return when current master volume is same as previous.
   * sidetone: when master sink volume is mute then better to mute the sidetone also
   * ear-ref-loop: Deal with muted mic correctly
+  * common: Add the parameter modifier mechanism and the possibility to stop
+    parameter updates.
+  * parameters: Move into meego modules and do some cleanup.
 
- -- Maemo Multimedia <multimedia@maemo.org>  Tue, 01 Mar 2011 18:10:00 +0200
+ -- Maemo Multimedia <multimedia@maemo.org>  Fri, 18 Mar 2011 15:35:00 +0200
 
 pulseaudio-meego (0.9.19.0-19) unstable; urgency=low
 
