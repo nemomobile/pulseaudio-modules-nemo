@@ -27,9 +27,9 @@
 #include <pulsecore/core.h>
 #include <pulsecore/hook-list.h>
 
-#include "parameter-hook.h"
-#include "parameter-hook-implementor.h"
-#include "parameter-modifier.h"
+#include <meego/parameter-hook.h>
+#include <meego/parameter-hook-implementor.h>
+#include <meego/parameter-modifier.h>
 
 static pa_hook parameter_update_requests;
 static pa_hook *parameter_update_requests_ptr = NULL;

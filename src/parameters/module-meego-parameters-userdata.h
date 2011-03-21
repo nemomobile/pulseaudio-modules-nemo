@@ -30,7 +30,7 @@
 #include <pulsecore/core.h>
 #include <pulsecore/modargs.h>
 
-#include "common/parameter-hook-implementor.h"
+#include <meego/parameter-hook-implementor.h>
 
 struct userdata {
     pa_core *core;

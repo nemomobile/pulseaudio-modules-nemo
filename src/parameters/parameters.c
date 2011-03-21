@@ -40,10 +40,10 @@
 #include "module-meego-parameters-userdata.h"
 #include "parameters.h"
 
-#include "common/parameter-hook-implementor.h"
-#include "common/parameter-modifier.h"
+#include <meego/parameter-hook-implementor.h>
+#include <meego/parameter-modifier.h>
 
-#include "common/proplist-meego.h"
+#include <meego/proplist-meego.h>
 
 struct set {
     char *name;

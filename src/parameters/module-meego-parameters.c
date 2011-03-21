@@ -31,7 +31,7 @@
 
 #include <parameters.h>
 
-#include "common/proplist-meego.h"
+#include <meego/proplist-meego.h>
 #include "voice/module-voice-api.h"
 
 PA_MODULE_AUTHOR("Pekka Ervasti");
