@@ -66,7 +66,7 @@ static unsigned int voice_dl_sideinfo_pop(struct userdata *u, int length) {
         length -= u->aep_fragment_size;
     }
 
-    return spc_flags & ~0x8000;
+    return spc_flags & ~VOICE_SIDEINFO_FLAG_BOGUS;
 }
 
 /* Called from IO thread context. */
