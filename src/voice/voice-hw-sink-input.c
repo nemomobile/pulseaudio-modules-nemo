@@ -75,20 +75,16 @@ static void voice_aep_sink_process(struct userdata *u, pa_memchunk *chunk) {
 
     pa_assert(u);
 
+    /*
+     * note: HOOK_AEP_DOWNLINK must be called even if chunk is silent
+     *       to ensure proper handling of SPEECH->DTX transitions
+     */
+
     if (voice_voip_sink_active_iothread(u)) {
+        aep_downlink params;
+
         pa_sink_render_full(u->voip_sink, u->aep_fragment_size, chunk);
         spc_flags = voice_dl_sideinfo_pop(u, u->aep_fragment_size);
-    }
-    else {
-        pa_silence_memchunk_get(&u->core->silence_cache,
-                                u->core->mempool,
-                                chunk,
-                                &u->aep_sample_spec,
-                                u->aep_fragment_size);
-    }
-
-    if (!pa_memblock_is_silence(chunk->memblock)) {
-        aep_downlink params;
 
         params.chunk = chunk;
         params.spc_flags = spc_flags;
@@ -99,6 +95,13 @@ static void voice_aep_sink_process(struct userdata *u, pa_memchunk *chunk) {
         pa_memchunk_make_writable(chunk, u->aep_fragment_size);
 
         pa_hook_fire(u->hooks[HOOK_AEP_DOWNLINK], &params);
+    }
+    else {
+        pa_silence_memchunk_get(&u->core->silence_cache,
+                                u->core->mempool,
+                                chunk,
+                                &u->aep_sample_spec,
+                                u->aep_fragment_size);
     }
 }
 
