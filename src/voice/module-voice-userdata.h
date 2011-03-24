@@ -38,10 +38,6 @@
 #include <pulsecore/fdsem.h>
 #include <pulsecore/call-state-tracker.h>
 
-#ifdef HAVE_LIBCMTSPEECHDATA
-#include <cmtspeech.h>
-#endif
-
 #include "src/common/src-48-to-8.h"
 #include "src/common/src-8-to-48.h"
 
