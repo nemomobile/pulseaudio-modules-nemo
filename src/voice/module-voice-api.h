@@ -87,9 +87,10 @@ enum {
 #define VOICE_MASTER_SINK_INPUT_NAME "Voice module master sink input"
 #define VOICE_MASTER_SOURCE_OUTPUT_NAME "Voice module master source output"
 
+#define VOICE_SIDEINFO_FLAG_SPEECH (0x0001)
+#define VOICE_SIDEINFO_FLAG_BAD    (0x0002)
 /* Because pa_queue does not like NULL pointers, this flag is added to every
  * set of flags to make the pa_queue entries non null. */
-#define VOICE_SIDEINFO_FLAG_BOGUS (0x8000)
-/* TODO: Create voice API for SPC flags. Voice module should not use cmtspeech headers. */
+#define VOICE_SIDEINFO_FLAG_BOGUS  (0x8000)
 
 #endif /* module_voice_api_h */
