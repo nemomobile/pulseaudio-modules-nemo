@@ -6,6 +6,7 @@ pulseaudio-meego (0.9.19.0-20) UNRELEASED; urgency=low
   * common: Add the parameter modifier mechanism and the possibility to stop
     parameter updates.
   * parameters: Move into meego modules and do some cleanup.
+  * mainvolume: Send only one D-Bus signel per mode change.
 
  -- Maemo Multimedia <multimedia@maemo.org>  Fri, 18 Mar 2011 15:35:00 +0200
 
