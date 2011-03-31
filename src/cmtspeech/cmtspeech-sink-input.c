@@ -37,23 +37,31 @@
 #include "memory.h"
 #include "module-voice-api.h"
 
-/* TODO: Create voice API for SPC flags. Voice module should not use cmtspeech headers. */
-#define VALID_CMTSPEECH_SPC_FLAGS (CMTSPEECH_SPC_FLAGS_SPEECH |         \
-                                   CMTSPEECH_SPC_FLAGS_BFI |            \
-                                   CMTSPEECH_SPC_FLAGS_ATTENUATE |      \
-                                   CMTSPEECH_SPC_FLAGS_DEC_RESET |      \
-                                   CMTSPEECH_SPC_FLAGS_MUTE |           \
-                                   CMTSPEECH_SPC_FLAGS_PREV |           \
-                                   CMTSPEECH_SPC_FLAGS_DTX_USED)
+/**
+ * Converts speech frame sideinfo flags from libcmtspeechdata format
+ * to that of pulseaudio-meego voice module.
+ */
+static unsigned int cmtspeech_to_voice_spc_flags(unsigned int spc_flags)
+{
+    switch(spc_flags)
+        {
+        case CMTSPEECH_SPC_FLAGS_SPEECH: return VOICE_SIDEINFO_FLAG_SPEECH;
+        case CMTSPEECH_SPC_FLAGS_BFI: return VOICE_SIDEINFO_FLAG_BAD;
+        default:
+            ;
+        }
+    return 0;
+}
 
-static void cmtspeech_dl_sideinfo_push(unsigned int spc_flags, int length, struct userdata *u) {
-    pa_assert((spc_flags & ~VALID_CMTSPEECH_SPC_FLAGS) == 0);
+static void cmtspeech_dl_sideinfo_push(unsigned int cmt_spc_flags, int length, struct userdata *u) {
+    unsigned int spc_flags;
     pa_assert(length % u->dl_frame_size == 0);
     pa_assert(u);
 
     if (NULL == u->voice_sideinfoq)
         return;
 
+    spc_flags = cmtspeech_to_voice_spc_flags(cmt_spc_flags);
     spc_flags |= VOICE_SIDEINFO_FLAG_BOGUS;
 
     while (length) {
@@ -90,10 +98,10 @@ static void cmtspeech_dl_sideinfo_forward(struct userdata *u) {
 
     if (spc_flags == 0) {
         pa_log_warn("Local sideinfo queue empty.");
-        spc_flags = CMTSPEECH_SPC_FLAGS_BFI|VOICE_SIDEINFO_FLAG_BOGUS;
+        spc_flags = VOICE_SIDEINFO_FLAG_BAD|VOICE_SIDEINFO_FLAG_BOGUS;
     }
     else if (!u->continuous_dl_stream)
-        spc_flags |= CMTSPEECH_SPC_FLAGS_BFI;
+        spc_flags |= VOICE_SIDEINFO_FLAG_BAD;
 
     u->continuous_dl_stream = TRUE;
 
@@ -101,7 +109,7 @@ static void cmtspeech_dl_sideinfo_forward(struct userdata *u) {
 }
 
 static void cmtspeech_dl_sideinfo_bogus(struct userdata *u) {
-    unsigned int spc_flags = CMTSPEECH_SPC_FLAGS_BFI|VOICE_SIDEINFO_FLAG_BOGUS;
+    unsigned int spc_flags = VOICE_SIDEINFO_FLAG_BAD|VOICE_SIDEINFO_FLAG_BOGUS;
 
     pa_assert(u);
 
