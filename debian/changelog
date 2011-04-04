@@ -7,6 +7,10 @@ pulseaudio-meego (0.9.19.0-20) UNRELEASED; urgency=low
     parameter updates.
   * parameters: Move into meego modules and do some cleanup.
   * mainvolume: Send only one D-Bus signel per mode change.
+  * cmtspeech: Do not pass undefined sideinfo flags to voice module.
+  * voice: Fix glitches in CS call downlink during handovers.
+  * Fixes: NB#236602 - Fixed occurance audio "pops" during voice calls
+    in certain circumstances.
 
  -- Maemo Multimedia <multimedia@maemo.org>  Fri, 18 Mar 2011 15:35:00 +0200
 
