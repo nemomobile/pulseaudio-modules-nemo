@@ -808,36 +808,6 @@ DBusHandlerResult cmtspeech_dbus_filter(DBusConnection *conn, DBusMessage *msg, 
 
         if (dbus_error_is_set(&dbus_error) != TRUE) {
             pa_log_debug("modem state change: %s", modemstate);
-
-            if (strcmp(modemstate, "initialize") == 0) {
-                int lstate;
-
-                /* If modem state changes to "initialize" (it has just
-                 * booted), during a call, this means a fatal error has
-                 * occured and we should close the cmtspeech instance
-                 * immediately.
-                 *
-                 * The library should ideally notify us of this situation,
-                 * the current implementation (at least libcmtspeech 1.5.2
-                 * and older) cannot detect all reset conditions reliably,
-                 * so this additional check is needed.
-                 */
-                if (c->cmtspeech) {
-                    /* locking note: very rarely taken code path */
-                    pa_mutex_lock(c->cmtspeech_mutex);
-                    lstate = cmtspeech_protocol_state(c->cmtspeech);
-                    pa_mutex_unlock(c->cmtspeech_mutex);
-
-                    if (lstate != CMTSPEECH_STATE_DISCONNECTED) {
-                        pa_log_error("modem reset during call, closing library instance.");
-
-                        /* Syncronous pa_asyncmsgq_send() can not be used here, because handling of
-                           CMTSPEECH_HANDLER_CLOSE_CONNECTION is using the message queue too. */
-                        pa_asyncmsgq_post(c->thread_mq.inq, c->cmt_handler,
-                                          CMTSPEECH_HANDLER_CLOSE_CONNECTION, NULL, 0, NULL, NULL);
-                    }
-                }
-            }
         }
     }
 
