@@ -335,6 +335,12 @@ static int mainloop_cmtspeech(struct userdata *u) {
                     c->streams_created = FALSE;
                     reset_call_stream_states(u);
 
+                } else if (cmtevent.msg_type == CMTSPEECH_EVENT_RESET) {
+                    pa_log_warn("modem reset detected");
+                    close_cmtspeech_on_error(u);
+                    /* cmtspeech handle now null so return immediately */
+                    return retsockets;
+
                 } else {
                     pa_log_error("Unrecognized cmtspeech event: state %d -> %d (type %d, ret %d).",
                                  cmtevent.prev_state, cmtevent.state, cmtevent.msg_type, i);
