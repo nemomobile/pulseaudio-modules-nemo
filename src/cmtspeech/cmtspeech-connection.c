@@ -460,10 +460,11 @@ static void pollfd_update(struct cmtspeech_connection *c) {
 static void close_cmtspeech_on_error(struct userdata *u)
 {
     struct cmtspeech_connection *c = &u->cmt_connection;
+    pa_bool_t was_active = c->streams_created;
 
     pa_assert(u);
 
-    pa_log_error("closing the modem instance");
+    pa_log_debug("closing the modem instance");
 
     reset_call_stream_states(u);
 
@@ -482,6 +483,8 @@ static void close_cmtspeech_on_error(struct userdata *u)
     }
 
     pa_mutex_lock(c->cmtspeech_mutex);
+    if (was_active == TRUE)
+        pa_log_error("closing modem instance when interface still active");
     if (cmtspeech_close(c->cmtspeech))
         pa_log_error("cmtspeech_close() failed");
     c->cmtspeech = NULL;
