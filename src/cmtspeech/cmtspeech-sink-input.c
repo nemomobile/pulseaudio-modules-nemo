@@ -260,8 +260,8 @@ static void cmtspeech_sink_input_reset_dl_stream(struct userdata *u) {
     cmtspeech_dl_sideinfo_flush(u);
     while ((buf = pa_asyncq_pop(u->cmt_connection.dl_frame_queue, FALSE))) {
         pa_memchunk cmtchunk;
-        cmtspeech_buffer_to_memchunk(u, buf, &cmtchunk);
-        pa_memblock_unref(cmtchunk.memblock);
+        if (0 == cmtspeech_buffer_to_memchunk(u, buf, &cmtchunk))
+            pa_memblock_unref(cmtchunk.memblock);
     }
 }
 
