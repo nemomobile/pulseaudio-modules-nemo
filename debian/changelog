@@ -1,12 +1,12 @@
-pulseaudio-meego (0.9.19.0-21) UNRELEASED; urgency=low
+pulseaudio-meego (0.9.19.0-21) unstable; urgency=low
 
-  * Fixes: NB#244880 - modem crash after simless emergency call
+  * Fixes: NB#244880 - Prevented modem crash after simless emergency call.
   * common: Rewrite algorithm-hook interface to better suite algorithm data
     processing.
   * common: Add algorithm-base, a skeleton algorithm data processing module.
   * common-dev: Generate pkg-config file.
 
- -- Maemo Multimedia <multimedia@maemo.org>  Tue, 19 Apr 2011 18:48:46 +0300
+ -- Maemo Multimedia <multimedia@maemo.org>  Tue, 26 Apr 2011 15:24:08 +0300
 
 pulseaudio-meego (0.9.19.0-20) unstable; urgency=low
 
