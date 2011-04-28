@@ -68,7 +68,8 @@ int meego_parameter_request_updates(const char *name, pa_hook_cb_t cb, pa_hook_p
 
 int meego_parameter_stop_updates(const char *name, pa_hook_cb_t cb, void *userdata) {
     meego_parameter_connection_args args;
-    pa_assert(name);
+
+    pa_assert(cb);
 
     if (!parameter_stop_requests_ptr) {
         pa_log_warn("Parameter update service not available");
@@ -79,7 +80,10 @@ int meego_parameter_stop_updates(const char *name, pa_hook_cb_t cb, void *userda
     args.cb = cb;
     args.userdata = userdata;
 
-    pa_log_debug("Stopping updates for %s", name);
+    if (!name)
+        pa_log_debug("Stopping mode updates");
+    else
+        pa_log_debug("Stopping updates for %s", name);
 
     pa_hook_fire(parameter_stop_requests_ptr, &args);
 
