@@ -86,7 +86,7 @@ static meego_algorithm_hook_api *algorithm_hook_new(pa_core *c) {
 
     a = pa_xnew0(meego_algorithm_hook_api, 1);
     PA_REFCNT_INIT(a);
-    a->core = pa_core_ref(c);
+    a->core = c;
     a->hooks = pa_hashmap_new(pa_idxset_string_hash_func,
                               pa_idxset_string_compare_func);
     PA_LLIST_HEAD_INIT(meego_algorithm_hook, a->dead_hooks);
@@ -192,8 +192,6 @@ void meego_algorithm_hook_api_unref(meego_algorithm_hook_api *a) {
         PA_LLIST_REMOVE(meego_algorithm_hook, a->dead_hooks, hook);
         algorithm_hook_free(hook, NULL);
     }
-
-    pa_core_unref(a->core);
 
     pa_xfree(a);
 }
