@@ -1,3 +1,9 @@
+pulseaudio-meego (0.9.19.0-21) UNRELEASED; urgency=low
+
+  * algorithm-hook: Don't ref the core.
+
+ -- Maemo Multimedia <multimedia@maemo.org>  Fri, 29 Apr 2011 14:38:08 +0300
+
 pulseaudio-meego (0.9.19.0-21) unstable; urgency=low
 
   * Fixes: NB#244880 - Prevented modem crash after simless emergency call.
