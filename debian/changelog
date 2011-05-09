@@ -1,8 +1,11 @@
-pulseaudio-meego (0.9.19.0-21) UNRELEASED; urgency=low
+pulseaudio-meego (0.9.19.0-22) unstable; urgency=low
 
   * algorithm-hook: Don't ref the core.
+  * cmtspeech: Check return value of cmtspeech_buffer_to_memchunk().
+  * Fixes: NB#253903 - Prevented segmentation fault in some corner cases
+    after unsuccessful cellular call.
 
- -- Maemo Multimedia <multimedia@maemo.org>  Fri, 29 Apr 2011 14:38:08 +0300
+ -- Maemo Multimedia <multimedia@maemo.org>  Mon, 09 May 2011 15:48:24 +0300
 
 pulseaudio-meego (0.9.19.0-21) unstable; urgency=low
 
