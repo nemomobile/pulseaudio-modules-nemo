@@ -253,6 +253,8 @@ static int hw_sink_input_pop_cb(pa_sink_input *i, size_t length, pa_memchunk *ch
             pa_memchunk_reset(&hook_data.channel[1]);
             hook_data.channels = 2;
 
+            pa_memchunk_make_writable(chunk, 0);
+
             pa_optimized_deinterleave_stereo_to_mono(chunk, &hook_data.channel[0], &hook_data.channel[1]);
 
             meego_algorithm_hook_fire(u->hooks[HOOK_HW_SINK_PROCESS], &hook_data);
