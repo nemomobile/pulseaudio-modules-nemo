@@ -225,6 +225,8 @@ static int sink_input_pop_cb(pa_sink_input *i, size_t length, pa_memchunk *chunk
             short *dst;
             const short *s_bufs[2];
 
+            pa_memchunk_make_writable(chunk, 0);
+
             data.channels = 2;
             pa_optimized_deinterleave_stereo_to_mono(chunk, &data.channel[0], &data.channel[1]);
 
