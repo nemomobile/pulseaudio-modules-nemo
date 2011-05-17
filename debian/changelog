@@ -1,3 +1,9 @@
+pulseaudio-meego (0.9.19.0-23) UNRELEASED; urgency=low
+
+  * voice and music: Make sure algotihms are applied to writable memchunk.
+
+ -- Maemo Multimedia <multimedia@maemo.org>  Tue, 17 May 2011 15:14:01 +0300
+
 pulseaudio-meego (0.9.19.0-22) unstable; urgency=low
 
   * algorithm-hook: Don't ref the core.
