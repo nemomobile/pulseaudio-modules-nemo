@@ -1,6 +1,8 @@
-pulseaudio-meego (0.9.19.0-23) UNRELEASED; urgency=low
+pulseaudio-meego (0.9.19.0-23) unstable; urgency=low
 
   * voice and music: Make sure algotihms are applied to writable memchunk.
+  * Fixes: NB#251721 - Samples played from sample-cache do not get corrupted
+    anymore.
 
  -- Maemo Multimedia <multimedia@maemo.org>  Tue, 17 May 2011 15:14:01 +0300
 
