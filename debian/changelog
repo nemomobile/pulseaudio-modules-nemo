@@ -1,3 +1,13 @@
+pulseaudio-meego (0.9.19.0-24) unstable; urgency=low
+
+  * voice: Reset the ear ref loop when there is a rewind happening on voip
+    sink and do not fire the HOOK_AEP_UPLINK hook if there were not enough
+    data in the ear ref loop.
+  * Fixes: NB#254278 - Problems with occasionally non-working acoustic echo
+    cancellation (AEC) algorithm during voice call significantly diminished.
+
+ -- Maemo Multimedia <multimedia@maemo.org>  Tue, 31 May 2011 14:26:42 +0300
+
 pulseaudio-meego (0.9.19.0-23) unstable; urgency=low
 
   * voice and music: Make sure algotihms are applied to writable memchunk.
