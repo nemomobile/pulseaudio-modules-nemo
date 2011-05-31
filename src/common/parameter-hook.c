@@ -143,11 +143,14 @@ void meego_parameter_discontinue_requests(meego_parameter_hook_implementor_args 
 
     if (args->update_request_slot)
         pa_hook_slot_free(args->update_request_slot);
+    if (args->stop_request_slot)
+        pa_hook_slot_free(args->stop_request_slot);
     if(args->modifier_registration_slot)
         pa_hook_slot_free(args->modifier_registration_slot);
     if(args->modifier_unregistration_slot)
         pa_hook_slot_free(args->modifier_unregistration_slot);
     parameter_update_requests_ptr = NULL;
+    parameter_stop_requests_ptr = NULL;
     modifier_register_requests_ptr = NULL;
     modifier_unregister_requests_ptr = NULL;
 }
