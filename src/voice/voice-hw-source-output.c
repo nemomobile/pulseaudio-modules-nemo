@@ -88,13 +88,13 @@ pa_bool_t voice_voip_source_process(struct userdata *u, pa_memchunk *chunk, pa_m
         aep_uplink params;
         pa_memchunk rchunk;
 
-        voice_aep_ear_ref_ul(u, &rchunk);
+        if(voice_aep_ear_ref_ul(u, &rchunk) == 1) {
+            params.chunk = chunk;
+            params.rchunk = &rchunk;
+            params.achunk = amb_chunk;
 
-        params.chunk = chunk;
-        params.rchunk = &rchunk;
-        params.achunk = amb_chunk;
-
-        meego_algorithm_hook_fire(u->hooks[HOOK_AEP_UPLINK], &params);
+            meego_algorithm_hook_fire(u->hooks[HOOK_AEP_UPLINK], &params);
+        }
 
         pa_memblock_unref(rchunk.memblock);
     }
