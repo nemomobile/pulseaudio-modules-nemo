@@ -88,13 +88,13 @@ pa_bool_t voice_voip_source_process(struct userdata *u, pa_memchunk *chunk, pa_m
         aep_uplink params;
         pa_memchunk rchunk;
 
-        if(voice_aep_ear_ref_ul(u, &rchunk) == 1) {
-            params.chunk = chunk;
-            params.rchunk = &rchunk;
-            params.achunk = amb_chunk;
+        voice_aep_ear_ref_ul(u, &rchunk);
 
-            meego_algorithm_hook_fire(u->hooks[HOOK_AEP_UPLINK], &params);
-        }
+        params.chunk = chunk;
+        params.rchunk = &rchunk;
+        params.achunk = amb_chunk;
+
+        meego_algorithm_hook_fire(u->hooks[HOOK_AEP_UPLINK], &params);
 
         pa_memblock_unref(rchunk.memblock);
     }
@@ -375,6 +375,13 @@ static void hw_source_output_process_rewind_cb(pa_source_output *o, size_t nbyte
     if (u->voip_source && PA_SOURCE_IS_OPENED(u->voip_source->thread_info.state)) {
         size_t amount = hw_source_output_convert_bytes(o, u->voip_source, nbytes);
         pa_source_process_rewind(u->voip_source, amount);
+
+        if(amount > 0)
+        {
+            pa_usec_t drop_usec;
+            drop_usec = pa_bytes_to_usec(nbytes, &u->hw_source_output->sample_spec);
+            voice_aep_ear_ref_ul_drop(u, drop_usec);
+        }
     }
 }
 

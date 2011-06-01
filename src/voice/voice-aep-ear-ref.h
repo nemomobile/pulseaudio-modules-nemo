@@ -225,7 +225,8 @@ int voice_aep_ear_ref_ul(struct userdata *u, pa_memchunk *chunk) {
                     /* Queue has run out, reset the queue. */
                     pa_log_debug("Only %d bytes left in ear ref loop, let's reset the loop",
                                  pa_memblockq_get_length(r->loop_memblockq));
-                    pa_atomic_store(&r->loop_state, VOICE_EAR_REF_RESET);
+                    //pa_atomic_store(&r->loop_state, VOICE_EAR_REF_RESET);
+                    pa_atomic_store(&r->loop_state, VOICE_EAR_REF_UL_READY);
                 }
             }
 	}
