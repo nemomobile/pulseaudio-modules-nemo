@@ -1,3 +1,12 @@
+pulseaudio-meego (0.9.19.0-25) unstable; urgency=low
+
+  * voice: Improve stability of AEC reference loop after rewinds.
+  * Fixes: NB#254278 - Problems with occasionally non-working acoustic echo
+    cancellation (AEC) algorithm during voice call especially in IHF mode
+    diminished further.
+
+ -- Maemo Multimedia <multimedia@maemo.org>  Wed, 01 Jun 2011 16:02:18 +0300
+
 pulseaudio-meego (0.9.19.0-24) unstable; urgency=low
 
   * voice: Reset the ear ref loop when there is a rewind happening on voip
