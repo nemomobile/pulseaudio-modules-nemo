@@ -273,7 +273,7 @@ static void source_output_detach_cb(pa_source_output *o) {
     if (PA_SOURCE_IS_LINKED(u->source->thread_info.state))
         pa_source_detach_within_thread(u->source);
     else
-        pa_log_error("fixme: !PA_SOURCE_IS_LINKED ?");
+        pa_log_debug("fixme: !PA_SOURCE_IS_LINKED ?");
 
     pa_source_set_rtpoll(u->source, NULL);
     source_outputs_may_move(u->source, FALSE);
@@ -341,8 +341,6 @@ static void source_output_kill_cb(pa_source_output *o) {
 
     pa_source_unlink(u->source);
 
-    /* FIXME: this is sort-of understandable with the may_move hack... we avoid abort in free() here */
-    u->source_output->thread_info.attached = FALSE;
     pa_source_output_unlink(u->source_output);
 
     pa_source_unref(u->source);
