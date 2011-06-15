@@ -1,5 +1,20 @@
 pulseaudio-meego (0.9.19.0-25) unstable; urgency=low
 
+  * voice: Handle cases when downlink side was being called multiple
+    times in a row.
+  * voice: Take render_memblockq size into latency calculations on
+    downlink side.
+  * voice: Remove the earlier hack for not reseting the ear-ref loop when
+    there is no enough data in ear-ref loop.
+  * voice: Handle cases when alsa-sink was requesting non hw fragment size
+    amount of data.
+  * voice: Reset the ear-ref loop when hw_source_output_attach_cb is
+    being called.
+
+ -- Maemo Multimedia <multimedia@maemo.org>  Tue, 14 Jun 2011 10:47:15 +0300
+
+pulseaudio-meego (0.9.19.0-25) unstable; urgency=low
+
   * voice: Improve stability of AEC reference loop after rewinds.
   * Fixes: NB#254278 - Problems with occasionally non-working acoustic echo
     cancellation (AEC) algorithm during voice call especially in IHF mode

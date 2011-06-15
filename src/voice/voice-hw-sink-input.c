@@ -130,8 +130,15 @@ static int hw_sink_input_pop_cb(pa_sink_input *i, size_t length, pa_memchunk *ch
     /* We only operate with N * u->hw_fragment_size chunks. */
     if (length > u->hw_fragment_size_max)
         length = u->hw_fragment_size_max;
-    else if (0 != (length % u->hw_fragment_size))
-        length += u->hw_fragment_size - (length % u->hw_fragment_size);
+    else if (0 != (length % u->hw_fragment_size)) {
+	    pa_silence_memchunk_get(&u->core->silence_cache,
+			    u->core->mempool,
+			    chunk,
+			    &u->hw_sample_spec,
+			    length);
+            voice_aep_ear_ref_loop_reset(u);
+	    return;
+    }
 
     if (u->aep_sink_input && PA_SINK_INPUT_IS_LINKED(
             u->aep_sink_input->thread_info.state)) {
@@ -599,6 +606,8 @@ static void hw_sink_input_attach_cb(pa_sink_input *i) {
     hw_sink_input_attach_slave_sink(u, u->voip_sink, i->sink);
 
     pa_log_debug("Attach called, new master %p %s", (void*)u->master_sink, u->master_sink->name);
+
+    voice_aep_ear_ref_loop_reset(u);
 }
 
 /* Called from main context */

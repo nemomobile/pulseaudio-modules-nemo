@@ -151,8 +151,11 @@ int voice_aep_ear_ref_dl(struct userdata *u, pa_memchunk *chunk) {
 
     int loop_state = pa_atomic_load(&r->loop_state);
     switch (loop_state) {
-    case  VOICE_EAR_REF_RUNNING:
-    case  VOICE_EAR_REF_DL_READY: {
+    case  VOICE_EAR_REF_DL_READY:
+        pa_log_warn("EAR REF: consecutive DL in reset sequence -> re-reset");
+        pa_atomic_store(&r->loop_state, VOICE_EAR_REF_RESET);
+	break;
+    case  VOICE_EAR_REF_RUNNING: {
         if (!voice_aep_ear_ref_check_dl_xrun(u)) {
             if (voice_aep_ear_ref_dl_push_to_syncq(u, chunk))
                 return -1;
@@ -161,15 +164,21 @@ int voice_aep_ear_ref_dl(struct userdata *u, pa_memchunk *chunk) {
     }
     case VOICE_EAR_REF_UL_READY: {
 	struct timeval tv;
-	pa_usec_t latency;
+	pa_usec_t latency, si_rendered;
+
     PA_MSGOBJECT(u->master_sink)->process_msg(
         PA_MSGOBJECT(u->master_sink), PA_SINK_MESSAGE_GET_LATENCY, &latency, (int64_t)0, NULL);
 
+        si_rendered = pa_bytes_to_usec((uint64_t)pa_memblockq_get_length(u->hw_sink_input->thread_info.render_memblockq),
+            &u->master_sink->sample_spec);
+
 	pa_rtclock_get(&tv);
 	pa_timeval_add(&tv, latency);
+	pa_timeval_add(&tv, si_rendered);
 	r->loop_tstamp = tv;
-	pa_log_debug("Ear ref loop DL due at %d.%06d (%lld latency)",
-		     (int)tv.tv_sec, (int)tv.tv_usec, latency);
+	pa_log_debug("Ear ref loop DL due at %d.%06d (%lld latency) (%lld si rendered)",
+		     (int)tv.tv_sec, (int)tv.tv_usec, latency,
+		     si_rendered);
 
 	if (voice_aep_ear_ref_dl_push_to_syncq(u, chunk))
 	    return -1;
@@ -225,8 +234,7 @@ int voice_aep_ear_ref_ul(struct userdata *u, pa_memchunk *chunk) {
                     /* Queue has run out, reset the queue. */
                     pa_log_debug("Only %d bytes left in ear ref loop, let's reset the loop",
                                  pa_memblockq_get_length(r->loop_memblockq));
-                    //pa_atomic_store(&r->loop_state, VOICE_EAR_REF_RESET);
-                    pa_atomic_store(&r->loop_state, VOICE_EAR_REF_UL_READY);
+                    pa_atomic_store(&r->loop_state, VOICE_EAR_REF_RESET);
                 }
             }
 	}
@@ -244,8 +252,23 @@ int voice_aep_ear_ref_ul(struct userdata *u, pa_memchunk *chunk) {
 	    pa_usec_t latency;
 	    PA_MSGOBJECT(u->master_source)->process_msg(
 		PA_MSGOBJECT(u->master_source), PA_SOURCE_MESSAGE_GET_LATENCY, &latency, (int64_t)0, NULL);
+        /* HACK to fix AEC in VoIP
+
+          This hack is needed because cellular call and VoIP calls use different hw buffer sizes.
+          Currently cellular call uses 10ms and VoIP calls uses 5ms hw buffer size.
+
+          If the fix is made here, a correct fix for this could be like this:
+          latency -= aep_fragment_usec - hw_buffer_usec;
+
+          Currently is not possible to get the hw buffer size from alsa-source-old.
+          It's a possibility to add PA_SOURCE_MESSAGE_GET_HW_BUFFER_SIZE message but
+          that makes voice module to be dependend of alsa-source-old, which is obviously not good.
+          So the real fix should go to alsa-source-old.
+        */
+	    if (latency > 10000)
+		    latency -= 5000;
             latency += pa_bytes_to_usec((uint64_t)pa_memblockq_get_length(u->hw_source_memblockq),
-                                        &u->hw_source_output->sample_spec);
+                                        &u->hw_source_output->thread_info.sample_spec);
 	    pa_rtclock_get(&tv_ul_tstamp);
 	    pa_timeval_sub(&tv_ul_tstamp, latency + r->loop_padding_usec);
 	    pa_usec_t loop_padding_time = pa_timeval_diff(&tv_ul_tstamp, &tv_dl_tstamp);

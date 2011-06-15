@@ -132,9 +132,9 @@ void voice_uplink_timing_check(struct userdata *u, pa_usec_t now,
             drop = pa_memblockq_get_length(u->hw_source_memblockq);
             pa_memblockq_drop(u->hw_source_memblockq, drop);
             pa_log_debug("Dropped %d bytes (%lld usec) from hw_source_memblockq", drop,
-                         pa_bytes_to_usec_round_up((uint64_t)drop, &u->hw_mono_sample_spec));
+                         pa_bytes_to_usec_round_up((uint64_t)drop, &u->hw_source_output->thread_info.sample_spec));
             voice_aep_ear_ref_ul_drop_log(u, pa_bytes_to_usec_round_up(
-                                              (uint64_t)drop, &u->hw_mono_sample_spec));
+                                              (uint64_t)drop, &u->hw_source_output->thread_info.sample_spec));
         }
         else {
             pa_log_debug("Timing is correct: Frame sent at %lld and deadline at %lld",
@@ -342,7 +342,7 @@ static int hw_source_output_process_msg(pa_msgobject *mo, int code, void *userda
         case PA_SOURCE_OUTPUT_MESSAGE_GET_LATENCY: {
             pa_usec_t *r = userdata;
 
-            r[0] += pa_bytes_to_usec(pa_memblockq_get_length(u->hw_source_memblockq), &o->sample_spec);
+            r[0] += pa_bytes_to_usec(pa_memblockq_get_length(u->hw_source_memblockq), &o->thread_info.sample_spec);
 
             break;
         }
@@ -375,13 +375,6 @@ static void hw_source_output_process_rewind_cb(pa_source_output *o, size_t nbyte
     if (u->voip_source && PA_SOURCE_IS_OPENED(u->voip_source->thread_info.state)) {
         size_t amount = hw_source_output_convert_bytes(o, u->voip_source, nbytes);
         pa_source_process_rewind(u->voip_source, amount);
-
-        if(amount > 0)
-        {
-            pa_usec_t drop_usec;
-            drop_usec = pa_bytes_to_usec(nbytes, &u->hw_source_output->sample_spec);
-            voice_aep_ear_ref_ul_drop(u, drop_usec);
-        }
     }
 }
 
@@ -486,6 +479,8 @@ static void hw_source_output_attach_cb(pa_source_output *o) {
     pa_log_debug("Attach called, new master %p %s", (void*)u->master_source, u->master_source->name);
     hw_source_output_attach_slave_source(u, u->raw_source, o->source);
     hw_source_output_attach_slave_source(u, u->voip_source, o->source);
+
+    voice_aep_ear_ref_loop_reset(u);
 }
 
 /* Called from main thread context */
