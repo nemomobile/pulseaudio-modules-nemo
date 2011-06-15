@@ -1,4 +1,4 @@
-pulseaudio-meego (0.9.19.0-25) unstable; urgency=low
+pulseaudio-meego (0.9.19.0-26) unstable; urgency=low
 
   * voice: Handle cases when downlink side was being called multiple
     times in a row.
@@ -10,8 +10,9 @@ pulseaudio-meego (0.9.19.0-25) unstable; urgency=low
     amount of data.
   * voice: Reset the ear-ref loop when hw_source_output_attach_cb is
     being called.
+  * Fixes: NB#254278 - Complete fix for acoustic echo cancellation problems.
 
- -- Maemo Multimedia <multimedia@maemo.org>  Tue, 14 Jun 2011 10:47:15 +0300
+ -- Maemo Multimedia <multimedia@maemo.org>  Wed, 15 Jun 2011 10:09:17 +0300
 
 pulseaudio-meego (0.9.19.0-25) unstable; urgency=low
 
