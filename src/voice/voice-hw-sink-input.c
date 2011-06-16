@@ -131,13 +131,17 @@ static int hw_sink_input_pop_cb(pa_sink_input *i, size_t length, pa_memchunk *ch
     if (length > u->hw_fragment_size_max)
         length = u->hw_fragment_size_max;
     else if (0 != (length % u->hw_fragment_size)) {
-        pa_silence_memchunk_get(&u->core->silence_cache,
-                u->core->mempool,
-                chunk,
-                &u->hw_sample_spec,
-                length);
-                voice_aep_ear_ref_loop_reset(u);
-        return;
+        if (voice_voip_sink_active_iothread(u)) {
+            pa_silence_memchunk_get(&u->core->silence_cache,
+                    u->core->mempool,
+                    chunk,
+                    &u->hw_sample_spec,
+                    length);
+                    voice_aep_ear_ref_loop_reset(u);
+            return;
+        }
+        else
+            length += u->hw_fragment_size - (length % u->hw_fragment_size);
     }
 
     if (u->aep_sink_input && PA_SINK_INPUT_IS_LINKED(
