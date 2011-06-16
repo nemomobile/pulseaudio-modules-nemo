@@ -121,6 +121,7 @@ static void master_source_state_subscribe_cb(pa_core *c, pa_subscription_event_t
     if (u->previous_master_source_state == PA_SOURCE_SUSPENDED) {
         meego_algorithm_hook_fire(u->hooks[HOOK_SOURCE_RESET], NULL);
         pa_log_debug("VOICE_HOOK_SOURCE_RESET fired");
+        voice_aep_ear_ref_loop_reset(u);
     }
 }
 
