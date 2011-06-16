@@ -1,3 +1,11 @@
+pulseaudio-meego (0.9.19.0-27) unstable; urgency=low
+
+  * voice: Reset the ear ref loop also when unsuspending a held VoIP call.
+  * Fixes: NB#266609 - Echo cancellation keeps working after the remote has continued
+    a held call.
+
+ -- Maemo Multimedia <mmf-audio@projects.maemo.org>  Thu, 16 Jun 2011 22:55:52 +0300
+
 pulseaudio-meego (0.9.19.0-26) unstable; urgency=low
 
   * voice: Handle cases when downlink side was being called multiple
