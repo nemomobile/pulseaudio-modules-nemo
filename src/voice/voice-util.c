@@ -338,7 +338,7 @@ pa_sink *voice_get_original_master_sink(struct userdata *u) {
         return NULL;
     }
     if (!(om_sink = pa_namereg_get(u->core, om_name, PA_NAMEREG_SINK))) {
-        pa_log_error("Original master sink \"%s\" not found", om_name);
+        pa_log_debug("Original master sink \"%s\" not found", om_name);
         return NULL;
     }
     return om_sink;

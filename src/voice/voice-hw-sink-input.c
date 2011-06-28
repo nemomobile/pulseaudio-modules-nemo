@@ -732,7 +732,7 @@ static pa_hook_result_t hw_sink_input_move_fail_cb(pa_core *c, pa_sink_input *i,
     if (!master_sink
         || !(s = pa_namereg_get(u->core, master_sink, PA_NAMEREG_SINK))) {
 
-        pa_log("Master sink \"%s\" not found", master_sink);
+        pa_log_debug("Master sink \"%s\" not found", master_sink);
         return PA_HOOK_OK;
     }
 
