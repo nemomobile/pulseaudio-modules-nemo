@@ -311,7 +311,7 @@ static void hw_source_output_push_cb_8k_mono(pa_source_output *o, const pa_memch
 
         if (PA_SOURCE_IS_OPENED(u->raw_source->thread_info.state)) {
             pa_memchunk ochunk;
-            voice_convert_run_8_to_48(u, u->hw8khz_source_to_raw_source_resampler, &chunk, &ochunk);
+            voice_convert_run_8_to_48_stereo(u, u->hw8khz_source_to_raw_source_resampler, &chunk, &ochunk);
             /* TODO: Mabe we should fire narrowband mic eq here */
             pa_source_post(u->raw_source, &ochunk);
             pa_memblock_unref(ochunk.memblock);
