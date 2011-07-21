@@ -1,3 +1,9 @@
+pulseaudio-meego (0.9.19.0-28) UNRELEASED; urgency=low
+
+  * Fixes: NB#255575 - Pulseaudio crash in verbose mode is fixed when Ctrl+C pressed.
+
+ -- Maemo Multimedia <mmf-audio@projects.maemo.org>  Thu, 21 Jul 2011 14:20:00 +0300
+
 pulseaudio-meego (0.9.19.0-27) unstable; urgency=low
 
   * voice: Reset the ear ref loop also when unsuspending a held VoIP call.
