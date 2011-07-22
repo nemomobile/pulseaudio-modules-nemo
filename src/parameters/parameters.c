@@ -457,7 +457,7 @@ int algorithm_reload(struct userdata *u, const char *alg) {
     struct algorithm *a;
     struct set *s;
     struct algorithm_enabler *e;
-    const char *path;
+    char *path;
     const char *setname;
 
     pa_assert(u);
@@ -494,6 +494,7 @@ int algorithm_reload(struct userdata *u, const char *alg) {
             } else {
                 pa_log_warn("%s reload failed in mode %s", alg, m->name);
             }
+            pa_xfree(path);
         }
     }
 

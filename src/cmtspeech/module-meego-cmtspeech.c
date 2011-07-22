@@ -167,6 +167,8 @@ int pa__init(pa_module*m) {
     if (cmtspeech_connection_init(u))
 	goto fail;
 
+    pa_modargs_free(ma);
+
     return 0;
 fail:
     if (ma)
