@@ -1,9 +1,10 @@
 pulseaudio-meego (0.9.19.0-28) UNRELEASED; urgency=low
 
   * Fixes: NB#255575 - Pulseaudio crash in verbose mode is fixed when Ctrl+C pressed.
-  * Fixes: NB#269844 - Video clip recorded is played with some distortion.
+  * Fixes: NB#269844 - Recorded audio from SCO is now upmixed properly.
+  * Fixes: NB#262783 - Fixed virtual sink rewinding.
 
- -- Maemo Multimedia <mmf-audio@projects.maemo.org>  Thu, 22 Jul 2011 13:19:00 +0300
+ -- Maemo Multimedia <mmf-audio@projects.maemo.org>  Thu, 25 Jul 2011 13:27:00 +0300
 
 pulseaudio-meego (0.9.19.0-27) unstable; urgency=low
 
