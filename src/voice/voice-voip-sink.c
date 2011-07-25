@@ -102,7 +102,7 @@ static void voip_sink_request_rewind(pa_sink *s) {
     pa_assert_se(u = s->userdata);
 
     /* Just hand this one over to the master sink */
-    if (u->hw_sink_input)
+    if (u->hw_sink_input && s->thread_info.rewind_nbytes > 0)
         pa_sink_input_request_rewind(u->hw_sink_input, s->thread_info.rewind_nbytes, TRUE, FALSE, FALSE);
 }
 

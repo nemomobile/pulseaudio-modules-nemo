@@ -179,8 +179,8 @@ static void sink_request_rewind(pa_sink *s) {
     pa_assert_se(u = s->userdata);
 
     /* Just hand this one over to the master sink */
-    pa_sink_input_request_rewind(u->sink_input, s->thread_info.rewind_nbytes, TRUE, FALSE, FALSE);
-
+    if (s->thread_info.rewind_nbytes > 0)
+        pa_sink_input_request_rewind(u->sink_input, s->thread_info.rewind_nbytes, TRUE, FALSE, FALSE);
 }
 
 /* Called from I/O thread context */
