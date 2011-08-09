@@ -347,6 +347,7 @@ static void sink_input_detach_cb(pa_sink_input *i) {
     else
         pa_log("fixme: !PA_SINK_IS_LINKED ?");
 
+    pa_sink_set_asyncmsgq(u->sink, NULL);
     pa_sink_set_rtpoll(u->sink, NULL);
     sink_inputs_may_move(u->sink, FALSE);
 }
