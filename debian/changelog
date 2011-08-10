@@ -1,10 +1,10 @@
-pulseaudio-meego (0.9.19.0-29) unstable; urgency=low
+pulseaudio-meego (0.9.19.0-29) UNRELEASED; urgency=low
 
   * cmtspeech: Reset cmtspeech connection if cmtspeech server is inactive.
   * Fixes: NB#265431 - Return to normal mode after call even if the cmtspeech
     server "forgets" to give the signal that call has ended.
 
- -- Maemo Multimedia <mmf-audio@projects.maemo.org>  Wed, 10 Aug 2011 12:54:42 +0300
+ -- Maemo Multimedia <mmf-audio@projects.maemo.org>  Tue, 09 Aug 2011 12:45:46 +0300
 
 pulseaudio-meego (0.9.19.0-28) unstable; urgency=low
 
