@@ -105,10 +105,6 @@ struct userdata {
 	pa_bool_t playback_running;		/* internal state */
 	pa_bool_t streams_created;		/* internal state */
     } cmt_connection;
-
-    /* Used in cmtspeech mainloop to detect inactive cmtspeech. */
-    pa_atomic_t cmtspeech_cleanup_state;
-    pa_usec_t server_inactive_timeout;
 };
 
 int cmtspeech_check_sink_api(pa_sink *s);
