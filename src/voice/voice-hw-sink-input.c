@@ -782,6 +782,8 @@ static pa_sink_input *voice_hw_sink_input_new(struct userdata *u, pa_sink_input_
         return NULL;
     }
 
+    u->master_sink = new_sink_input->sink;
+
     if (u->master_sink->sample_spec.rate == VOICE_SAMPLE_RATE_AEP_HZ)
         new_sink_input->pop = hw_sink_input_pop_8k_mono_cb;
     else
@@ -838,6 +840,9 @@ static void voice_hw_sink_input_reinit_defer_cb(pa_mainloop_api *m, pa_defer_eve
 
     new_si = voice_hw_sink_input_new(u, start_uncorked ? 0 : PA_SINK_INPUT_START_CORKED);
     pa_return_if_fail(new_si);
+
+    pa_sink_update_flags(u->raw_sink, PA_SINK_LATENCY|PA_SINK_DYNAMIC_LATENCY, new_si->sink->flags);
+    pa_sink_update_flags(u->voip_sink, PA_SINK_LATENCY|PA_SINK_DYNAMIC_LATENCY, new_si->sink->flags);
 
     pa_sink_input_cork(old_si, TRUE);
 

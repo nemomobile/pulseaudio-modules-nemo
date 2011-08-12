@@ -87,6 +87,9 @@ struct userdata {
 
     meego_algorithm_hook *hook_algorithm;
     meego_algorithm_hook *hook_volume;
+
+    pa_hook_slot* sink_latency_changed_slot;
+    pa_hook_slot* sink_dynamic_latency_changed_slot;
 };
 
 
@@ -441,6 +444,13 @@ static void sink_input_kill_cb(pa_sink_input *i) {
     pa_module_unload_request(u->module, TRUE);
 }
 
+/* Called from main context */
+static pa_hook_result_t sink_latency_flags_changed_cb(pa_core *c, pa_sink *s, struct userdata *u) {
+    if (s == u->master_sink)
+        pa_sink_update_flags(u->sink, PA_SINK_LATENCY|PA_SINK_DYNAMIC_LATENCY, s->flags);
+    return PA_HOOK_OK;
+}
+
 /* Called from IO thread context */
 static void sink_input_state_change_cb(pa_sink_input *i, pa_sink_input_state_t state) {
     struct userdata *u;
@@ -462,6 +472,8 @@ static void set_hooks(struct userdata *u) {
     u->algorithm = meego_algorithm_hook_api_get(u->core);
     u->hook_algorithm   = meego_algorithm_hook_init(u->algorithm, MUSIC_HOOK_DYNAMIC_ENHANCE);
     u->hook_volume      = meego_algorithm_hook_init(u->algorithm, MUSIC_HOOK_DYNAMIC_ENHANCE_VOLUME);
+    u->sink_latency_changed_slot = pa_hook_connect(&u->core->hooks[PA_CORE_HOOK_SINK_LATENCY_SUPPORT_CHANGED], PA_HOOK_NORMAL, (pa_hook_cb_t) sink_latency_flags_changed_cb, u);
+    u->sink_dynamic_latency_changed_slot = pa_hook_connect(&u->core->hooks[PA_CORE_HOOK_SINK_DYNAMIC_LATENCY_SUPPORT_CHANGED], PA_HOOK_NORMAL, (pa_hook_cb_t) sink_latency_flags_changed_cb, u);
 }
 
 static void unset_hooks(struct userdata *u) {
@@ -470,6 +482,9 @@ static void unset_hooks(struct userdata *u) {
 
     meego_algorithm_hook_api_unref(u->algorithm);
     u->algorithm = NULL;
+
+    pa_hook_slot_free(u->sink_latency_changed_slot);
+    pa_hook_slot_free(u->sink_dynamic_latency_changed_slot);
 }
 
 int pa__init(pa_module*m) {
