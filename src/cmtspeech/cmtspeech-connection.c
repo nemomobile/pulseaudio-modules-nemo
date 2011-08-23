@@ -25,7 +25,9 @@
 #include "module-voice-api.h"
 #include "cmtspeech-sink-input.h"
 #include <pulsecore/rtpoll.h>
+#include <pulsecore/core-rtclock.h>
 #include <pulse/rtclock.h>
+#include <pulse/timeval.h>
 #include <poll.h>
 #include <errno.h>
 
@@ -45,6 +47,10 @@ enum cmt_speech_thread_state {
 static struct userdata *userdata = NULL;
 
 static uint ul_frame_count = 0;
+
+static bool server_status;
+static bool cmtspeech_cleanup;
+static struct timeval server_inactive_timeout;
 
 enum {
     CMTSPEECH_HANDLER_CLOSE_CONNECTION,
@@ -232,6 +238,9 @@ static int mainloop_cmtspeech(struct userdata *u) {
     if (!c->cmt_poll_item)
         return 0;
 
+    if (server_status)
+        pa_rtpoll_set_timer_relative(c->rtpoll, 1000000);
+
     pollfd = pa_rtpoll_item_get_pollfd(c->cmt_poll_item, NULL);
     if (pollfd->revents & POLLIN) {
         cmtspeech_t *cmtspeech;
@@ -386,6 +395,29 @@ static int mainloop_cmtspeech(struct userdata *u) {
                     }
                 }
             }
+        }
+    } else {
+        if (cmtspeech_cleanup) {
+            pa_mutex_lock(c->cmtspeech_mutex);
+            if (c->cmtspeech) {
+                struct timeval now;
+                pa_rtclock_get(&now);
+                if (pa_timeval_cmp(&server_inactive_timeout, &now) <= 0) {
+                    pa_rtpoll_set_timer_disabled(c->rtpoll);
+                    cmtspeech_cleanup = FALSE;
+                    if (cmtspeech_is_active(c->cmtspeech)) {
+                        pa_log_debug("cmtspeech still active, forcing cleanup");
+                        pa_asyncmsgq_post(pa_thread_mq_get()->outq, u->mainloop_handler,
+                                          CMTSPEECH_MAINLOOP_HANDLER_CMT_DL_DISCONNECT, NULL, 0, NULL, NULL);
+                        pa_asyncmsgq_post(pa_thread_mq_get()->outq, u->mainloop_handler,
+                                          CMTSPEECH_MAINLOOP_HANDLER_CMT_UL_DISCONNECT, NULL, 0, NULL, NULL);
+                        cmtspeech_state_change_error(c->cmtspeech);
+                    }
+                }
+            }
+            pa_mutex_unlock(c->cmtspeech_mutex);
+        } else if (!server_status && c->cmtspeech == NULL) {
+            pa_rtpoll_set_timer_disabled(c->rtpoll);
         }
     }
 
@@ -702,6 +734,11 @@ int cmtspeech_send_ul_frame(struct userdata *u, uint8_t *buf, size_t bytes)
     /* locking note: hot path lock */
     pa_mutex_lock(c->cmtspeech_mutex);
 
+    if (!c->cmtspeech) {
+        pa_mutex_unlock(c->cmtspeech_mutex);
+        return -EIO;
+    }
+
     if (cmtspeech_is_active(c->cmtspeech) == true)
         res = cmtspeech_ul_buffer_acquire(c->cmtspeech, &salbuf);
 
@@ -790,10 +827,21 @@ DBusHandlerResult cmtspeech_dbus_filter(DBusConnection *conn, DBusMessage *msg, 
 
             /* note: very rarely taken code path */
             pa_mutex_lock(c->cmtspeech_mutex);
-            if (c->cmtspeech)
+            if (c->cmtspeech) {
+                pa_usec_t usec;
                 cmtspeech_state_change_call_status(c->cmtspeech, val == TRUE);
-            pa_mutex_unlock(c->cmtspeech_mutex);
+                server_status = val;
+                if (server_status)
+                    cmtspeech_cleanup = FALSE;
+                else
+                    cmtspeech_cleanup = TRUE;
+                pa_rtclock_get(&server_inactive_timeout);
+                pa_timeval_add(&server_inactive_timeout, 1000000);
+                usec = pa_timeval_load(&server_inactive_timeout);
+                pa_rtpoll_set_timer_absolute(c->rtpoll, usec);
+            }
 
+            pa_mutex_unlock(c->cmtspeech_mutex);
         } else
             pa_log_error("received %s with invalid parameters", CMTSPEECH_DBUS_CSCALL_STATUS_SIG);
 
