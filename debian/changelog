@@ -1,3 +1,12 @@
+pulseaudio-meego (0.9.19.0-30) unstable; urgency=low
+
+  * Reverted the previous version of cmtspeech forced cleanup patch, and
+    replaced it with the original version that is verified to work.
+  * Fixes: NB#265431 - Return to normal mode after call even if the cmtspeech
+    server "forgets" to give the signal that call has ended.
+
+ -- Maemo Multimedia <multimedia@maemo.org>  Mon, 29 Aug 2011 17:25:12 +0300
+
 pulseaudio-meego (0.9.19.0-29) unstable; urgency=low
 
   * cmtspeech: Reset cmtspeech connection if cmtspeech server is inactive.
