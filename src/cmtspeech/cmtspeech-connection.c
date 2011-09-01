@@ -48,9 +48,13 @@ static struct userdata *userdata = NULL;
 
 static uint ul_frame_count = 0;
 
-static bool server_status;
-static bool cmtspeech_cleanup;
-static struct timeval server_inactive_timeout;
+#define CMTSPEECH_CLEANUP_TIMER_TIMEOUT ((pa_usec_t)(1 * PA_USEC_PER_SEC))
+
+enum cmtspeech_cleanup_state_name {
+    CMTSPEECH_CLEANUP_TIMER_INACTIVE = 0,
+    CMTSPEECH_CLEANUP_TIMER_ACTIVE,
+    CMTSPEECH_CLEANUP_IN_PROGRESS
+};
 
 enum {
     CMTSPEECH_HANDLER_CLOSE_CONNECTION,
@@ -238,8 +242,8 @@ static int mainloop_cmtspeech(struct userdata *u) {
     if (!c->cmt_poll_item)
         return 0;
 
-    if (server_status)
-        pa_rtpoll_set_timer_relative(c->rtpoll, 1000000);
+    if (pa_atomic_load(&u->cmtspeech_server_status))
+        pa_rtpoll_set_timer_absolute(c->rtpoll, pa_rtclock_now() + CMTSPEECH_CLEANUP_TIMER_TIMEOUT);
 
     pollfd = pa_rtpoll_item_get_pollfd(c->cmt_poll_item, NULL);
     if (pollfd->revents & POLLIN) {
@@ -397,14 +401,12 @@ static int mainloop_cmtspeech(struct userdata *u) {
             }
         }
     } else {
-        if (cmtspeech_cleanup) {
+        /* pollfd timer expired and no events. */
+        if (pa_atomic_cmpxchg(&u->cmtspeech_cleanup_state, CMTSPEECH_CLEANUP_TIMER_ACTIVE, CMTSPEECH_CLEANUP_IN_PROGRESS)) {
             pa_mutex_lock(c->cmtspeech_mutex);
-            if (c->cmtspeech) {
-                struct timeval now;
-                pa_rtclock_get(&now);
-                if (pa_timeval_cmp(&server_inactive_timeout, &now) <= 0) {
-                    pa_rtpoll_set_timer_disabled(c->rtpoll);
-                    cmtspeech_cleanup = FALSE;
+            if (!pa_atomic_load(&u->cmtspeech_server_status) && c->cmtspeech) {
+                if (u->server_inactive_timeout <= pa_rtclock_now()) {
+                    pa_log_debug("cmtspeech cleanup timer checking server status.");
                     if (cmtspeech_is_active(c->cmtspeech)) {
                         pa_log_debug("cmtspeech still active, forcing cleanup");
                         pa_asyncmsgq_post(pa_thread_mq_get()->outq, u->mainloop_handler,
@@ -413,10 +415,22 @@ static int mainloop_cmtspeech(struct userdata *u) {
                                           CMTSPEECH_MAINLOOP_HANDLER_CMT_UL_DISCONNECT, NULL, 0, NULL, NULL);
                         cmtspeech_state_change_error(c->cmtspeech);
                     }
+                    pa_rtpoll_set_timer_disabled(c->rtpoll);
+                    pa_atomic_store(&u->cmtspeech_cleanup_state, CMTSPEECH_CLEANUP_TIMER_INACTIVE);
+                    pa_log_debug("cmtspeech cleanup timer inactive in cmtspeech mainloop.");
+                } else {
+                    pa_rtpoll_set_timer_relative(c->rtpoll, CMTSPEECH_CLEANUP_TIMER_TIMEOUT);
+                    pa_atomic_store(&u->cmtspeech_cleanup_state, CMTSPEECH_CLEANUP_TIMER_ACTIVE);
+                    pa_log_debug("cmtspeech cleanup timer timeout updated in cmtspeech mainloop.");
                 }
+            } else {
+                pa_rtpoll_set_timer_disabled(c->rtpoll);
+                pa_atomic_store(&u->cmtspeech_cleanup_state, CMTSPEECH_CLEANUP_TIMER_INACTIVE);
+                pa_log_debug("cmtspeech cleanup timer inactive in cmtspeech mainloop (call active or cmtspeech closed).");
             }
             pa_mutex_unlock(c->cmtspeech_mutex);
-        } else if (!server_status && c->cmtspeech == NULL) {
+        } else if (!pa_atomic_load(&u->cmtspeech_server_status) && c->cmtspeech == NULL) {
+            pa_log_debug("cmtspeech cleanup timer inactive in cmtspeech mainloop (2).");
             pa_rtpoll_set_timer_disabled(c->rtpoll);
         }
     }
@@ -821,27 +835,35 @@ DBusHandlerResult cmtspeech_dbus_filter(DBusConnection *conn, DBusMessage *msg, 
             dbus_bool_t val;
             if (type == DBUS_TYPE_BOOLEAN) {
                 dbus_message_iter_get_basic(&args, &val);
-            }
 
-            pa_log_debug("Set ServerStatus to %d.", val == TRUE);
+                pa_log_debug("Set ServerStatus to %d.", val == TRUE);
 
-            /* note: very rarely taken code path */
-            pa_mutex_lock(c->cmtspeech_mutex);
-            if (c->cmtspeech) {
-                pa_usec_t usec;
-                cmtspeech_state_change_call_status(c->cmtspeech, val == TRUE);
-                server_status = val;
-                if (server_status)
-                    cmtspeech_cleanup = FALSE;
-                else
-                    cmtspeech_cleanup = TRUE;
-                pa_rtclock_get(&server_inactive_timeout);
-                pa_timeval_add(&server_inactive_timeout, 1000000);
-                usec = pa_timeval_load(&server_inactive_timeout);
-                pa_rtpoll_set_timer_absolute(c->rtpoll, usec);
-            }
-
-            pa_mutex_unlock(c->cmtspeech_mutex);
+                /* note: very rarely taken code path */
+                pa_mutex_lock(c->cmtspeech_mutex);
+                if (c->cmtspeech) {
+                    cmtspeech_state_change_call_status(c->cmtspeech, val == TRUE);
+                    if (val) {
+                        /* Call in progress, pause cleanup timer. */
+                        pa_atomic_store(&u->cmtspeech_server_status, 1);
+                        if (pa_atomic_cmpxchg(&u->cmtspeech_cleanup_state, CMTSPEECH_CLEANUP_TIMER_ACTIVE,
+                                                                           CMTSPEECH_CLEANUP_TIMER_INACTIVE)) {
+                            pa_log_warn("cmtspeech cleanup timer changed to inactive in DBus thread.");
+                        }
+                    } else {
+                        /* Call ended, set cleanup timer timeout. */
+                        u->server_inactive_timeout = pa_rtclock_now() + CMTSPEECH_CLEANUP_TIMER_TIMEOUT;
+                        if (pa_atomic_cmpxchg(&u->cmtspeech_cleanup_state, CMTSPEECH_CLEANUP_TIMER_INACTIVE,
+                                                                           CMTSPEECH_CLEANUP_TIMER_ACTIVE)) {
+                            pa_log_debug("cmtspeech cleanup timer timeout set in DBus thread.");
+                        } else {
+                            pa_log_debug("cmtspeech cleanup timer is already active or cleanup in progress.");
+                        }
+                        pa_atomic_store(&u->cmtspeech_server_status, 0);
+                    }
+                }
+                pa_mutex_unlock(c->cmtspeech_mutex);
+            } else
+                pa_log_warn("received %s with invalid arguments.", CMTSPEECH_DBUS_CSCALL_STATUS_SIG);
         } else
             pa_log_error("received %s with invalid parameters", CMTSPEECH_DBUS_CSCALL_STATUS_SIG);
 
