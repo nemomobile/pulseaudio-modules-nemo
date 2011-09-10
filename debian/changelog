@@ -1,3 +1,9 @@
+pulseaudio-meego (0.9.19.0-31) unstable; urgency=low
+
+  * Fixes: NB#280746 - cmtspeech connection resetting improved.
+
+ -- Maemo Multimedia <multimedia@maemo.org>  Sat, 10 Sep 2011 12:46:08 +0300
+
 pulseaudio-meego (0.9.19.0-30) unstable; urgency=low
 
   * Reverted the previous version of cmtspeech forced cleanup patch, and
