@@ -1,3 +1,10 @@
+pulseaudio-meego (0.9.19.0-32) UNRELEASED; urgency=low
+
+    * Fixes: NB#275839 - Fixed assertion failure when voice module master sink
+      input moves to sink.null.
+
+ -- Maemo Multimedia <multimedia@maemo.org>  Wed, 28 Sep 2011 13:11:07 +0300
+
 pulseaudio-meego (0.9.19.0-31) unstable; urgency=low
 
   * Fixes: NB#280746 - cmtspeech connection resetting improved.
