@@ -83,7 +83,7 @@ Package: pulseaudio-module-meego-common-dev
 Priority: extra
 Section: libs
 Architecture: armel i386
-Depends: ${misc:Depends}, pulseaudio-module-meego-common (= ${binary:Version})
+Depends: ${misc:Depends}, pulseaudio-dev, pulseaudio-module-meego-common (= ${binary:Version})
 Description: Common libraries for Meego PulseAudio modules (Headers)
  Headers for PulseAudio Meego common module library.
 
