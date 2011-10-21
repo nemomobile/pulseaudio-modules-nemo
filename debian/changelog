@@ -1,7 +1,14 @@
+pulseaudio-meego (0.9.19.0-33) UNRELEASED; urgency=low
+
+  * cmtspeech: Adapt to the changed pa_thread_new() interface.
+  * Fixes: NB#286317 - Adapt to the pulseaudio changes.
+
+ -- Maemo Multimedia <multimedia@maemo.org>  Fri, 21 Oct 2011 17:52:00 +0300
+
 pulseaudio-meego (0.9.19.0-32) unstable; urgency=low
 
-    * Fixes: NB#275839 - Fixed assertion failure when voice module master sink
-      input moves to sink.null.
+  * Fixes: NB#275839 - Fixed assertion failure when voice module master sink
+    input moves to sink.null.
 
  -- Maemo Multimedia <multimedia@maemo.org>  Tue, 04 Oct 2011 13:28:50 +0300
 
