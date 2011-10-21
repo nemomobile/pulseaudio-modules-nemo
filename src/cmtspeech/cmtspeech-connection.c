@@ -664,7 +664,7 @@ int cmtspeech_connection_init(struct userdata *u)
     c->playback_running = FALSE;
     c->streams_created = FALSE;
 
-    if (!(c->thread = pa_thread_new(thread_func, u))) {
+    if (!(c->thread = pa_thread_new("cmtspeech", thread_func, u))) {
         pa_log_error("Failed to create thread.");
         pa_atomic_store(&c->thread_state, CMT_QUIT);
         cmtspeech_connection_unload(u);
