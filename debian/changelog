@@ -1,9 +1,11 @@
-pulseaudio-meego (0.9.19.0-33) UNRELEASED; urgency=low
+pulseaudio-meego (0.9.19.0-33) unstable; urgency=low
 
   * cmtspeech: Adapt to the changed pa_thread_new() interface.
   * Fixes: NB#286317 - Adapt to the pulseaudio changes.
+  * Fixes: NB#278727 - Added missing pulseaudio-dev dependency to
+    pulseaudio-module-meego-common-dev package.
 
- -- Maemo Multimedia <multimedia@maemo.org>  Fri, 21 Oct 2011 17:52:00 +0300
+ -- Maemo Multimedia <multimedia@maemo.org>  Mon, 31 Oct 2011 14:01:44 +0200
 
 pulseaudio-meego (0.9.19.0-32) unstable; urgency=low
 
