@@ -48,7 +48,7 @@ static struct userdata *userdata = NULL;
 
 static uint ul_frame_count = 0;
 
-#define CMTSPEECH_CLEANUP_TIMER_TIMEOUT ((pa_usec_t)(1 * PA_USEC_PER_SEC))
+#define CMTSPEECH_CLEANUP_TIMER_TIMEOUT ((pa_usec_t)(5 * PA_USEC_PER_SEC))
 
 enum cmtspeech_cleanup_state_name {
     CMTSPEECH_CLEANUP_TIMER_INACTIVE = 0,
