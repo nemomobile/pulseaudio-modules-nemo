@@ -1,4 +1,4 @@
-pulseaudio-meego (0.9.19.0-34) UNRELEASED; urgency=low
+pulseaudio-meego (0.9.19.0-34) unstable; urgency=low
 
   * cmtspeech: Increase cmtspeech cleanup timer timeout to 5s.
   * Fixes: NB#282955 - Allow more time for network to release audio.
