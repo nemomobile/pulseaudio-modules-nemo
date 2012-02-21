@@ -1,3 +1,11 @@
+pulseaudio-meego (0.9.19.0-35) unstable; urgency=low
+
+  * voice: Convert byte amounts between different sample spec domains
+    correctly.
+  * Fixes: NB#297413 - The frame alignment problem is now fixed.
+
+ -- Tanu Kaskinen <tanu.kaskinen@digia.com>  Tue, 21 Feb 2012 17:49:00 +0200
+
 pulseaudio-meego (0.9.19.0-34) unstable; urgency=low
 
   * cmtspeech: Increase cmtspeech cleanup timer timeout to 5s.
