@@ -429,6 +429,20 @@ pa_hook_result_t voice_parameter_cb(pa_core *c, meego_parameter_update_args *ua,
     return PA_HOOK_OK;
 }
 
+size_t voice_convert_nbytes(size_t nbytes, const pa_sample_spec *from_ss, const pa_sample_spec *to_ss) {
+    size_t frames;
+
+    pa_assert(from_ss);
+    pa_assert(to_ss);
+
+    frames = nbytes / pa_frame_size(from_ss);
+
+    /* Convert to the destination sample rate. */
+    frames = frames * to_ss->rate / from_ss->rate;
+
+    return frames * pa_frame_size(to_ss);
+}
+
 #ifdef EXTRA_DEBUG
 /* This code is not finished and probably dont work. */
 

@@ -91,6 +91,8 @@ void voice_set_aep_runtime_switch(const char *aep_runtime_src);
 void voice_shutdown_aep(void);
 /* END OF AEP-SIDETONE SPAGETHI */
 
+size_t voice_convert_nbytes(size_t nbytes, const pa_sample_spec *from_ss, const pa_sample_spec *to_ss) PA_GCC_PURE;
+
 // For debugging...
 void voice_append_chunk_to_file(struct userdata *u, const char *file_name, pa_memchunk *chunk);
 

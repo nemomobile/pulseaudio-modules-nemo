@@ -351,12 +351,6 @@ static int hw_source_output_process_msg(pa_msgobject *mo, int code, void *userda
     return pa_source_output_process_msg(mo, code, userdata, offset, chunk);
 }
 
-static
-size_t hw_source_output_convert_bytes(pa_source_output *o, pa_source *s, size_t nbytes)
-{
-    return (nbytes/pa_frame_size(&o->thread_info.sample_spec))*pa_frame_size(&s->sample_spec);
-}
-
 /* Called from I/O thread context */
 static void hw_source_output_process_rewind_cb(pa_source_output *o, size_t nbytes) {
     struct userdata *u;
@@ -368,12 +362,14 @@ static void hw_source_output_process_rewind_cb(pa_source_output *o, size_t nbyte
         return;
 
     if (u->raw_source && PA_SOURCE_IS_OPENED(u->raw_source->thread_info.state)) {
-        size_t amount = hw_source_output_convert_bytes(o, u->raw_source, nbytes);
+        size_t amount = voice_convert_nbytes(nbytes, &o->sample_spec, &u->raw_source->sample_spec);
+
         pa_source_process_rewind(u->raw_source, amount);
     }
 
     if (u->voip_source && PA_SOURCE_IS_OPENED(u->voip_source->thread_info.state)) {
-        size_t amount = hw_source_output_convert_bytes(o, u->voip_source, nbytes);
+        size_t amount = voice_convert_nbytes(nbytes, &o->sample_spec, &u->voip_source->sample_spec);
+
         pa_source_process_rewind(u->voip_source, amount);
     }
 }
@@ -389,10 +385,10 @@ static void hw_source_output_update_max_rewind_cb(pa_source_output *o, size_t nb
         return;
 
     if (u->raw_source && PA_SOURCE_IS_LINKED(u->raw_source->thread_info.state))
-        pa_source_set_max_rewind_within_thread(u->raw_source, hw_source_output_convert_bytes(o, u->raw_source, nbytes));
+        pa_source_set_max_rewind_within_thread(u->raw_source, voice_convert_nbytes(nbytes, &o->sample_spec, &u->raw_source->sample_spec));
 
     if (u->voip_source && PA_SOURCE_IS_LINKED(u->voip_source->thread_info.state))
-        pa_source_set_max_rewind_within_thread(u->voip_source, hw_source_output_convert_bytes(o, u->voip_source, nbytes));
+        pa_source_set_max_rewind_within_thread(u->voip_source, voice_convert_nbytes(nbytes, &o->sample_spec, &u->voip_source->sample_spec));
 }
 
 /* Called from I/O thread context */

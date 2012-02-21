@@ -442,12 +442,6 @@ static int hw_sink_input_pop_8k_mono_cb(pa_sink_input *i, size_t length, pa_memc
     return 0;
 }
 
-static
-size_t hw_sink_input_convert_bytes(pa_sink_input *i, pa_sink *s, size_t nbytes)
-{
-    return (nbytes/pa_frame_size(&i->thread_info.sample_spec))*pa_frame_size(&s->sample_spec);
-}
-
 /* Called from I/O thread context */
 static void hw_sink_input_process_rewind_cb(pa_sink_input *i, size_t nbytes) {
     struct userdata *u;
@@ -459,7 +453,8 @@ static void hw_sink_input_process_rewind_cb(pa_sink_input *i, size_t nbytes) {
         return;
 
     if (u->raw_sink && PA_SINK_IS_OPENED(u->raw_sink->thread_info.state)) {
-        size_t amount = hw_sink_input_convert_bytes(i, u->raw_sink, nbytes);
+        size_t amount = voice_convert_nbytes(nbytes, &i->sample_spec, &u->raw_sink->sample_spec);
+
         if (u->raw_sink->thread_info.rewind_nbytes > 0) {
             amount = PA_MIN(u->raw_sink->thread_info.rewind_nbytes, amount);
             u->raw_sink->thread_info.rewind_nbytes = 0;
@@ -468,14 +463,15 @@ static void hw_sink_input_process_rewind_cb(pa_sink_input *i, size_t nbytes) {
     }
 
     if (u->voip_sink && PA_SINK_IS_OPENED(u->voip_sink->thread_info.state)) {
-        size_t amount = hw_sink_input_convert_bytes(i, u->voip_sink, nbytes);
+        size_t amount = voice_convert_nbytes(nbytes, &i->sample_spec, &u->voip_sink->sample_spec);
+
         if (u->voip_sink->thread_info.rewind_nbytes > 0) {
             amount = PA_MIN(u->voip_sink->thread_info.rewind_nbytes, amount);
             u->voip_sink->thread_info.rewind_nbytes = 0;
         }
         pa_sink_process_rewind(u->voip_sink, amount);
 
-        if(amount > 0)
+        if (amount > 0)
             voice_aep_ear_ref_loop_reset(u);
     }
 }
@@ -491,10 +487,10 @@ static void hw_sink_input_update_max_rewind_cb(pa_sink_input *i, size_t nbytes) 
         return;
 
     if (u->raw_sink && PA_SINK_IS_LINKED(u->raw_sink->thread_info.state))
-        pa_sink_set_max_rewind_within_thread(u->raw_sink, hw_sink_input_convert_bytes(i, u->raw_sink, nbytes));
+        pa_sink_set_max_rewind_within_thread(u->raw_sink, voice_convert_nbytes(nbytes, &i->sample_spec, &u->raw_sink->sample_spec));
 
     if (u->voip_sink && PA_SINK_IS_LINKED(u->voip_sink->thread_info.state))
-        pa_sink_set_max_rewind_within_thread(u->voip_sink, hw_sink_input_convert_bytes(i, u->voip_sink, nbytes));
+        pa_sink_set_max_rewind_within_thread(u->voip_sink, voice_convert_nbytes(nbytes, &i->sample_spec, &u->voip_sink->sample_spec));
 }
 
 /* Called from I/O thread context */
@@ -508,10 +504,10 @@ static void hw_sink_input_update_max_request_cb(pa_sink_input *i, size_t nbytes)
         return;
 
     if (u->raw_sink && PA_SINK_IS_LINKED(u->raw_sink->thread_info.state))
-        pa_sink_set_max_request_within_thread(u->raw_sink, hw_sink_input_convert_bytes(i, u->raw_sink, nbytes));
+        pa_sink_set_max_request_within_thread(u->raw_sink, voice_convert_nbytes(nbytes, &i->sample_spec, &u->raw_sink->sample_spec));
 
     if (u->voip_sink && PA_SINK_IS_LINKED(u->voip_sink->thread_info.state))
-        pa_sink_set_max_request_within_thread(u->voip_sink, hw_sink_input_convert_bytes(i, u->voip_sink, nbytes));
+        pa_sink_set_max_request_within_thread(u->voip_sink, voice_convert_nbytes(nbytes, &i->sample_spec, &u->voip_sink->sample_spec));
 }
 
 /* Called from I/O thread context */

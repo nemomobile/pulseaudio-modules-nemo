@@ -102,8 +102,11 @@ static void voip_sink_request_rewind(pa_sink *s) {
     pa_assert_se(u = s->userdata);
 
     /* Just hand this one over to the master sink */
-    if (u->hw_sink_input && s->thread_info.rewind_nbytes > 0)
-        pa_sink_input_request_rewind(u->hw_sink_input, s->thread_info.rewind_nbytes, TRUE, FALSE, FALSE);
+    if (u->hw_sink_input && s->thread_info.rewind_nbytes > 0) {
+        size_t nbytes = voice_convert_nbytes(s->thread_info.rewind_nbytes, &s->sample_spec, &u->hw_sink_input->sample_spec);
+
+        pa_sink_input_request_rewind(u->hw_sink_input, nbytes, TRUE, FALSE, FALSE);
+    }
 }
 
 /* Called from I/O thread context */
