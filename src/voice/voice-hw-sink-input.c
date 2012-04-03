@@ -140,7 +140,7 @@ static int hw_sink_input_pop_cb(pa_sink_input *i, size_t length, pa_memchunk *ch
                     &u->hw_sample_spec,
                     length);
             voice_aep_ear_ref_loop_reset(u);
-            return;
+            return 0;
         }
         else
             length += u->hw_fragment_size - (length % u->hw_fragment_size);
