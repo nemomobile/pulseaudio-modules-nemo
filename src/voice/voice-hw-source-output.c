@@ -65,6 +65,134 @@ static pa_bool_t voice_uplink_feed(struct userdata *u, pa_memchunk *chunk) {
         return FALSE;
 }
 
+static inline
+int voice_aep_ear_ref_check_ul_xrun(struct userdata *u) {
+    struct voice_aep_ear_ref *r = &u->ear_ref;
+    pa_bool_t overrun;
+
+    if (u->master_source) {
+        PA_MSGOBJECT(u->master_source)->process_msg(
+                PA_MSGOBJECT(u->master_source), PA_SOURCE_MESSAGE_GET_OVERRUN, &overrun, (int64_t)0, NULL);
+    }
+
+    if (overrun) {
+        pa_log_debug("UL XRUN -> reset");
+        pa_atomic_store(&r->loop_state, VOICE_EAR_REF_RESET);
+        return 1;
+    }
+
+    return 0;
+}
+
+static inline
+int voice_aep_ear_ref_ul(struct userdata *u, pa_memchunk *chunk) {
+    pa_assert(u);
+    struct voice_aep_ear_ref *r = &u->ear_ref;
+    int ret = 0;
+    while (ret == 0) {
+        int loop_state = pa_atomic_load(&r->loop_state);
+        switch (loop_state) {
+            case VOICE_EAR_REF_RUNNING: {
+                if (!voice_aep_ear_ref_check_ul_xrun(u)) {
+                    voice_aep_ear_ref_ul_drain_asyncq(u, TRUE);
+                    if (util_memblockq_to_chunk(u->core->mempool, r->loop_memblockq, chunk, u->aep_fragment_size)) {
+                        ret = 1;
+                    }
+                    else {
+                        /* Queue has run out, reset the queue. */
+                        pa_log_debug("Only %d bytes left in ear ref loop, let's reset the loop",
+                                     pa_memblockq_get_length(r->loop_memblockq));
+                        pa_atomic_store(&r->loop_state, VOICE_EAR_REF_RESET);
+                    }
+                }
+            }
+            break;
+            case VOICE_EAR_REF_RESET: {
+                voice_aep_ear_ref_ul_drain_asyncq(u, FALSE);
+                pa_memblockq_drop(r->loop_memblockq, pa_memblockq_get_length(r->loop_memblockq));
+                pa_atomic_store(&r->loop_state, VOICE_EAR_REF_UL_READY);
+            }
+            break;
+            case VOICE_EAR_REF_DL_READY: {
+                struct timeval tv_ul_tstamp;
+                struct timeval tv_dl_tstamp = r->loop_tstamp;
+                pa_assert(VOICE_TIMEVAL_IS_VALID(&tv_dl_tstamp));
+                pa_usec_t latency;
+                PA_MSGOBJECT(u->master_source)->process_msg(
+                PA_MSGOBJECT(u->master_source), PA_SOURCE_MESSAGE_GET_LATENCY, &latency, (int64_t)0, NULL);
+                /* HACK to fix AEC in VoIP
+
+                  This hack is needed because cellular call and VoIP calls use different hw buffer sizes.
+                  Currently cellular call uses 10ms and VoIP calls uses 5ms hw buffer size.
+
+                  If the fix is made here, a correct fix for this could be like this:
+                  latency -= aep_fragment_usec - hw_buffer_usec;
+
+                  Currently is not possible to get the hw buffer size from alsa-source-old.
+                  It's a possibility to add PA_SOURCE_MESSAGE_GET_HW_BUFFER_SIZE message but
+                  that makes voice module to be dependend of alsa-source-old, which is obviously not good.
+                  So the real fix should go to alsa-source-old.
+                */
+                if (latency > 10000)
+                    latency -= 5000;
+                latency += pa_bytes_to_usec((uint64_t)pa_memblockq_get_length(u->hw_source_memblockq),
+                                            &u->hw_source_output->thread_info.sample_spec);
+                pa_rtclock_get(&tv_ul_tstamp);
+                pa_timeval_sub(&tv_ul_tstamp, latency + r->loop_padding_usec);
+                pa_usec_t loop_padding_time = pa_timeval_diff(&tv_ul_tstamp, &tv_dl_tstamp);
+                size_t loop_padding_bytes = pa_usec_to_bytes_round_up(loop_padding_time, &u->aep_sample_spec);
+
+                pa_log_debug("Ear ref loop padding %d.%06d - %d.%06d = %lld = %d bytes (%lld latency %d extra padding)",
+                     (int)tv_ul_tstamp.tv_sec, (int)tv_ul_tstamp.tv_usec,
+                     (int)tv_dl_tstamp.tv_sec, (int)tv_dl_tstamp.tv_usec,
+                     loop_padding_time, loop_padding_bytes,
+                     latency, r->loop_padding_usec);
+                if (0 > pa_timeval_cmp(&tv_dl_tstamp, &tv_ul_tstamp)) {
+                pa_log_debug("Dl stamp precedes UL stamp %d.%06d < %d.%06d, something went wrong -> reset",
+                         (int)tv_dl_tstamp.tv_sec, (int)tv_dl_tstamp.tv_usec,
+                         (int)tv_ul_tstamp.tv_sec, (int)tv_ul_tstamp.tv_usec);
+                pa_atomic_store(&r->loop_state, VOICE_EAR_REF_RESET);
+                break;
+            }
+
+            if (loop_padding_bytes >= pa_memblockq_get_maxlength(r->loop_memblockq)) {
+                pa_log_debug("Too long loop time %lld, reset init sequence", loop_padding_time);
+                pa_atomic_store(&r->loop_state, VOICE_EAR_REF_RESET);
+                break;
+            }
+
+            pa_memchunk schunk;
+            pa_silence_memchunk_get(&u->core->silence_cache,
+                    u->core->mempool,
+                    &schunk,
+                    &u->aep_sample_spec,
+                    loop_padding_bytes);
+
+            if (pa_memblockq_push(r->loop_memblockq, &schunk) < 0) {
+            pa_log_debug("Failed to push %d bytes of ear ref padding to memblockq (len %d max %d )",
+                     loop_padding_bytes,
+                     pa_memblockq_get_length(r->loop_memblockq),
+                     pa_memblockq_get_maxlength(r->loop_memblockq));
+            }
+            pa_memblock_unref(schunk.memblock);
+            VOICE_TIMEVAL_INVALIDATE(&r->loop_tstamp);
+            pa_atomic_store(&r->loop_state, VOICE_EAR_REF_RUNNING);
+            pa_log_debug("Ear ref loop init sequence ready.");
+            }
+            break;
+            case VOICE_EAR_REF_QUIT:
+            case VOICE_EAR_REF_UL_READY: {
+                //pa_log_debug("Still waiting for loop initialization data from DL");
+                *chunk = u->aep_silence_memchunk;
+                pa_memblock_ref(chunk->memblock);
+                ret = -1;
+            }
+            break;
+        }
+    }
+    return ret;
+}
+
 static
 pa_bool_t voice_voip_source_process(struct userdata *u, pa_memchunk *chunk, pa_memchunk *amb_chunk) {
     pa_bool_t ul_frame_sent = FALSE;
