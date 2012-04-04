@@ -12,3 +12,12 @@ depcomp
 install-sh
 ltmain.sh
 missing
+Makefile
+config.h
+*~
+config.status
+libtool
+shave
+shave-libtool
+*.pc
+stamp-*
