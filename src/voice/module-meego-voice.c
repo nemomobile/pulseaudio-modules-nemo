@@ -172,8 +172,6 @@ int pa__init(pa_module*m) {
     const char *voice_source_name;
     const char *max_hw_frag_size_str;
     int max_hw_frag_size = 3840;
-    pa_sink *master_sink;
-    pa_source *master_source;
 
     pa_assert(m);
 
@@ -197,19 +195,21 @@ int pa__init(pa_module*m) {
                  raw_sink_name, raw_source_name,
                  max_hw_frag_size_str);
 
-    if (!(master_sink = pa_namereg_get(m->core, master_sink_name, PA_NAMEREG_SINK))) {
+    m->userdata = u = pa_xnew0(struct userdata, 1);
+
+    if (!(u->master_sink = pa_namereg_get(m->core, master_sink_name, PA_NAMEREG_SINK))) {
         pa_log("Master sink \"%s\" not found", master_sink_name);
         goto fail;
     }
 
-    if (!(master_source = pa_namereg_get(m->core, master_source_name, PA_NAMEREG_SOURCE))) {
+    if (!(u->master_source = pa_namereg_get(m->core, master_source_name, PA_NAMEREG_SOURCE))) {
         pa_log("Master source \"%s\" not found", master_source_name);
         goto fail;
     }
 
-    if (master_sink->sample_spec.format != master_source->sample_spec.format &&
-        master_sink->sample_spec.rate != master_source->sample_spec.rate &&
-        master_sink->sample_spec.channels != master_source->sample_spec.channels) {
+    if (u->master_sink->sample_spec.format != u->master_source->sample_spec.format &&
+        u->master_sink->sample_spec.rate != u->master_source->sample_spec.rate &&
+        u->master_sink->sample_spec.channels != u->master_source->sample_spec.channels) {
         pa_log("Master source and sink must have same sample spec");
         goto fail;
     }
@@ -221,12 +221,9 @@ int pa__init(pa_module*m) {
         goto fail;
     }
 
-    m->userdata = u = pa_xnew0(struct userdata, 1);
     u->modargs = ma;
     u->core = m->core;
     u->module = m;
-    u->master_sink = master_sink;
-    u->master_source = master_source;
 
     set_hooks(u);
 
