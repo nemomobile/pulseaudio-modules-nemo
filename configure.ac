@@ -7,8 +7,9 @@ m4_define(MEEGO_API, [1])
 
 AC_INIT([pulseaudio-meego], [PA_MAJOR.PA_MINOR.PA_MICRO.MEEGO_API], [multimedia@maemo.org])
 AC_CONFIG_HEADER([config.h])
-AM_INIT_AUTOMAKE([foreign -Wall])
+AM_INIT_AUTOMAKE([foreign -Wall silent-rules])
 AC_CONFIG_MACRO_DIR(m4)
+AM_SILENT_RULES([yes])
 
 if type -p stow > /dev/null && test -d /usr/local/stow ; then
    AC_MSG_NOTICE([*** Found /usr/local/stow: default install prefix set to /usr/local/stow/${PACKAGE_NAME}-${PACKAGE_VERSION} ***])
