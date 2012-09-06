@@ -417,7 +417,7 @@ pa_hook_result_t voice_parameter_cb(pa_core *c, meego_parameter_update_args *ua,
         pa_log_debug("ear_ref_padding \"%s\" %d %d", v, (int)u->ear_ref.loop_padding_usec, temp);
 
         v = pa_strnull(pa_proplist_gets(p, PA_NOKIA_PROP_AUDIO_ACTIVE_MIC_CHANNEL));
-        int temp = -1;
+        temp = -1;
         if (!pa_atoi(v, &temp) && temp > 0 && temp <= 5) {
             u->active_mic_channel = temp;
         }
