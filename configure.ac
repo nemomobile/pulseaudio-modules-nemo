@@ -1,11 +1,10 @@
 AC_PREREQ(2.60)
 
-m4_define(PA_MAJOR, [0])
-m4_define(PA_MINOR, [9])
-m4_define(PA_MICRO, [19])
-m4_define(MEEGO_API, [1])
+m4_define(PA_MAJOR, [2])
+m4_define(PA_MINOR, [1])
+m4_define(NEMO_MICRO, [0])
 
-AC_INIT([pulseaudio-meego], [PA_MAJOR.PA_MINOR.PA_MICRO.MEEGO_API], [multimedia@maemo.org])
+AC_INIT([pulseaudio-modules-nemo], [PA_MAJOR.PA_MINOR.NEMO_MICRO], [mer-general@lists.merproject.org])
 AC_CONFIG_HEADER([config.h])
 AM_INIT_AUTOMAKE([foreign -Wall silent-rules])
 AC_CONFIG_MACRO_DIR(m4)
@@ -22,7 +21,6 @@ AM_PROG_CC_C_O
 AC_PROG_GCC_TRADITIONAL
 
 AC_SUBST(PA_MAJORMINOR, PA_MAJOR.PA_MINOR)
-AC_SUBST(PA_MAJORMINORMICRO, PA_MAJOR.PA_MINOR.PA_MICRO)
 
 DESIRED_FLAGS="-Wall -W -Wextra -pedantic -pipe -Wno-long-long -Winline -Wvla -Wno-overlength-strings -Wunsafe-loop-optimizations -Wundef -Wformat=2 -Wlogical-op -Wsign-compare -Wpacked -Wformat-security -Wmissing-include-dirs -Wformat-nonliteral -Wold-style-definition -Wpointer-arith -Winit-self -Wfloat-equal -Wmissing-prototypes -Wstrict-prototypes -Wredundant-decls -Wmissing-declarations -Wmissing-noreturn -Wshadow -Wendif-labels -Wstrict-aliasing=2 -Wwrite-strings -Wno-unused-parameter -ffast-math -Wp,-D_FORTIFY_SOURCE=2 -fno-common -fdiagnostics-show-option" # PulseAudio 0.9.15 usess same + -Wcast-align -Wdeclaration-after-statement
 
@@ -185,8 +183,8 @@ AC_SUBST(ASOUNDLIB_CFLAGS)
 AC_SUBST(ASOUNDLIB_LIBS)
 
 AC_ARG_WITH([module-dir],
-        AS_HELP_STRING([--with-module-dir],[Directory where to install the modules to (defaults to ${pulseaudiodir}/lib/pulse-${PA_MAJORMINORMICRO}/modules/]),
-        [modlibexecdir=$withval], [modlibexecdir="${pulseaudiodir}/lib/pulse-${PA_MAJORMINORMICRO}/modules"])
+        AS_HELP_STRING([--with-module-dir],[Directory where to install the modules to (defaults to ${pulseaudiodir}/lib/pulse-${PA_MAJORMINOR}/modules/]),
+        [modlibexecdir=$withval], [modlibexecdir="${pulseaudiodir}/lib/pulse-${PA_MAJORMINOR}/modules"])
 
 AC_SUBST(modlibexecdir)
 
