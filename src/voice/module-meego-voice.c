@@ -90,7 +90,6 @@ static void voice_update_volumes(struct userdata *u) {
 
 static void master_sink_volume_subscribe_cb(pa_core *c, pa_subscription_event_type_t t, uint32_t idx, void *userdata) {
     struct userdata *u = userdata;
-    pa_sink *sink;
 
     pa_assert(c);
     pa_assert(u);
