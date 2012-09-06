@@ -278,9 +278,9 @@ int pa__init(pa_module*m) {
 
     /* This must be set before calling pa_sink_put(), because pa_sink_put() has
      * assertion
-     * "!(s->flags & PA_SINK_SHARE_VOLUME_WITH_MASTER) || s->flat_sink_input".
+     * "!(s->flags & PA_SINK_SHARE_VOLUME_WITH_MASTER) || s->input_to_master".
      */
-    u->raw_sink->flat_sink_input = u->hw_sink_input;
+    u->raw_sink->input_to_master = u->hw_sink_input;
 
     /* This must be called before calling voice_init_voip_sink(), because
      * pa_sink_input_new() has assertion
@@ -349,7 +349,7 @@ int pa__init(pa_module*m) {
     /*                < mux <------------- master-src   */
     /*  raw-src  <---                                   */
 
-    u->voip_sink->flat_sink_input = u->aep_sink_input;
+    u->voip_sink->input_to_master = u->aep_sink_input;
 
     pa_sink_put(u->voip_sink);
 

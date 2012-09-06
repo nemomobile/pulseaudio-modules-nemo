@@ -847,7 +847,7 @@ static void voice_hw_sink_input_reinit_defer_cb(pa_mainloop_api *m, pa_defer_eve
     pa_log_debug("reinitialize hw sink-input %s %p", u->master_sink->name, (void*)new_si);
 
     u->hw_sink_input = new_si;
-    u->raw_sink->flat_sink_input = new_si;
+    u->raw_sink->input_to_master = new_si;
     pa_sink_input_put(u->hw_sink_input);
 
     pa_log_debug("Detaching the old sink input %p", (void*)old_si);

@@ -627,7 +627,7 @@ int pa__init(pa_module*m) {
     u->sink_input->moving = sink_input_moving_cb;
     u->sink_input->userdata = u;
 
-    u->sink->flat_sink_input = u->sink_input;
+    u->sink->input_to_master = u->sink_input;
 
     pa_sink_put(u->sink);
     pa_sink_input_put(u->sink_input);
