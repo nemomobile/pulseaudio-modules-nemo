@@ -318,7 +318,8 @@ static void source_output_moving_cb(pa_source_output *o, pa_source *dest){
 
     u->master_source = dest;
     pa_source_set_asyncmsgq(u->source, dest->asyncmsgq);
-    pa_source_update_flags(u->source, PA_SOURCE_LATENCY|PA_SOURCE_DYNAMIC_LATENCY, dest->flags);
+    pa_source_set_latency_flag(u->source, dest->flags & PA_SOURCE_LATENCY);
+    pa_source_set_dynamic_latency_flag(u->source, dest->flags & PA_SOURCE_DYNAMIC_LATENCY);
 
     p = pa_proplist_new();
     pa_proplist_setf(p, PA_PROP_DEVICE_DESCRIPTION, "%s connected to %s", u->source->name, u->master_source->name);
@@ -490,6 +491,8 @@ int pa__init(pa_module*m) {
     u->source_output->update_max_rewind = source_output_update_max_rewind_cb;
     u->source_output->update_source_latency_range = source_output_update_source_latency_range_cb;
     u->source_output->update_source_fixed_latency = source_output_update_source_fixed_latency_cb;
+    u->source_output->update_source_latency_flag = pa_source_output_update_source_latency_flag_cb;
+    u->source_output->update_source_dynamic_latency_flag = pa_source_output_update_source_dynamic_latency_flag_cb;
     u->source_output->kill = source_output_kill_cb;
     u->source_output->attach = source_output_attach_cb;
     u->source_output->detach = source_output_detach_cb;

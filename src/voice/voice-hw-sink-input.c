@@ -644,7 +644,8 @@ static void hw_sink_input_update_slave_sink(struct userdata *u, pa_sink *sink, p
     uint32_t idx;
     pa_assert(sink);
 
-    pa_sink_update_flags(sink, PA_SINK_LATENCY|PA_SINK_DYNAMIC_LATENCY, to_sink->flags);
+    pa_sink_set_latency_flag(sink, to_sink->flags & PA_SINK_LATENCY);
+    pa_sink_set_dynamic_latency_flag(sink, to_sink->flags & PA_SINK_DYNAMIC_LATENCY);
 
     /* FIXME: This should be done by the core. */
     pa_sink_set_asyncmsgq(sink, to_sink->asyncmsgq);
@@ -791,6 +792,8 @@ static pa_sink_input *voice_hw_sink_input_new(struct userdata *u, pa_sink_input_
     new_sink_input->update_max_request = hw_sink_input_update_max_request_cb;
     new_sink_input->update_sink_latency_range = hw_sink_input_update_sink_latency_range_cb;
     new_sink_input->update_sink_fixed_latency = hw_sink_input_update_sink_fixed_latency_cb;
+    new_sink_input->update_sink_latency_flag = pa_sink_input_update_sink_latency_flag_cb;
+    new_sink_input->update_sink_dynamic_latency_flag = pa_sink_input_update_sink_dynamic_latency_flag_cb;
     new_sink_input->kill = hw_sink_input_kill_cb;
     new_sink_input->attach = hw_sink_input_attach_cb;
     new_sink_input->detach = hw_sink_input_detach_cb;
@@ -839,8 +842,8 @@ static void voice_hw_sink_input_reinit_defer_cb(pa_mainloop_api *m, pa_defer_eve
     new_si = voice_hw_sink_input_new(u, start_uncorked ? 0 : PA_SINK_INPUT_START_CORKED);
     pa_return_if_fail(new_si);
 
-    pa_sink_update_flags(u->raw_sink, PA_SINK_LATENCY|PA_SINK_DYNAMIC_LATENCY, new_si->sink->flags);
-    pa_sink_update_flags(u->voip_sink, PA_SINK_LATENCY|PA_SINK_DYNAMIC_LATENCY, new_si->sink->flags);
+    pa_sink_set_latency_flag(u->raw_sink, new_si->sink->flags & PA_SINK_LATENCY);
+    pa_sink_set_dynamic_latency_flag(u->raw_sink, new_si->sink->flags & PA_SINK_DYNAMIC_LATENCY);
 
     pa_sink_input_cork(old_si, TRUE);
 
