@@ -63,7 +63,7 @@ static unsigned int voice_dl_sideinfo_pop(struct userdata *u, int length) {
     pa_assert(length % u->aep_fragment_size == 0);
 
     while (length) {
-        spc_flags = (unsigned int)pa_queue_pop(u->dl_sideinfo_queue);
+        spc_flags = PA_PTR_TO_UINT(pa_queue_pop(u->dl_sideinfo_queue));
         length -= u->aep_fragment_size;
     }
 
