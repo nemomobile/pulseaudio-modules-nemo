@@ -264,8 +264,6 @@ fi
 
 AC_CONFIG_FILES([
 Makefile
-shave
-shave-libtool
 src/Makefile
 src/common/Makefile
 src/common/libmeego-common.pc
@@ -282,7 +280,6 @@ src/parameters/Makefile
 src/parameters/testmodule/Makefile
 ])
 
-SHAVE_INIT
 AC_OUTPUT
 
 echo "

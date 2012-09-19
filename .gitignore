@@ -17,7 +17,5 @@ config.h
 *~
 config.status
 libtool
-shave
-shave-libtool
 *.pc
 stamp-*
