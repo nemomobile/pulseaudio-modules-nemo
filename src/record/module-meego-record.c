@@ -427,7 +427,7 @@ int pa__init(pa_module*m) {
     u->source_output = NULL;
     u->maxblocksize = maxblocksize;
 
-    u->memblockq = pa_memblockq_new(0, maxblocksize*8, 0, pa_frame_size(&ss), 0, 0, 0, NULL);
+    u->memblockq = pa_memblockq_new("record memblockq", 0, maxblocksize*8, 0, &ss, 0, 0, 0, NULL);
     if (!u->memblockq) {
         pa_log_error("couldn't alloc memblockq");
         goto fail;

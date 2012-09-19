@@ -314,10 +314,10 @@ int pa__init(pa_module*m) {
 
     /* TODO: Guess we should use max_hw_frag_size here */
     u->hw_source_memblockq = // 8 * 5ms = 40ms
-        pa_memblockq_new(0, 2*u->hw_fragment_size_max, 0, pa_frame_size(&u->hw_sample_spec), 0, 0, 0, NULL);
+        pa_memblockq_new("voice hw_source_memblockq", 0, 2*u->hw_fragment_size_max, 0, &u->hw_sample_spec, 0, 0, 0, NULL);
 
     u->ul_memblockq =
-        pa_memblockq_new(0, 2*u->voice_ul_fragment_size, 0, pa_frame_size(&u->aep_sample_spec), 0, 0, 0, NULL);
+        pa_memblockq_new("voice ul_memblockq", 0, 2*u->voice_ul_fragment_size, 0, &u->aep_sample_spec, 0, 0, 0, NULL);
 
     u->dl_sideinfo_queue = pa_queue_new();
 

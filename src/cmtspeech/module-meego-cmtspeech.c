@@ -157,7 +157,7 @@ int pa__init(pa_module*m) {
     u->voice_sideinfoq = NULL;
     u->continuous_dl_stream = FALSE,
     u->dl_memblockq =
-	pa_memblockq_new(0, 4*u->dl_frame_size, 0, pa_frame_size(&u->ss), 0, 0, 0, NULL);
+	pa_memblockq_new("cmtspeech dl_memblockq", 0, 4*u->dl_frame_size, 0, &u->ss, 0, 0, 0, NULL);
 
     u->mainloop_handler = cmtspeech_mainloop_handler_new(u);
 

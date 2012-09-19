@@ -62,8 +62,8 @@ void voice_aep_ear_ref_init(struct userdata *u) {
     VOICE_TIMEVAL_INVALIDATE(&r->loop_tstamp);
     r->loop_asyncq = pa_asyncq_new(16);
     pa_assert(r->loop_asyncq);
-    r->loop_memblockq = pa_memblockq_new((int64_t)0, 20*u->aep_fragment_size, /* = 200ms */
-                            0, pa_frame_size(&u->aep_sample_spec), 0, 0, 0, NULL);
+    r->loop_memblockq = pa_memblockq_new("voice loop_memblockq", (int64_t)0, 20*u->aep_fragment_size, /* = 200ms */
+                            0, &u->aep_sample_spec, 0, 0, 0, NULL);
     pa_assert(r->loop_memblockq);
 }
 
