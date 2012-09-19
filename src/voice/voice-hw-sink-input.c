@@ -587,7 +587,7 @@ static void hw_sink_input_attach_slave_sink(struct userdata *u, pa_sink *sink, p
             pa_sink_set_fixed_latency_within_thread(sink, to_sink->thread_info.fixed_latency);
         pa_sink_set_max_request_within_thread(sink, to_sink->thread_info.max_request);
         pa_sink_set_max_rewind_within_thread(sink, to_sink->thread_info.max_rewind);
-        pa_log_debug("%s (flags=0x%04x) updated min_l=%llu max_l=%llu fixed_l=%llu max_req=%u max_rew=%u",
+        pa_log_debug("%s (flags=0x%04x) updated min_l=%" PRIu64 " max_l=%" PRIu64 " fixed_l=%" PRIu64 " max_req=%zu max_rew=%zu",
                      sink->name, sink->flags,
                      sink->thread_info.min_latency, sink->thread_info.max_latency,
                      sink->thread_info.fixed_latency, sink->thread_info.max_request,

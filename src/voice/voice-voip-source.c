@@ -37,7 +37,7 @@ static int voip_source_process_msg(pa_msgobject *o, int code, void *data, int64_
 
         case VOICE_SOURCE_SET_UL_DEADLINE: {
             u->ul_deadline = offset;
-            pa_log_debug("Uplink deadline set to %lld (%lld usec from now)",
+            pa_log_debug("Uplink deadline set to %" PRIi64 " (%" PRIu64 " usec from now)",
                          u->ul_deadline, u->ul_deadline - pa_rtclock_now());
             return 0;
         }

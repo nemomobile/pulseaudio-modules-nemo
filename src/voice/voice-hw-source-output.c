@@ -46,14 +46,14 @@ static pa_bool_t voice_uplink_feed(struct userdata *u, pa_memchunk *chunk) {
     pa_assert(u->aep_fragment_size == chunk->length);
 
     if (pa_memblockq_push(u->ul_memblockq, chunk) < 0) {
-        pa_log("%s %d: Failed to push %d byte chunk into memblockq (len %d).",
+        pa_log("%s %d: Failed to push %zu byte chunk into memblockq (len %zu).",
                __FILE__, __LINE__, chunk->length,
                pa_memblockq_get_length(u->ul_memblockq));
     }
 
     if (util_memblockq_to_chunk(u->core->mempool, u->ul_memblockq, &ichunk, u->voice_ul_fragment_size)) {
         if (pa_memblockq_get_length(u->ul_memblockq) != 0)
-            pa_log("%s %d: AEP processed UL left over %d", __FILE__, __LINE__,
+            pa_log("%s %d: AEP processed UL left over %zu", __FILE__, __LINE__,
                    pa_memblockq_get_length(u->ul_memblockq));
 
         if (PA_SOURCE_IS_OPENED(u->voip_source->thread_info.state))
@@ -100,7 +100,7 @@ int voice_aep_ear_ref_ul(struct userdata *u, pa_memchunk *chunk) {
                     }
                     else {
                         /* Queue has run out, reset the queue. */
-                        pa_log_debug("Only %d bytes left in ear ref loop, let's reset the loop",
+                        pa_log_debug("Only %zu bytes left in ear ref loop, let's reset the loop",
                                      pa_memblockq_get_length(r->loop_memblockq));
                         pa_atomic_store(&r->loop_state, VOICE_EAR_REF_RESET);
                     }
@@ -142,7 +142,7 @@ int voice_aep_ear_ref_ul(struct userdata *u, pa_memchunk *chunk) {
                 pa_usec_t loop_padding_time = pa_timeval_diff(&tv_ul_tstamp, &tv_dl_tstamp);
                 size_t loop_padding_bytes = pa_usec_to_bytes_round_up(loop_padding_time, &u->aep_sample_spec);
 
-                pa_log_debug("Ear ref loop padding %d.%06d - %d.%06d = %lld = %d bytes (%lld latency %d extra padding)",
+                pa_log_debug("Ear ref loop padding %d.%06d - %d.%06d = %" PRIu64 " = %zu bytes (%" PRIu64 " latency %d extra padding)",
                      (int)tv_ul_tstamp.tv_sec, (int)tv_ul_tstamp.tv_usec,
                      (int)tv_dl_tstamp.tv_sec, (int)tv_dl_tstamp.tv_usec,
                      loop_padding_time, loop_padding_bytes,
@@ -156,7 +156,7 @@ int voice_aep_ear_ref_ul(struct userdata *u, pa_memchunk *chunk) {
             }
 
             if (loop_padding_bytes >= pa_memblockq_get_maxlength(r->loop_memblockq)) {
-                pa_log_debug("Too long loop time %lld, reset init sequence", loop_padding_time);
+                pa_log_debug("Too long loop time %" PRIu64 ", reset init sequence", loop_padding_time);
                 pa_atomic_store(&r->loop_state, VOICE_EAR_REF_RESET);
                 break;
             }
@@ -169,7 +169,7 @@ int voice_aep_ear_ref_ul(struct userdata *u, pa_memchunk *chunk) {
                     loop_padding_bytes);
 
             if (pa_memblockq_push(r->loop_memblockq, &schunk) < 0) {
-            pa_log_debug("Failed to push %d bytes of ear ref padding to memblockq (len %d max %d )",
+            pa_log_debug("Failed to push %zu bytes of ear ref padding to memblockq (len %zu max %zu)",
                      loop_padding_bytes,
                      pa_memblockq_get_length(r->loop_memblockq),
                      pa_memblockq_get_maxlength(r->loop_memblockq));
@@ -241,31 +241,31 @@ void voice_uplink_timing_check(struct userdata *u, pa_usec_t now,
         pa_usec_t forward_usecs = (pa_usec_t)
             ((((u->ul_timing_advance-to_deadline)/VOICE_PERIOD_CMT_USECS)+1)*VOICE_PERIOD_CMT_USECS);
 
-        pa_log_debug("Deadline already missed by %lld usec (%lld < %lld + %d) forwarding %lld usecs",
+        pa_log_debug("Deadline already missed by %" PRId64 " usec (%" PRId64 " < %" PRIu64 " + %d) forwarding %" PRIu64 " usecs",
                      -to_deadline + u->ul_timing_advance, u->ul_deadline, now,
                      u->ul_timing_advance, forward_usecs);
         u->ul_deadline += forward_usecs;
         to_deadline = u->ul_deadline - now;
-        pa_log_debug("New deadline %lld", u->ul_deadline);
+        pa_log_debug("New deadline %" PRId64, u->ul_deadline);
     }
 
-    pa_log_debug("Time to next deadline %lld usecs (%d)", to_deadline, u->ul_timing_advance);
+    pa_log_debug("Time to next deadline %" PRId64 " usecs (%d)", to_deadline, u->ul_timing_advance);
     if ((int)to_deadline < VOICE_PERIOD_MASTER_USECS + u->ul_timing_advance) {
         if (!ul_frame_sent) {
             // Flush all that we have from buffers, so we should be in time on next round
             size_t drop = pa_memblockq_get_length(u->ul_memblockq);
             pa_memblockq_drop(u->ul_memblockq, drop);
-            pa_log_debug("Dropped %d bytes (%lld usec) from ul_memblockq", drop,
+            pa_log_debug("Dropped %zu bytes (%" PRIu64 " usec) from ul_memblockq", drop,
                          pa_bytes_to_usec_round_up((uint64_t)drop, &u->aep_sample_spec));
             drop = pa_memblockq_get_length(u->hw_source_memblockq);
             pa_memblockq_drop(u->hw_source_memblockq, drop);
-            pa_log_debug("Dropped %d bytes (%lld usec) from hw_source_memblockq", drop,
+            pa_log_debug("Dropped %zu bytes (%" PRIu64 " usec) from hw_source_memblockq", drop,
                          pa_bytes_to_usec_round_up((uint64_t)drop, &u->hw_source_output->thread_info.sample_spec));
             voice_aep_ear_ref_ul_drop_log(u, pa_bytes_to_usec_round_up(
                                               (uint64_t)drop, &u->hw_source_output->thread_info.sample_spec));
         }
         else {
-            pa_log_debug("Timing is correct: Frame sent at %lld and deadline at %lld",
+            pa_log_debug("Timing is correct: Frame sent at %" PRIu64 " and deadline at %" PRId64,
                          now, u->ul_deadline);
         }
         u->ul_deadline = 0;
@@ -294,7 +294,7 @@ static void hw_source_output_push_cb(pa_source_output *o, const pa_memchunk *new
 #endif
 
     if (pa_memblockq_push(u->hw_source_memblockq, new_chunk) < 0) {
-        pa_log("Failed to push %d byte chunk into memblockq (len %d).",
+        pa_log("Failed to push %zu byte chunk into memblockq (len %zu).",
                new_chunk->length, pa_memblockq_get_length(u->hw_source_memblockq));
         return;
     }
@@ -426,7 +426,7 @@ static void hw_source_output_push_cb_8k_mono(pa_source_output *o, const pa_memch
 #endif
 
     if (pa_memblockq_push(u->hw_source_memblockq, new_chunk) < 0) {
-        pa_log("Failed to push %d byte chunk into memblockq (len %d).",
+        pa_log("Failed to push %zu byte chunk into memblockq (len %zu).",
                new_chunk->length, pa_memblockq_get_length(u->hw_source_memblockq));
         return;
     }

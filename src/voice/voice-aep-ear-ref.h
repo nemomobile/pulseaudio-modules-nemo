@@ -157,7 +157,7 @@ int voice_aep_ear_ref_dl(struct userdata *u, pa_memchunk *chunk) {
         pa_timeval_add(&tv, latency);
         pa_timeval_add(&tv, si_rendered);
         r->loop_tstamp = tv;
-        pa_log_debug("Ear ref loop DL due at %d.%06d (%lld latency) (%lld si rendered)",
+        pa_log_debug("Ear ref loop DL due at %d.%06d (%" PRIu64 " latency) (%" PRIu64 " si rendered)",
                     (int)tv.tv_sec, (int)tv.tv_usec, latency,
                     si_rendered);
 
@@ -185,7 +185,7 @@ int voice_aep_ear_ref_ul_drain_asyncq(struct userdata *u, pa_bool_t push_forward
         queue_counter++;
         if (push_forward) {
             if (pa_memblockq_push(r->loop_memblockq, chunk) < 0) {
-                pa_log_debug("Failed to push %d bytes of ear ref data to loop_memblockq (len %d max %d )",
+                pa_log_debug("Failed to push %zu bytes of ear ref data to loop_memblockq (len %zu max %zu)",
                              chunk->length, pa_memblockq_get_length(r->loop_memblockq),
                              pa_memblockq_get_maxlength(r->loop_memblockq));
                 voice_aep_ear_ref_loop_reset(u);
@@ -213,10 +213,10 @@ void voice_aep_ear_ref_ul_drop_log(struct userdata *u, pa_usec_t drop_usecs) {
     size_t drop_bytes = pa_usec_to_bytes_round_up(drop_usecs, &u->aep_sample_spec);
     if (pa_memblockq_get_length(r->loop_memblockq) >= drop_bytes + u->aep_fragment_size) {
         pa_memblockq_drop(r->loop_memblockq, drop_bytes);
-        pa_log_debug("Dropped %lld usec = %d bytes, %d bytes left in loop", drop_usecs, drop_bytes,
+        pa_log_debug("Dropped %" PRIu64 " usec = %zu bytes, %zu bytes left in loop", drop_usecs, drop_bytes,
                      pa_memblockq_get_length(r->loop_memblockq));
     } else {
-        pa_log_debug("Not enough bytes in ear ref loop %d < %d + %d, resetting",
+        pa_log_debug("Not enough bytes in ear ref loop %zu < %zu + %zu, resetting",
                      pa_memblockq_get_length(r->loop_memblockq), drop_bytes, u->aep_fragment_size);
         pa_atomic_store(&r->loop_state, VOICE_EAR_REF_RESET);
     }
