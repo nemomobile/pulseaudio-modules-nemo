@@ -28,8 +28,9 @@
 #include <pulsecore/core-error.h>
 #include <pulsecore/core-util.h>
 #include <pulsecore/hashmap.h>
-#include <pulsecore/call-state-tracker.h>
 #include <pulsecore/volume-proxy.h>
+
+#include "call-state-tracker.h"
 
 #include "mainvolume.h"
 

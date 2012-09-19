@@ -30,9 +30,10 @@
 #include <pulsecore/core.h>
 #include <pulsecore/core-error.h>
 #include <pulsecore/core-util.h>
-#include <pulsecore/call-state-tracker.h>
 #include <pulsecore/volume-proxy.h>
 #include <pulsecore/protocol-dbus.h>
+
+#include "call-state-tracker.h"
 
 #define MEDIA_STREAM "sink-input-by-media-role:x-maemo"
 #define CALL_STREAM "sink-input-by-media-role:phone"

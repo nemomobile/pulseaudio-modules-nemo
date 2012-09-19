@@ -36,8 +36,8 @@
 #include <pulsecore/thread-mq.h>
 #include <pulsecore/semaphore.h>
 #include <pulsecore/fdsem.h>
-#include <pulsecore/call-state-tracker.h>
 
+#include "call-state-tracker.h"
 #include "src-48-to-8.h"
 #include "src-8-to-48.h"
 

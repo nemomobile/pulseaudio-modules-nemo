@@ -25,7 +25,6 @@
 #include <config.h>
 #endif
 
-#include <pulsecore/call-state-tracker.h>
 #include <pulsecore/namereg.h>
 #include <pulsecore/core-util.h>
 #include <pulsecore/mutex.h>
@@ -35,6 +34,8 @@
 #include <pulsecore/modules/alsa/alsa-mixer.h>
 #include <pulsecore/modules/alsa/alsa-util-old.h>
 #include <pulsecore/modules/alsa/alsa-sink-old.h>
+
+#include "call-state-tracker.h"
 
 #include "ctrl-element.h"
 #include "alsa-utils.h"

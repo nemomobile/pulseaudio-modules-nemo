@@ -37,7 +37,6 @@
 #include <pulse/timeval.h>
 #include <pulse/rtclock.h>
 
-#include <pulsecore/call-state-tracker.h>
 #include <pulsecore/volume-proxy.h>
 
 #include "module-meego-mainvolume-symdef.h"
@@ -45,6 +44,7 @@
 
 #include "parameter-hook.h"
 #include "proplist-meego.h"
+#include "call-state-tracker.h"
 
 PA_MODULE_AUTHOR("Juho Hämäläinen");
 PA_MODULE_DESCRIPTION("Nokia mainvolume module");
