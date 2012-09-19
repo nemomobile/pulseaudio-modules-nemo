@@ -20,6 +20,8 @@
  * USA.
  */
 
+#include <math.h>
+
 #include "pa-optimized.h"
 #include "optimized.h"
 
