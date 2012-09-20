@@ -739,6 +739,7 @@ static pa_source_output *voice_hw_source_output_new(struct userdata *u, pa_sourc
     so_data.driver = __FILE__;
     so_data.module = u->master_source->module;
     so_data.source = u->master_source;
+    so_data.destination_source = u->raw_source;
     pa_proplist_sets(so_data.proplist, PA_PROP_MEDIA_NAME, t);
     pa_proplist_sets(so_data.proplist, PA_PROP_APPLICATION_NAME, t); /* this is the default value used by PA modules */
     if (u->master_source->sample_spec.rate == VOICE_SAMPLE_RATE_AEP_HZ) {
@@ -821,6 +822,7 @@ static void voice_hw_source_output_reinit_defer_cb(pa_mainloop_api *m, pa_defer_
     pa_log_debug("reinitialize hw source-output %s %p", u->master_source->name, (void*)new_so);
 
     u->hw_source_output = new_so;
+    u->raw_source->output_from_master = new_so;
     pa_source_output_put(u->hw_source_output);
 
     pa_log_debug("Detaching the old source output %p", (void*)old_so);

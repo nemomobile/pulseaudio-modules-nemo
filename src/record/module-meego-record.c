@@ -472,6 +472,7 @@ int pa__init(pa_module*m) {
     pa_proplist_sets(source_output_data.proplist, PA_PROP_MEDIA_NAME, t);
     pa_proplist_sets(source_output_data.proplist, PA_PROP_APPLICATION_NAME, t); /* this is the default value used by PA modules */
     source_output_data.source = master_source;
+    source_output_data.destination_source = u->source;
     source_output_data.driver = __FILE__;
     source_output_data.module = m;
     pa_source_output_new_data_set_sample_spec(&source_output_data, &ss);
@@ -496,6 +497,8 @@ int pa__init(pa_module*m) {
     u->source_output->userdata = u;
 
     set_hooks(u);
+
+    u->source->output_from_master = u->source_output;
 
     /* SOURCE & SOURCE OUTPUT READY */
 
