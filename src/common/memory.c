@@ -36,7 +36,7 @@ int util_memblockq_to_chunk(pa_mempool *mempool, pa_memblockq *memblockq, pa_mem
         pa_memchunk tchunk = { .memblock = NULL, .length = 0, .index = 0 };
         //pa_assert_se(!pa_memblockq_peek(memblockq, &tchunk));
         if (pa_memblockq_peek(memblockq, &tchunk)) {
-            pa_log("pa_memblockq_peek failed unexpectedly (%d bytes left %d)", pa_memblockq_get_length(memblockq), tchunk.length);
+            pa_log("pa_memblockq_peek failed unexpectedly (%zu bytes left %zu)", pa_memblockq_get_length(memblockq), tchunk.length);
             return 0;
         }
 
