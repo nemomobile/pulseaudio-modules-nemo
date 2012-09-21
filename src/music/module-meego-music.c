@@ -372,7 +372,7 @@ static void sink_input_attach_cb(pa_sink_input *i) {
         pa_sink_set_fixed_latency_within_thread(u->sink, i->sink->thread_info.fixed_latency);
     pa_sink_set_max_request_within_thread(u->sink, pa_sink_input_get_max_request(i));
     pa_sink_set_max_rewind_within_thread(u->sink, i->sink->thread_info.max_rewind);
-    pa_log_debug("%s (flags=0x%04x) updated min_l=%llu max_l=%llu fixed_l=%llu max_req=%u max_rew=%u",
+    pa_log_debug("%s (flags=0x%04x) updated min_l=%" PRIu64 " max_l=%" PRIu64 " fixed_l=%" PRIu64 " max_req=%zu max_rew=%zu",
                  u->sink->name, u->sink->flags,
                  u->sink->thread_info.min_latency, u->sink->thread_info.max_latency,
                  u->sink->thread_info.fixed_latency, u->sink->thread_info.max_request,
@@ -538,7 +538,7 @@ int pa__init(pa_module*m) {
     u->window_size = pa_usec_to_bytes(20001, &ss);
     //u->window_size = 160;
     //u->window_size = 960;
-    pa_log_debug("window size: %d frame size: %d",  u->window_size, pa_frame_size(&ss));
+    pa_log_debug("window size: %zu frame size: %zu",  u->window_size, pa_frame_size(&ss));
     u->master_sink = master_sink;
     u->sink = NULL;
     u->sink_input = NULL;
