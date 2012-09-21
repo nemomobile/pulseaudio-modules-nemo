@@ -105,7 +105,6 @@ static char *get_name(pa_proplist *p, const char *prefix) {
 }
 
 static void test_sink_input_subscribe_cb(pa_core *c, pa_subscription_event_type_t t, uint32_t idx, void *userdata) {
-    struct userdata *u = userdata;
     pa_sink_input *si = NULL;
     char *name;
     char tmp[256];
