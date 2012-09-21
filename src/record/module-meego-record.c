@@ -166,7 +166,7 @@ static void source_output_push_cb(pa_source_output *o, const pa_memchunk *new_ch
     pa_assert(new_chunk);
 
     if (pa_memblockq_push(u->memblockq, new_chunk) < 0) {
-        pa_log_error("Failed to push %d byte chunk into memblockq (len %d).",
+        pa_log_error("Failed to push %zu byte chunk into memblockq (len %zu).",
                 new_chunk->length, pa_memblockq_get_length(u->memblockq));
         return;
     }
