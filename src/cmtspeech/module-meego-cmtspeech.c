@@ -205,7 +205,7 @@ void pa__done(pa_module*m) {
     }
 
     if (u->local_sideinfoq) {
-        pa_queue_free(u->local_sideinfoq, NULL, NULL);
+        pa_queue_free(u->local_sideinfoq, NULL);
         u->local_sideinfoq = NULL;
     }
 

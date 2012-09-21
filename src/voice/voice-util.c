@@ -92,7 +92,7 @@ void voice_clear_up(struct userdata *u) {
     }
 
     if (u->dl_sideinfo_queue) {
-        pa_queue_free(u->dl_sideinfo_queue, NULL, u);
+        pa_queue_free(u->dl_sideinfo_queue, NULL);
         u->dl_sideinfo_queue = NULL;
     }
 
