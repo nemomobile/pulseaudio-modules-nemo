@@ -30,7 +30,6 @@
 #include <pulsecore/core.h>
 #include <pulsecore/core-error.h>
 #include <pulsecore/core-util.h>
-#include <pulsecore/volume-proxy.h>
 #include <pulsecore/protocol-dbus.h>
 
 #include "call-state-tracker.h"
@@ -65,8 +64,8 @@ struct mv_userdata {
     pa_hook_slot *call_state_tracker_slot;
     pa_bool_t call_active;
 
-    pa_volume_proxy *volume_proxy;
-    pa_hook_slot *volume_proxy_slot;
+    /*pa_volume_proxy *volume_proxy;
+    pa_hook_slot *volume_proxy_slot;*/
 
     pa_hook_slot *sink_proplist_changed_slot;
 

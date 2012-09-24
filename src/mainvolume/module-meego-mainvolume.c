@@ -37,8 +37,6 @@
 #include <pulse/timeval.h>
 #include <pulse/rtclock.h>
 
-#include <pulsecore/volume-proxy.h>
-
 #include "module-meego-mainvolume-symdef.h"
 #include "mainvolume.h"
 
@@ -233,6 +231,7 @@ static pa_hook_result_t parameters_changed_cb(pa_core *c, meego_parameter_update
     return PA_HOOK_OK;
 }
 
+#if 0
 static pa_hook_result_t volume_changed_cb(pa_volume_proxy *r, const char *name, struct mv_userdata *u) {
     pa_volume_t vol;
     struct mv_volume_steps *steps;
@@ -270,6 +269,7 @@ static pa_hook_result_t volume_changed_cb(pa_volume_proxy *r, const char *name, 
 
     return PA_HOOK_OK;
 }
+#endif
 
 int pa__init(pa_module *m) {
     pa_modargs *ma = NULL;
@@ -308,11 +308,11 @@ int pa__init(pa_module *m) {
                                                  (pa_hook_cb_t)call_state_cb,
                                                  u);
 
-    u->volume_proxy = pa_volume_proxy_get(u->core);
+    /*u->volume_proxy = pa_volume_proxy_get(u->core);
     u->volume_proxy_slot = pa_hook_connect(&pa_volume_proxy_hooks(u->volume_proxy)[PA_VOLUME_PROXY_HOOK_CHANGED],
                                            PA_HOOK_NORMAL,
                                            (pa_hook_cb_t)volume_changed_cb,
-                                           u);
+                                           u);*/
 
     dbus_init(u);
 
@@ -348,11 +348,11 @@ void pa__done(pa_module *m) {
     if (u->call_state_tracker)
         pa_call_state_tracker_unref(u->call_state_tracker);
 
-    if (u->volume_proxy_slot)
+    /*if (u->volume_proxy_slot)
         pa_hook_slot_free(u->volume_proxy_slot);
 
     if (u->volume_proxy)
-        pa_volume_proxy_unref(u->volume_proxy);
+        pa_volume_proxy_unref(u->volume_proxy);*/
 
     pa_hashmap_free(u->steps, (pa_free2_cb_t)steps_set_free, NULL);
 

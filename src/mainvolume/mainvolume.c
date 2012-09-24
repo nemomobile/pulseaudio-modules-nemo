@@ -28,7 +28,6 @@
 #include <pulsecore/core-error.h>
 #include <pulsecore/core-util.h>
 #include <pulsecore/hashmap.h>
-#include <pulsecore/volume-proxy.h>
 
 #include "call-state-tracker.h"
 
@@ -59,9 +58,9 @@ pa_bool_t mv_set_step(struct mv_userdata *u, int step) {
         s->current_step = step;
 
         if (u->call_active) {
-            pa_volume_proxy_set_volume(u->volume_proxy, CALL_STREAM, s->step[s->current_step]);
+            /*pa_volume_proxy_set_volume(u->volume_proxy, CALL_STREAM, s->step[s->current_step]);*/
         } else {
-            pa_volume_proxy_set_volume(u->volume_proxy, MEDIA_STREAM, s->step[s->current_step]);
+            /*pa_volume_proxy_set_volume(u->volume_proxy, MEDIA_STREAM, s->step[s->current_step]);*/
         }
 
         changed = TRUE;
@@ -102,6 +101,7 @@ int mv_search_step(int *steps, int n_steps, int vol) {
 }
 
 pa_bool_t mv_update_step(struct mv_userdata *u) {
+#if 0
     pa_volume_t vol;
     pa_bool_t success = TRUE;
     int step;
@@ -123,6 +123,8 @@ pa_bool_t mv_update_step(struct mv_userdata *u) {
         success = FALSE;
 
     return success;
+#endif
+    return FALSE;
 }
 
 void mv_normalize_steps(struct mv_volume_steps *steps) {
