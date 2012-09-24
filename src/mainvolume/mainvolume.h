@@ -40,8 +40,8 @@
 
 struct mv_volume_steps {
     int step[MAX_STEPS];
-    int n_steps;
-    int current_step;
+    unsigned n_steps;
+    unsigned current_step;
 };
 
 struct mv_volume_steps_set {
@@ -86,7 +86,7 @@ struct mv_volume_steps* mv_active_steps(struct mv_userdata *u);
 /* set new step as current step.
  * returns true if new step differs from current step.
  */
-pa_bool_t mv_set_step(struct mv_userdata *u, int step);
+pa_bool_t mv_set_step(struct mv_userdata *u, unsigned step);
 
 /* search for step with volume vol.
  * returns found step or -1 if not found

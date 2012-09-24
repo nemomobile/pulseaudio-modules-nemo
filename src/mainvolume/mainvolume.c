@@ -43,7 +43,7 @@ struct mv_volume_steps* mv_active_steps(struct mv_userdata *u) {
         return &u->current_steps->media;
 }
 
-pa_bool_t mv_set_step(struct mv_userdata *u, int step) {
+pa_bool_t mv_set_step(struct mv_userdata *u, unsigned step) {
     struct mv_volume_steps *s;
     pa_bool_t changed = FALSE;
     pa_assert(u);
@@ -128,7 +128,7 @@ pa_bool_t mv_update_step(struct mv_userdata *u) {
 }
 
 void mv_normalize_steps(struct mv_volume_steps *steps) {
-    int i = 0;
+    unsigned i = 0;
 
     pa_assert(steps);
     pa_assert(steps->n_steps > 0);
