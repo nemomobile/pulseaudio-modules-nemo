@@ -27,6 +27,8 @@
 #include <asoundlib.h>
 #include <pulsecore/macro.h>
 
+#include "alsa-utils.h"
+
 /* Retrieve a mixer element by name
  *
  * \param mixer The mixer to search the element from
