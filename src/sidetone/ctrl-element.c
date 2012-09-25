@@ -48,7 +48,6 @@ ctrl_element *ctrl_element_new(snd_mixer_t *mixer, const char* name) {
 
     ctrl_element *ctrl = NULL;
     snd_mixer_elem_t *element = NULL;
-    long volume = 0;
 
     ctrl = pa_xnew0(ctrl_element, 1);
     ctrl->mixer = mixer;
