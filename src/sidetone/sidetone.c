@@ -249,7 +249,7 @@ sidetone *sidetone_new(pa_core *core, const char* argument) {
 
 
     /* subscription made for fetching the current main volume */
-    st->sink_subscription = pa_subscription_new(core, PA_SUBSCRIPTION_MASK_SINK_INPUT , sink_input_subscribe_sidetone_cb, st);
+    st->sink_subscription = pa_subscription_new(core, PA_SUBSCRIPTION_MASK_SINK_INPUT, (pa_subscription_cb_t) sink_input_subscribe_sidetone_cb, st);
 
     st->dead = FALSE;
 
