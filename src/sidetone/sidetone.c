@@ -31,9 +31,7 @@
 #include <pulsecore/sample-util.h>
 #include <pulsecore/modargs.h>
 
-#include <pulsecore/modules/alsa/alsa-mixer.h>
 #include <pulsecore/modules/alsa/alsa-util-old.h>
-#include <pulsecore/modules/alsa/alsa-sink-old.h>
 
 #include "call-state-tracker.h"
 

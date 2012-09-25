@@ -1,6 +1,6 @@
 SUBDIRS = tests
 
-AM_CFLAGS = $(PULSEAUDIO_CFLAGS) $(ASOUNDLIB_CFLAGS) -L$(modlibexecdir) -lalsa-util -I$(top_srcdir)/src/common/include/meego
+AM_CFLAGS = $(PULSEAUDIO_CFLAGS) $(ASOUNDLIB_CFLAGS) -I$(top_srcdir)/src/common/include/meego
 
 AM_LIBADD = $(PULSEAUDIO_LIBS) $(ASOUNDLIB_LIBS)
 
