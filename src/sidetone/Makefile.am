@@ -13,6 +13,7 @@ module_meego_sidetone_la_SOURCES = \
 	sidetone.c sidetone.h \
 	ctrl-element.c ctrl-element.h \
 	alsa-utils.c alsa-utils.h \
+	alsa-util-old.c alsa-util-old.h \
 	sidetone-args.c sidetone-args.h
 
 module_meego_sidetone_la_LDFLAGS = -module -avoid-version -Wl,-no-undefined

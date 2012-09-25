@@ -31,11 +31,10 @@
 #include <pulsecore/sample-util.h>
 #include <pulsecore/modargs.h>
 
-#include <pulsecore/modules/alsa/alsa-util-old.h>
-
 #include "call-state-tracker.h"
 
 #include "ctrl-element.h"
+#include "alsa-util-old.h"
 #include "alsa-utils.h"
 #include "sidetone-args.h"
 #include "sidetone.h"
