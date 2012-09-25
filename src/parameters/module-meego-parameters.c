@@ -74,7 +74,7 @@ static void check_mode(pa_sink *s, struct userdata *u) {
 }
 
 static pa_hook_result_t hw_sink_input_move_finish_cb(pa_core *c, pa_sink_input *i, struct userdata *u) {
-    char *name = pa_proplist_gets(i->proplist, PA_PROP_MEDIA_NAME);
+    const char *name = pa_proplist_gets(i->proplist, PA_PROP_MEDIA_NAME);
 
     if (i->sink && name && pa_streq(name, VOICE_MASTER_SINK_INPUT_NAME))
         check_mode(i->sink, u);
@@ -87,7 +87,7 @@ static pa_hook_result_t sink_proplist_changed_hook_callback(pa_core *c, pa_sink 
     uint32_t idx;
 
     PA_IDXSET_FOREACH(i, s->inputs, idx) {
-        char *name = pa_proplist_gets(i->proplist, PA_PROP_MEDIA_NAME);
+        const char *name = pa_proplist_gets(i->proplist, PA_PROP_MEDIA_NAME);
         if (name && pa_streq(name, VOICE_MASTER_SINK_INPUT_NAME)) {
             check_mode(s, u);
             break;
