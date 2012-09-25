@@ -38,7 +38,7 @@ struct ctrl_element {
      * mixer every time we set the element volume. This is how it's done in
      * PulseAudio, I guess in case the element "disappears", so let's just
      * follow the same convention. */
-    const char *element_name;
+    char *element_name;
 
 };
 
