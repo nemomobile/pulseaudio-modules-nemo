@@ -186,7 +186,7 @@ static int cmtspeech_sink_input_pop_cb(pa_sink_input *i, size_t length, pa_memch
         cmtspeech_dl_sideinfo_forward(u);
     }
     else {
-        if (u->cmt_connection.first_dl_frame_received && pa_log_ratelimit())
+        if (u->cmt_connection.first_dl_frame_received)
             pa_log_debug("No DL audio: %zu bytes in queue %zu needed",
                          pa_memblockq_get_length(u->dl_memblockq), u->dl_frame_size);
         cmtspeech_dl_sideinfo_bogus(u);
