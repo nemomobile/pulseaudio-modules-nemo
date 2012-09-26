@@ -39,22 +39,6 @@ static void mainloop_handler_free(pa_object *o) {
 #define PA_ALSA_PROP_BUFFERS_PRIMARY "primary"
 #define PA_ALSA_PROP_BUFFERS_ALTERNATIVE "alternative"
 
-static void set_source_buffer_mode(struct userdata *u, const char *mode) {
-    pa_source *om_source;
-    pa_assert(u);
-
-    om_source = pa_namereg_get(u->module->core, "source.hw0", PA_NAMEREG_SOURCE);
-
-    if (om_source) {
-        pa_log_debug("Setting property %s for %s to %s", PA_ALSA_SOURCE_PROP_BUFFERS,
-                     om_source->name, mode);
-        pa_proplist_sets(om_source->proplist, PA_ALSA_SOURCE_PROP_BUFFERS, mode);
-        pa_hook_fire(&u->core->hooks[PA_CORE_HOOK_SOURCE_PROPLIST_CHANGED], om_source);
-    }
-    else
-        pa_log_warn("Source not found");
-}
-
 static int mainloop_handler_process_msg(pa_msgobject *o, int code, void *userdata, int64_t offset, pa_memchunk *chunk) {
     cmtspeech_mainloop_handler *h = CMTSPEECH_MAINLOOP_HANDLER(o);
     struct userdata *u;
