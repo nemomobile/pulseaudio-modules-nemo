@@ -659,15 +659,14 @@ static pa_hook_result_t stop_requests(pa_core *c, meego_parameter_connection_arg
     while (slot) {
         if (slot->callback == args->cb && slot->data == args->userdata) {
             pa_hook_slot_free(slot);
-            pa_log_debug("Stopped requests for %s (callback=%x, userdata=%x)", args->name ? args->name : "mode hook",
-                                                                               (unsigned int)args->cb, (unsigned int)args->userdata);
+            pa_log_debug("Stopped requests for %s.", args->name ? args->name : "mode hook");
             return PA_HOOK_OK;
         }
         slot = slot->next;
     }
 
-    pa_log_error("Unable to stop requests for %s (callback=%x, userdata=%x). No hook registered.",
-            args->name ? args->name : "mode hook", (unsigned int)args->cb, (unsigned int)args->userdata);
+    pa_log_error("Unable to stop requests for %s. No hook registered.",
+                 args->name ? args->name : "mode hook");
 
     return PA_HOOK_OK;
 }
