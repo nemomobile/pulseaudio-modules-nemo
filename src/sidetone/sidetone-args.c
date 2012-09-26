@@ -51,7 +51,7 @@ int parse_volume_steps(struct mv_volume_steps *steps, const char *step_string) {
     len = strlen(step_string);
 
     while (i < len && count < MAX_STEPS) {
-        char step[16], index[16];
+        char step[16], idx[16];
         int value, index_value, j, shift = -1;
         size_t start, value_len;
 
@@ -87,10 +87,10 @@ int parse_volume_steps(struct mv_volume_steps *steps, const char *step_string) {
         for (; j > -1  && step_string[j--] != ','; shift++);
 
         /* copy step string part to index string and convert to integer */
-        memcpy(index, &step_string[start - shift], shift);
-        index[shift - 1] = '\0';
+        memcpy(idx, &step_string[start - shift], shift);
+        idx[shift - 1] = '\0';
 
-        if (pa_atoi(index, &index_value)) {
+        if (pa_atoi(idx, &index_value)) {
             return -1;
         }
         steps->index[count] = index_value;
