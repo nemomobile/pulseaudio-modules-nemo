@@ -41,7 +41,7 @@ static void cmtspeech_source_output_push_cb(pa_source_output *o, const pa_memchu
     pa_assert_se(u = o->userdata);
 
     if (chunk->length != u->ul_frame_size) {
-        pa_log_warn("Pushed UL audio frame has wrong size %d", chunk->length);
+        pa_log_warn("Pushed UL audio frame has wrong size %zu", chunk->length);
         return;
     }
 

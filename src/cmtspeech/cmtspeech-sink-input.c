@@ -152,7 +152,7 @@ static int cmtspeech_sink_input_pop_cb(pa_sink_input *i, size_t length, pa_memch
                 continue;
             queue_counter++;
             if (pa_memblockq_push(u->dl_memblockq, &cmtchunk) < 0) {
-                pa_log_debug("Failed to push DL frame to dl_memblockq (len %d max %d )",
+                pa_log_debug("Failed to push DL frame to dl_memblockq (len %zu max %zu)",
                              pa_memblockq_get_length(u->dl_memblockq),
                              pa_memblockq_get_maxlength(u->dl_memblockq));
             }
@@ -166,7 +166,7 @@ static int cmtspeech_sink_input_pop_cb(pa_sink_input *i, size_t length, pa_memch
     /* More than one DL frame in queue means that sink has not asked for more
      * data for over 20ms and something may be wrong. */
     if (queue_counter > 1) {
-        pa_log_info("%d frames found from queue (dl buf size %d)", queue_counter,
+        pa_log_info("%d frames found from queue (dl buf size %zu)", queue_counter,
                     pa_memblockq_get_length(u->dl_memblockq));
     }
 
@@ -175,7 +175,7 @@ static int cmtspeech_sink_input_pop_cb(pa_sink_input *i, size_t length, pa_memch
             pa_memblockq_get_length(u->dl_memblockq) - 3*u->dl_frame_size;
         pa_memblockq_drop(u->dl_memblockq, drop_bytes);
         cmtspeech_dl_sideinfo_drop(u, drop_bytes);
-        pa_log_debug("Too much data in DL buffer dropped %d bytes",
+        pa_log_debug("Too much data in DL buffer dropped %zu bytes",
                      drop_bytes);
     }
 
@@ -187,7 +187,7 @@ static int cmtspeech_sink_input_pop_cb(pa_sink_input *i, size_t length, pa_memch
     }
     else {
         if (u->cmt_connection.first_dl_frame_received && pa_log_ratelimit())
-            pa_log_debug("No DL audio: %d bytes in queue %d needed",
+            pa_log_debug("No DL audio: %zu bytes in queue %zu needed",
                          pa_memblockq_get_length(u->dl_memblockq), u->dl_frame_size);
         cmtspeech_dl_sideinfo_bogus(u);
         pa_silence_memchunk_get(&u->core->silence_cache,
@@ -210,7 +210,7 @@ static void cmtspeech_sink_input_process_rewind_cb(pa_sink_input *i, size_t nbyt
     if (!PA_SINK_INPUT_IS_LINKED(i->thread_info.state))
         return;
 
-    pa_log_debug("%s rewound %u bytes", i->sink->name, nbytes);
+    pa_log_debug("%s rewound %zu bytes", i->sink->name, nbytes);
 }
 
 /* Called from I/O thread context */
@@ -223,7 +223,7 @@ static void cmtspeech_sink_input_update_max_rewind_cb(pa_sink_input *i, size_t n
     if (!PA_SINK_INPUT_IS_LINKED(i->thread_info.state))
         return;
 
-    pa_log_debug("Max rewind of %s updated to %u bytes", i->sink->name, nbytes);
+    pa_log_debug("Max rewind of %s updated to %zu bytes", i->sink->name, nbytes);
 }
 
 /* Called from I/O thread context */
@@ -236,7 +236,7 @@ static void cmtspeech_sink_input_update_max_request_cb(pa_sink_input *i, size_t 
     if (!PA_SINK_INPUT_IS_LINKED(i->thread_info.state))
         return;
 
-    pa_log_debug("Max request of %s updated to %u bytes", i->sink->name, nbytes);
+    pa_log_debug("Max request of %s updated to %zu bytes", i->sink->name, nbytes);
 }
 
 /* Called from I/O thread context */
@@ -246,7 +246,7 @@ static void cmtspeech_sink_input_update_sink_latency_range_cb(pa_sink_input *i) 
     pa_sink_input_assert_ref(i);
     pa_assert_se(u = i->userdata);
 
-    pa_log_debug("Latency range changed to %lld - %lld usec",
+    pa_log_debug("Latency range changed to %" PRIu64 " - %" PRIu64 " usec",
                  i->sink->thread_info.min_latency, i->sink->thread_info.max_latency);
 }
 

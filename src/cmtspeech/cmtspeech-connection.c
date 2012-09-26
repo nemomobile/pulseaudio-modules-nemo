@@ -200,7 +200,7 @@ static void update_uplink_frame_timing(struct userdata *u, cmtspeech_event_t *cm
     usec = ((int64_t) cmtevent->msg.timing_config_ntf.tstamp.tv_sec * 1000000) +
         (cmtevent->msg.timing_config_ntf.tstamp.tv_nsec/1000) + deadline_us;
 
-    pa_log_debug("deadline at %lld (%d usec from msg receival)", usec, deadline_us);
+    pa_log_debug("deadline at %" PRIi64 " (%d usec from msg receival)", usec, deadline_us);
 
     if (u->source && PA_SOURCE_IS_LINKED(u->source->state))
         pa_asyncmsgq_post(u->source->asyncmsgq, PA_MSGOBJECT(u->source),
