@@ -278,6 +278,7 @@ src/sidetone/Makefile
 src/sidetone/tests/Makefile
 src/parameters/Makefile
 src/parameters/testmodule/Makefile
+src/stream-restore-nemo/Makefile
 ])
 
 AC_OUTPUT
