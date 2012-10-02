@@ -17,7 +17,8 @@ libmeego_common_la_SOURCES = \
 	algorithm-hook.c include/meego/algorithm-hook.h \
 	algorithm-base.c include/meego/algorithm-base.h \
 	include/meego/proplist-meego.h \
-	call-state-tracker.c include/meego/call-state-tracher.h
+	call-state-tracker.c include/meego/call-state-tracher.h \
+	volume-proxy.c include/meego/volume-proxy.h
 
 libmeego_common_la_LDFLAGS = -avoid-version
 libmeego_common_la_LIBADD = $(PULSEAUDIO_LIBS)
