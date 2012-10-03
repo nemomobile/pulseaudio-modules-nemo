@@ -559,7 +559,8 @@ static void thread_func(void *udata) {
         int ret;
 
         if (check_cmtspeech_connection(c)) {
-            pa_rtpoll_set_timer_relative(c->rtpoll, 500000);
+            pa_log("Failed to open the cmtspeech device, waiting 60 seconds before trying again.");
+            pa_rtpoll_set_timer_relative(c->rtpoll, 60 * 1000 * 1000);
         }
 
         pollfd_update(c);
@@ -576,7 +577,6 @@ static void thread_func(void *udata) {
 
         /* note: cmtspeech can be closed in DBus thread */
         if (c->cmtspeech == NULL) {
-            pa_log_notice("closing and reopening cmtspeech device");
             continue;
         }
 
