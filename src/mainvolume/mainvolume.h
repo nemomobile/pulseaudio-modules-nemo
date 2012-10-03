@@ -33,6 +33,7 @@
 #include <pulsecore/protocol-dbus.h>
 
 #include "call-state-tracker.h"
+#include "volume-proxy.h"
 
 #define MEDIA_STREAM "sink-input-by-media-role:x-maemo"
 #define CALL_STREAM "sink-input-by-media-role:phone"
@@ -64,8 +65,8 @@ struct mv_userdata {
     pa_hook_slot *call_state_tracker_slot;
     pa_bool_t call_active;
 
-    /*pa_volume_proxy *volume_proxy;
-    pa_hook_slot *volume_proxy_slot;*/
+    pa_volume_proxy *volume_proxy;
+    pa_hook_slot *volume_proxy_slot;
 
     pa_hook_slot *sink_proplist_changed_slot;
 
