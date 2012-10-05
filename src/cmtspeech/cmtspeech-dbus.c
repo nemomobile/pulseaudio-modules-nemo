@@ -112,6 +112,10 @@ int cmtspeech_dbus_init(struct userdata *u, const char *dbus_type)
 	goto fail;
     }
 
+    snprintf(rule, sizeof(rule), "type='signal',interface='%s'", OFONO_DBUS_VOICECALL_IF);
+    if (add_dbus_match(e, dbusconn, rule))
+        goto fail;
+
     return 0;
 
  fail:

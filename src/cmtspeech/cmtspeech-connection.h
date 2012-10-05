@@ -35,6 +35,18 @@
 #define CMTSPEECH_DBUS_PHONE_SSC_STATE_IF   "com.nokia.phone.SSC"
 #define CMTSPEECH_DBUS_PHONE_SSC_STATE_SIG  "modem_state_changed_ind"
 
+#define OFONO_DBUS_VOICECALL_IF         "org.ofono.VoiceCall"
+#define OFONO_DBUS_VOICECALL_CHANGE_SIG "PropertyChanged"
+#define ALSA_OLD_ALTERNATIVE_PROP       "x-maemo.alsa_sink.buffers=alternative"
+#define ALSA_OLD_PRIMARY_PROP           "x-maemo.alsa_sink.buffers=primary"
+#define OFONO_DBUS_VOICECALL_ACTIVE       "active"
+#define OFONO_DBUS_VOICECALL_HELD         "held"
+#define OFONO_DBUS_VOICECALL_DIALING      "dialing"
+#define OFONO_DBUS_VOICECALL_ALERTING     "alerting"
+#define OFONO_DBUS_VOICECALL_INCOMING     "incoming"
+#define OFONO_DBUS_VOICECALL_WAITING      "waiting"
+#define OFONO_DBUS_VOICECALL_DISCONNECTED "disconnected"
+
 #include <cmtspeech_msgs.h>
 
 typedef cmtspeech_buffer_t cmtspeech_dl_buf_t;

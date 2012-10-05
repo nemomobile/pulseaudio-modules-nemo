@@ -879,7 +879,55 @@ DBusHandlerResult cmtspeech_dbus_filter(DBusConnection *conn, DBusMessage *msg, 
         if (dbus_error_is_set(&dbus_error) != TRUE) {
             pa_log_debug("modem state change: %s", modemstate);
         }
-    }
+    } else if (dbus_message_is_signal(msg, OFONO_DBUS_VOICECALL_IF, OFONO_DBUS_VOICECALL_CHANGE_SIG)) {
+        pa_log_debug("Received voicecall change");
+        if (dbus_message_iter_init(msg, &args) == TRUE) {
+            if ((type = dbus_message_iter_get_arg_type(&args)) == DBUS_TYPE_STRING) {
+                const char* callstr;
+                dbus_message_iter_get_basic(&args,&callstr);
+                if (strcmp(callstr,"State") == 0) {
+                    pa_log_debug("Received voicecall state change");
+                    if (dbus_message_iter_next (&args) == TRUE) {
+                        DBusMessageIter callstate;
+                        const char* callstatestr;
+                        dbus_bool_t val = FALSE;
+                        dbus_message_iter_recurse(&args,&callstate);
+                        dbus_message_iter_get_basic(&callstate,&callstatestr);
+                        if (strcmp(callstatestr,OFONO_DBUS_VOICECALL_ACTIVE) == 0) {
+                            pa_log_debug("Call active");val = TRUE;
+                        } else if (strcmp(callstatestr,OFONO_DBUS_VOICECALL_ALERTING) == 0) {
+                            pa_log_debug("Call alerting");
+                            val = TRUE;
+                        } else if (strcmp(callstatestr,OFONO_DBUS_VOICECALL_HELD) == 0) {
+                            pa_log_debug("Call held");
+                            val = TRUE;
+                        } else if (strcmp(callstatestr,OFONO_DBUS_VOICECALL_WAITING) == 0) {
+                            pa_log_debug("Call waiting");
+                            val = TRUE;
+                        } else if (strcmp(callstatestr,OFONO_DBUS_VOICECALL_INCOMING) == 0) {
+                            pa_log_debug("Incoming call");
+                            val = FALSE;
+                        } else if (strcmp(callstatestr,OFONO_DBUS_VOICECALL_DIALING) == 0) {
+                            pa_log_debug("Dialing out");
+                            val = FALSE;
+                        } else if (strcmp(callstatestr,OFONO_DBUS_VOICECALL_DISCONNECTED) == 0) {
+                            pa_log_debug("Call disconnected");
+                            val = FALSE;
+                        }
+
+                        pa_log_debug("Set ServerStatus to %d.", val == TRUE);
+                        /* note: very rarely taken code path */
+                        pa_mutex_lock(c->cmtspeech_mutex);
+                        if (c->cmtspeech)
+                            cmtspeech_state_change_call_status(c->cmtspeech, val == TRUE);
+                        pa_mutex_unlock(c->cmtspeech_mutex);
+                    }
+                }
+            }
+        }
+    } else
+        pa_log_error("Received %s with invalid parameters", OFONO_DBUS_VOICECALL_CHANGE_SIG);
+
 
     return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
 }
