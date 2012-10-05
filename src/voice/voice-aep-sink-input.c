@@ -110,8 +110,6 @@ static void aep_sink_input_kill_cb(pa_sink_input *i) {
     pa_sink_input_assert_ref(i);
     pa_assert_se(u = i->userdata);
 
-    /* FIXME: this is sort-of understandable with the may_move hack... we avoid abort in free() here */
-    u->aep_sink_input->thread_info.attached = FALSE;
     pa_sink_input_unlink(u->aep_sink_input);
     pa_sink_input_unref(u->aep_sink_input);
     u->aep_sink_input = NULL;

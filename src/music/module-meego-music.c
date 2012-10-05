@@ -430,8 +430,6 @@ static void sink_input_kill_cb(pa_sink_input *i) {
 
     pa_sink_unlink(u->sink);
 
-    /* FIXME: this is sort-of understandable with the may_move hack... we avoid abort in free() here */
-    u->sink_input->thread_info.attached = FALSE;
     pa_sink_input_unlink(u->sink_input);
 
     pa_sink_unref(u->sink);
