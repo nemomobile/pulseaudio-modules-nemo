@@ -584,11 +584,10 @@ static void hw_source_output_update_source_dynamic_latency_flag_cb(pa_source_out
         pa_source_set_dynamic_latency_flag(u->voip_source, o->source->flags & PA_SOURCE_DYNAMIC_LATENCY);
 }
 
+/* Called from the IO thread. */
 static void hw_source_output_detach_slave_source(pa_source *source) {
-
     if (source && PA_SOURCE_IS_LINKED(source->thread_info.state)) {
         pa_source_detach_within_thread(source);
-        pa_source_set_asyncmsgq(source, NULL);
         pa_source_set_rtpoll(source, NULL);
         voice_source_outputs_may_move(source, FALSE);
     }
@@ -651,11 +650,16 @@ static void hw_source_output_update_slave_source(struct userdata *u, pa_source *
     uint32_t idx;
     pa_assert(u);
     pa_assert(source);
-    pa_assert(new_master);
 
+    if (!new_master) {
+        pa_source_set_asyncmsgq(source, NULL);
+
+        return;
+    }
+
+    pa_source_set_asyncmsgq(source, new_master->asyncmsgq);
     pa_source_set_latency_flag(source, new_master->flags & PA_SOURCE_LATENCY);
     pa_source_set_dynamic_latency_flag(source, new_master->flags & PA_SOURCE_DYNAMIC_LATENCY);
-    pa_source_set_asyncmsgq(source, new_master->asyncmsgq);
 
     p = pa_proplist_new();
     pa_proplist_setf(p, PA_PROP_DEVICE_DESCRIPTION, "%s source connected to %s", source->name, new_master->name);
@@ -680,10 +684,10 @@ static void hw_source_output_moving_cb(pa_source_output *o, pa_source *dest) {
     hw_source_output_update_slave_source(u, u->raw_source, dest);
     hw_source_output_update_slave_source(u, u->voip_source, dest);
 
-    if (!dest)
-        return; /* The source output is going to be killed, don't do anything. */
-
     u->master_source = dest;
+
+    if (!dest)
+        return;
 
     if ((o->sample_spec.rate == VOICE_SAMPLE_RATE_AEP_HZ &&
          dest->sample_spec.rate != VOICE_SAMPLE_RATE_AEP_HZ) ||

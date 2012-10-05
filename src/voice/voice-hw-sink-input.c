@@ -542,14 +542,9 @@ static void hw_sink_input_update_sink_fixed_latency_cb(pa_sink_input *i) {
 
 /* Called from I/O thread context */
 static void hw_sink_input_detach_slave_sink(pa_sink *sink) {
-
     if (sink && PA_SINK_IS_LINKED(sink->thread_info.state)) {
         pa_sink_detach_within_thread(sink);
-
-        /* FIXME: This should be done by the core. */
-        pa_sink_set_asyncmsgq(sink, NULL);
         pa_sink_set_rtpoll(sink, NULL);
-
         voice_sink_inputs_may_move(sink, FALSE);
     }
 }
@@ -644,11 +639,15 @@ static void hw_sink_input_update_slave_sink(struct userdata *u, pa_sink *sink, p
     uint32_t idx;
     pa_assert(sink);
 
+    if (!to_sink) {
+        pa_sink_set_asyncmsgq(sink, NULL);
+
+        return;
+    }
+
+    pa_sink_set_asyncmsgq(sink, to_sink->asyncmsgq);
     pa_sink_set_latency_flag(sink, to_sink->flags & PA_SINK_LATENCY);
     pa_sink_set_dynamic_latency_flag(sink, to_sink->flags & PA_SINK_DYNAMIC_LATENCY);
-
-    /* FIXME: This should be done by the core. */
-    pa_sink_set_asyncmsgq(sink, to_sink->asyncmsgq);
 
     p = pa_proplist_new();
     pa_proplist_setf(p, PA_PROP_DEVICE_DESCRIPTION, "%s connected to %s", sink->name, u->master_sink->name);
@@ -675,13 +674,13 @@ static void hw_sink_input_moving_cb(pa_sink_input *i, pa_sink *dest){
 
     pa_log_debug("Sink input moving to %s", dest ? dest->name : "(null)");
 
-    if (!dest)
-        return; /* The sink input is going to be killed, don't do anything. */
-
     u->master_sink = dest;
 
     hw_sink_input_update_slave_sink(u, u->voip_sink, dest);
     hw_sink_input_update_slave_sink(u, u->raw_sink, dest);
+
+    if (!dest)
+        return;
 
     /* reinit tuning paramter moved to move_finish_cb:
        voice_sink_proplist_update(u, dest);

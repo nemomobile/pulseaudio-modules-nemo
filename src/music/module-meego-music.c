@@ -347,7 +347,6 @@ static void sink_input_detach_cb(pa_sink_input *i) {
     else
         pa_log("fixme: !PA_SINK_IS_LINKED ?");
 
-    pa_sink_set_asyncmsgq(u->sink, NULL);
     pa_sink_set_rtpoll(u->sink, NULL);
     sink_inputs_may_move(u->sink, FALSE);
 }
@@ -391,15 +390,16 @@ static void sink_input_moving_cb(pa_sink_input *i, pa_sink *dest){
     pa_sink_input_assert_ref(i);
     pa_assert_se(u = i->userdata);
 
-    if (!dest)
-        return; /* The sink input is going to be killed, don't do anything. */
+    if (!dest) {
+        pa_sink_set_asyncmsgq(u->sink, NULL);
+
+        return;
+    }
 
     u->master_sink = dest;
+    pa_sink_set_asyncmsgq(u->sink, dest->asyncmsgq);
     pa_sink_set_latency_flag(u->sink, dest->flags & PA_SINK_LATENCY);
     pa_sink_set_dynamic_latency_flag(u->sink, dest->flags & PA_SINK_DYNAMIC_LATENCY);
-
-    /* FIXME: This should be done by the core. */
-    pa_sink_set_asyncmsgq(u->sink, i->sink->asyncmsgq);
 
     p = pa_proplist_new();
     pa_proplist_setf(p, PA_PROP_DEVICE_DESCRIPTION, "%s connected to %s", u->sink->name, u->master_sink->name);

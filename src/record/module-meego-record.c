@@ -313,8 +313,11 @@ static void source_output_moving_cb(pa_source_output *o, pa_source *dest){
     pa_source_output_assert_ref(o);
     pa_assert_se(u = o->userdata);
 
-    if (!dest)
-        return; /* The source output is going to be killed, don't do anything. */
+    if (!dest) {
+        pa_source_set_asyncmsgq(u->source, NULL);
+
+        return;
+    }
 
     u->master_source = dest;
     pa_source_set_asyncmsgq(u->source, dest->asyncmsgq);
