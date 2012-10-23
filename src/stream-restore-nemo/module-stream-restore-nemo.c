@@ -2014,15 +2014,16 @@ static pa_hook_result_t sink_input_fixate_hook_callback(pa_core *c, pa_sink_inpu
             else if (new_data->volume_is_set)
                 pa_log_debug("Not restoring volume for sink input %s, because already set.", name);
             else {
+                char buf[PA_CVOLUME_SNPRINT_MAX];
+
                 /* If we are in sink-volume mode and our route role streams appear, we set them to
                  * PA_VOLUME_NORM */
                 if (u->use_sink_volume && (get_route_volume_by_name(u, name) != NULL))
                     pa_cvolume_set(&e->volume, e->volume.channels, PA_VOLUME_NORM);
 
                 pa_log_info("Restoring volume for sink input %s.", name);
-
                 pa_sink_input_new_data_set_volume(new_data, pa_cvolume_remap(&e->volume, &e->channel_map, &new_data->channel_map));
-
+                pa_log_info("Restored volume: %s", pa_cvolume_snprint(buf, PA_CVOLUME_SNPRINT_MAX, &new_data->volume));
             }
         }
 
