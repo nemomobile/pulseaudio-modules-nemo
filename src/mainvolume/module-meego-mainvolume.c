@@ -62,8 +62,11 @@ static void dbus_signal_steps(struct mv_userdata *u);
 #define XMAEMO_CALL_STEPS "x-maemo.mainvolume.call"
 #define XMAEMO_MEDIA_STEPS "x-maemo.mainvolume.media"
 
-/* Send dbus signals at most every SIGNAL_INTERVAL seconds. */
-#define SIGNAL_INTERVAL ((pa_usec_t)(1 * PA_USEC_PER_SEC))
+/* If multiple step change calls are coming in succession, wait SIGNAL_WAIT_TIME before
+ * sending change signal. */
+#define SIGNAL_WAIT_TIME ((pa_usec_t)(0.5 * PA_USEC_PER_SEC))
+
+static void signal_steps(struct mv_userdata *u, pa_bool_t wait_for_mode_change);
 
 static void steps_set_free(struct mv_volume_steps_set *s, void *userdata) {
     pa_assert(s);
@@ -89,13 +92,20 @@ static void signal_time_callback(pa_mainloop_api *a, pa_time_event *e, const str
 
     signal_timer_stop(u);
 
-    /* signal changed step settings forward */
-    dbus_signal_steps(u);
+    /* try signalling current steps again */
+    signal_steps(u, FALSE);
+}
+
+static void signal_timer_set(struct mv_userdata *u, const pa_usec_t time) {
+    pa_assert(u);
+
+    /* only set time event if none currently pending */
+    if (!u->signal_time_event)
+        u->signal_time_event = pa_core_rttime_new(u->core, time, signal_time_callback, u);
 }
 
 static void signal_steps(struct mv_userdata *u, pa_bool_t wait_for_mode_change) {
     pa_usec_t now;
-    pa_bool_t update_now;
 
     now = pa_rtclock_now();
 
@@ -107,21 +117,37 @@ static void signal_steps(struct mv_userdata *u, pa_bool_t wait_for_mode_change) 
      * is changed from stream-restore, then stream-restore forwards that to us), we'll signal
      * our new step SIGNAL_INTERVAL late, but hopefully that's acceptable. (That scenario shouldn't
      * happen that often.) */
-    if (wait_for_mode_change)
-        update_now = u->volume_change_ready && u->mode_change_ready;
-    else
-        update_now = TRUE;
 
-    if (update_now && now - u->last_signal_timestamp > SIGNAL_INTERVAL) {
+    /* always signal current steps during mode change */
+    if (wait_for_mode_change) {
+        if (u->volume_change_ready && u->mode_change_ready) {
+            signal_timer_stop(u);
+            dbus_signal_steps(u);
+        } else
+            signal_timer_set(u, now + SIGNAL_WAIT_TIME);
 
+        return;
+    }
+
+    /* if we haven't sent ack signal for a long time, send initial reply
+     * immediately */
+    if (now - u->last_signal_timestamp >= SIGNAL_WAIT_TIME) {
         signal_timer_stop(u);
-        /* signal changed step settings forward */
         dbus_signal_steps(u);
         return;
     }
 
-    if (!u->signal_time_event)
-        u->signal_time_event = pa_core_rttime_new(u->core, now + SIGNAL_INTERVAL, signal_time_callback, u);
+    /* Then if new set step events come really frequently, wait until step events stop before
+     * signaling */
+    if (now - u->last_step_set_timestamp >= SIGNAL_WAIT_TIME) {
+        signal_timer_stop(u);
+        dbus_signal_steps(u);
+        return;
+    } else
+        /* keep last signal timestamp reseted so signals aren't sent every SIGNAL_WAIT_TIME */
+        u->last_signal_timestamp = now;
+
+    signal_timer_set(u, now + SIGNAL_WAIT_TIME);
 }
 
 static pa_hook_result_t call_state_cb(pa_call_state_tracker *t, void *active, struct mv_userdata *u) {
@@ -543,6 +569,7 @@ void mainvolume_set_current_step(DBusConnection *conn, DBusMessage *msg, DBusMes
 
     pa_dbus_send_empty_reply(conn, msg);
 
+    u->last_step_set_timestamp = pa_rtclock_now();
     signal_steps(u, FALSE);
 }
 

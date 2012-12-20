@@ -75,6 +75,7 @@ struct mv_userdata {
 
     pa_time_event *signal_time_event;
     pa_usec_t last_signal_timestamp;
+    pa_usec_t last_step_set_timestamp;
 
     pa_dbus_protocol *dbus_protocol;
     char *dbus_path;
