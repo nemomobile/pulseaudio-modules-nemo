@@ -189,40 +189,6 @@ AC_ARG_WITH([module-dir],
 AC_SUBST(modlibexecdir)
 
 ############################################
-# Cmtspeech
-AC_ARG_ENABLE([cmtspeech],
-    AS_HELP_STRING([--disable-cmtspeech],[Disable optional libcmtspeech support]),
-        [
-            case "${enableval}" in
-                yes) cmtspeech=yes ;;
-                no) cmtspeech=no ;;
-                *) AC_MSG_ERROR(bad value ${enableval} for --disable-cmtspeech) ;;
-            esac
-        ],
-        [cmtspeech=auto])
-
-if test "x${cmtspeech}" != xno ; then
-    AC_CHECK_HEADERS([cmtspeech.h],
-	HAVE_LIBCMTSPEECHDATA=1,
-	[
-	    HAVE_LIBCMTSPEECHDATA=0
-            if test "x$cmtspeech" = xyes ; then
-	        AC_MSG_ERROR([*** libcmtspeechdata-devel headers not found ***])
-	    fi
-	])
-else
-    HAVE_LIBCMTSPEECHDATA=0
-fi
-
-ENABLE_CMTSPEECH=no
-if test "x${HAVE_LIBCMTSPEECHDATA}" = x1 ; then
-   ENABLE_CMTSPEECH=yes
-   AC_DEFINE([HAVE_LIBCMTSPEECHDATA], 1, [Have libcmtspeech?])
-fi
-
-AM_CONDITIONAL([HAVE_LIBCMTSPEECHDATA], [test "x${HAVE_LIBCMTSPEECHDATA}" = x1])
-
-############################################
 # Processing
 AC_ARG_ENABLE([processing],
     AS_HELP_STRING([--disable-processing],[Disable optional processing support]),
@@ -271,7 +237,6 @@ src/music/Makefile
 src/record/Makefile
 src/voice/Makefile
 src/test/Makefile
-src/cmtspeech/Makefile
 src/mainvolume/Makefile
 src/mainvolume/tests/Makefile
 src/sidetone/Makefile
@@ -295,6 +260,4 @@ echo "
     modules directory:      ${modlibexecdir}
 
     Enable x86 libraries    ${ENABLE_X86}
-
-    Enable cmtspeech:       ${ENABLE_CMTSPEECH}
     "
