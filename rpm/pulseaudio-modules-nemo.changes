@@ -1,0 +1,87 @@
+* Wed Jan 16 2013 Juho Hamalainen <juho.hamalainen@tieto.com> - 2.1.3
+- Renamed to pulseaudio-modules-nemo
+- Updated version with cmtspeech module removed.
+- Add common devel package.
+
+* Thu Dec 20 2012 Juho Hamalainen <juho.hamalainen@tieto.com> - 2.1.2
+- Update mainvolume-module rate limit implementation.
+
+* Mon Nov 19 2012 Juho Hamalainen <juho.hamalainen@tieto.com> - 2.1.1
+- Fix stream-restore-nemo DBus interface argument list.
+
+* Sun Oct 14 2012 Tanu Kaskinen <tanu.kaskinen@jollamobile.com> - 2.1.0
+- Package 2.1.0 from the new upstream at
+  https://github.com/nemomobile/pulseaudio-modules-nemo
+
+* Thu Sep 4 2012 Tanu Kaskinen <tanu.kaskinen@jollamobile.com> - 0.9.19.0.11
+- Fixes NEMO#326: cmtspeech: Change the retry interval for opening
+  /dev/cmt_speech from 0.5 seconds to 60 seconds.
+- Removed a duplicate patch.
+
+* Tue Apr 26 2011 Sami Sirkia <sami.sirkia@cybercom.com> - 0.9.19.0.11
+- Added a change that was lost in cleanup. (BMC#15950)
+- Merged the pa-0.9.22-audio-routing-null-pointer-fix.patch
+  into earlier pa-0.9.22-remove-flat-volume-for-n900.patch
+
+* Thu Apr 21 2011 Jouni Peltonen <jouni.peltonen@cybercom.com> - 0.9.19.0.11
+- Audio routing updated to handle also NULL valued
+  pointers with meego_parameter_update_args. (BMC#15950)
+  Added pa-0.9.22-audio-routing-null-pointer-fix.patch
+
+* Wed Apr 13 2011 Sami Sirkia <sami.sirkia@cybercom.com> - 0.9.19.0.11
+- Missing header files added into -devel rpm. (still part of BMC#15688)
+  Needed by pulseaudio-modules-nokia.
+
+* Wed Apr 13 2011 Sami Sirkia <sami.sirkia@cybercom.com> - 0.9.19.0.11
+- Added patches to be compatible with PA .22  (BMC#15688)
+  Stopped using flat_volume_sink. Most patches copied from modules-mfld.
+
+* Fri Mar 4 2011 Sami Sirkia <sami.sirkia@cybercom.com> - 0.9.19.0.11
+- Partial fix for BMC#8108: [N900] Volume control does not work
+  Enabled mainvolume module in build and added as separate rpm.
+- Removed unnecessary ldconfigs
+- Got rid of many %excludes with '%configure --disable-static'
+- Changed Group: Multimedia/PulseAudio
+- Corrected spelling of PulseAudio
+
+* Thu Feb 17 2011 Sami Sirkia <sami.sirkia@cybercom.com> - 0.9.19.0.11
+- Added missing  ExclusiveArch:  %arm as clearly requested in BMC#12745
+- Renamed as requested in BMC#12745 : modules-meego -> modules-n900
+- Went back to the 0.9.19.0.11 style versioning. Recommended by upstream.
+- Source.tar is git tag 0.9.19.0-11_released. No diff to previous source.
+- Package now yamlified.
+- pulseaudio-modules-n900-static-*.rpm removed as unnecessary.
+
+* Mon Jan 10 2011 Sami Sirkia <sami.sirkia@cybercom.com> - 1.0
+- This is part of fullfilling   Fea 6701 Policy - Audio Policy   for n900
+- Dropped patch requiring PA version .21
+- Changed into sane versioning, independent of PA version.
+
+* Wed Oct 27 2010 Jouni Peltonen <jouni.peltonen@cybercom.com> - 0.9.21.0.20100915
+- New call states added to cmtspeech module patch.
+- Buffer change signal sent to old_alsa_sink only when needed.
+- Added 1 second sleepon cmtspeech disconnect to give busytone after call.
+
+* Thu Oct 26 2010 Jouni Peltonen <jouni.peltonen@cybercom.com> - 0.9.21.0.20100915
+- Cmtspeech module patch changed to include alsa_sink_old primary and alternative
+  buffer switching. Part of the fix for BMC#8423, BMC#8428 and BMC#8605.
+
+* Tue Oct 14 2010 Sami Sirkia <sami.sirkia@cybercom.com> - 0.9.21.0.20100915
+- Unnecessary build requirements removed.
+- Requirement for libpulse-browse causes pulseaudio-modules-meego to fail,
+  since it is no longer available.
+
+* Tue Oct 6 2010 Sami Sirkia <sami.sirkia@cybercom.com> - 0.9.21.0.20100915
+- Part of the solution for Bug 8039: "Current N900 telephony audio 
+  implementation does not live up to audio standards required 
+  by 3GPP for handsets on networks"
+- Updated source package to 0.9.19.0-20100915
+- Added static libs into pulseaudio-module-meego-static.rpm
+- Updated the include file paths to new style in -devel.rpm
+
+* Tue Sep 21 2010 Marko Saukko <marko.saukko@cybercom.com> - 0.9.21.0
+- Cleaned up the packagaging.
+- Renamed to pulseaudio-modules-meego
+- Renamed some patches
+- This package implements part of implementation for FEA#4134 FEA#4135 FEA#4136 on ARM
+  (Dialer - Make a Call, Receive a Call, End Call)
