@@ -71,7 +71,8 @@ PA_MODULE_USAGE(
         "on_rescue=<When device becomes unavailable, recheck streams?> "
         "fallback_table=<filename> "
         "route_table=<filename> "
-        "sink_volume_table=<filename>");
+        "sink_volume_table=<filename> "
+        "use_voice=<true/false use voice module for mode detection");
 
 #define SAVE_INTERVAL (10 * PA_USEC_PER_SEC)
 #define IDENTIFICATION_PROPERTY "module-stream-restore.id"
@@ -105,6 +106,7 @@ static const char* const valid_modargs[] = {
     "fallback_table",
     "route_table",
     "sink_volume_table",
+    "use_voice",
     NULL
 };
 
@@ -156,6 +158,7 @@ struct userdata {
     pa_native_protocol *protocol;
     pa_idxset *subscribed;
 
+    pa_bool_t use_voice;
     pa_hook_slot *sink_proplist_changed_slot;
     pa_hook_slot *sink_input_move_finished_slot;
     pa_database *route_database;
@@ -1550,13 +1553,16 @@ static pa_hook_result_t sink_proplist_changed_hook_callback(pa_core *c, pa_sink 
     pa_assert(s);
     pa_assert(u);
 
-    PA_IDXSET_FOREACH(i, s->inputs, idx) {
-        name = pa_proplist_gets(i->proplist, PA_PROP_MEDIA_NAME);
-        if (name && pa_streq(name, VOICE_MASTER_SINK_INPUT_NAME)) {
-            check_mode(s, u);
-            break;
+    if (u->use_voice) {
+        PA_IDXSET_FOREACH(i, s->inputs, idx) {
+            name = pa_proplist_gets(i->proplist, PA_PROP_MEDIA_NAME);
+            if (name && pa_streq(name, VOICE_MASTER_SINK_INPUT_NAME)) {
+                check_mode(s, u);
+                break;
+            }
         }
-    }
+    } else
+        check_mode(s, u);
 
     return PA_HOOK_OK;
 }
@@ -2899,7 +2905,8 @@ int pa__init(pa_module*m) {
               restore_muted = TRUE,
               restore_route_volume = TRUE,
               on_hotplug = TRUE,
-              on_rescue = TRUE;
+              on_rescue = TRUE,
+              use_voice = FALSE;
     pa_datum key;
     pa_bool_t done;
 
@@ -2920,6 +2927,11 @@ int pa__init(pa_module*m) {
         goto fail;
     }
 
+    if (pa_modargs_get_value_boolean(ma, "use_voice", &use_voice) < 0) {
+        pa_log("use_voice= expects boolean argument.");
+        goto fail;
+    }
+
     if (!restore_muted && !restore_volume && !restore_device)
         pa_log_warn("Neither restoring volume, nor restoring muted, nor restoring device enabled!");
 
@@ -2932,6 +2944,7 @@ int pa__init(pa_module*m) {
     u->on_hotplug = on_hotplug;
     u->on_rescue = on_rescue;
     u->restore_route_volume = restore_route_volume;
+    u->use_voice = use_voice;
 
     u->volume_proxy = pa_volume_proxy_get(u->core);
     u->volume_proxy_hook_slot = pa_hook_connect(&pa_volume_proxy_hooks(u->volume_proxy)[PA_VOLUME_PROXY_HOOK_CHANGED], PA_HOOK_NORMAL, (pa_hook_cb_t)volume_proxy_cb, u);
@@ -2968,7 +2981,8 @@ int pa__init(pa_module*m) {
 
     if (u->restore_route_volume) {
         u->sink_proplist_changed_slot = pa_hook_connect(&m->core->hooks[PA_CORE_HOOK_SINK_PROPLIST_CHANGED], PA_HOOK_LATE, (pa_hook_cb_t)sink_proplist_changed_hook_callback, u);
-        u->sink_input_move_finished_slot = pa_hook_connect(&m->core->hooks[PA_CORE_HOOK_SINK_INPUT_MOVE_FINISH], PA_HOOK_NORMAL, (pa_hook_cb_t)hw_sink_input_move_finish_callback, u);
+        if (u->use_voice)
+            u->sink_input_move_finished_slot = pa_hook_connect(&m->core->hooks[PA_CORE_HOOK_SINK_INPUT_MOVE_FINISH], PA_HOOK_NORMAL, (pa_hook_cb_t)hw_sink_input_move_finish_callback, u);
     }
 
     u->route = NULL;
