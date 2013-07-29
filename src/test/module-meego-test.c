@@ -41,15 +41,17 @@
 #include <pulsecore/core-util.h>
 
 #include "proplist-meego.h"
+#include "call-state-tracker.h"
 
 #include "module-meego-test-symdef.h"
 
 PA_MODULE_AUTHOR("Pekka Ervasti");
 PA_MODULE_DESCRIPTION("test module");
 PA_MODULE_USAGE(
-        "op=<test operation, mode/si/proplist> "
+        "op=<test operation, mode/si/proplist/call> "
         "sink_name=<name of hw sink> "
         "audio_mode=<ihf,hs,etc> "
+        "active=call active <true/false> "
         "hwid=<accessory hwid> "
         "property=<property key to change> "
         "value=<property value to change>");
@@ -59,6 +61,8 @@ static const char* const valid_modargs[] = {
     "op",
     "sink_name",
     "audio_mode",
+    "call",
+    "active",
     "hwid",
     "property",
     "value",
@@ -68,6 +72,7 @@ static const char* const valid_modargs[] = {
 #define OP_AUDIO_MODE "mode"
 #define OP_SINK_INPUT "si"
 #define OP_PROPLIST "proplist"
+#define OP_CALL "call"
 
 struct userdata {
     pa_core *core;
@@ -137,6 +142,25 @@ static void test_sink_input(struct userdata *u) {
     pa_log_debug("Setting up subscription for sink-input");
 }
 
+static void test_call(struct userdata *u, pa_modargs *ma) {
+    pa_call_state_tracker *tracker;
+    pa_bool_t active;
+
+    tracker = pa_call_state_tracker_get(u->core);
+
+    pa_assert(tracker);
+
+    if (pa_modargs_get_value_boolean(ma, "active", &active) < 0) {
+        pa_log_error("call op (active) expects boolean argument");
+        goto end;
+    }
+
+    pa_call_state_tracker_set_active(tracker, active);
+
+end:
+    pa_call_state_tracker_unref(tracker);
+    pa_module_unload_request(u->module, TRUE);
+}
 static void test_proplist(struct userdata *u, pa_modargs *ma) {
     const char *sink_name;
     const char *property;
@@ -244,6 +268,8 @@ int pa__init(pa_module*m) {
         test_sink_input(u);
     else if (pa_streq(op, OP_PROPLIST))
         test_proplist(u, ma);
+    else if (pa_streq(op, OP_CALL))
+        test_call(u, ma);
 
     pa_modargs_free(ma);
 
