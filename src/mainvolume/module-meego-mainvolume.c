@@ -47,11 +47,13 @@
 
 PA_MODULE_AUTHOR("Juho Hämäläinen");
 PA_MODULE_DESCRIPTION("Nokia mainvolume module");
-PA_MODULE_USAGE("tuning_mode=<true/false> defaults to false");
+PA_MODULE_USAGE("tuning_mode=<true/false> defaults to false "
+                "virtual_stream=<true/false> create virtual stream for voice call volume control (default false)");
 PA_MODULE_VERSION(PACKAGE_VERSION);
 
 static const char* const valid_modargs[] = {
     "tuning_mode",
+    "virtual_stream",
     NULL,
 };
 
@@ -150,6 +152,73 @@ static void signal_steps(struct mv_userdata *u, pa_bool_t wait_for_mode_change) 
     signal_timer_set(u, now + SIGNAL_WAIT_TIME);
 }
 
+static void sink_input_kill_cb(pa_sink_input *i) {
+    struct mv_userdata *u;
+
+    pa_sink_input_assert_ref(i);
+    pa_assert_se(u = i->userdata);
+
+    pa_sink_input_unlink(u->virtual_sink_input);
+    pa_sink_input_unref(u->virtual_sink_input);
+    u->virtual_sink_input = NULL;
+}
+
+/* no-op */
+static int sink_input_pop_cb(pa_sink_input *i, size_t nbytes, pa_memchunk *chunk) {
+    return 0;
+}
+
+/* no-op */
+static void sink_input_process_rewind_cb(pa_sink_input *i, size_t nbytes) {
+}
+
+static void create_virtual_stream(struct mv_userdata *u) {
+    pa_sink_input_new_data data;
+
+    pa_assert(u);
+
+    if (!u->virtual_stream || u->virtual_sink_input)
+        return;
+
+    pa_sink_input_new_data_init(&data);
+
+    data.driver = __FILE__;
+    data.module = u->module;
+    pa_proplist_setf(data.proplist, PA_PROP_MEDIA_NAME, "Virtual Stream for MainVolume Volume Control");
+    pa_proplist_sets(data.proplist, PA_PROP_MEDIA_ROLE, "phone");
+    pa_sink_input_new_data_set_sample_spec(&data, &u->core->default_sample_spec);
+    pa_sink_input_new_data_set_channel_map(&data, &u->core->default_channel_map);
+    data.flags = PA_SINK_INPUT_START_CORKED | PA_SINK_INPUT_NO_REMAP | PA_SINK_INPUT_NO_REMIX;
+
+    pa_sink_input_new(&u->virtual_sink_input, u->module->core, &data);
+    pa_sink_input_new_data_done(&data);
+
+    if (!u->virtual_sink_input) {
+        pa_log("failed to create virtual sink input.");
+        return;
+    }
+
+    u->virtual_sink_input->userdata = u;
+    u->virtual_sink_input->kill = sink_input_kill_cb;
+    u->virtual_sink_input->pop = sink_input_pop_cb;
+    u->virtual_sink_input->process_rewind = sink_input_process_rewind_cb;
+
+    pa_sink_input_put(u->virtual_sink_input);
+
+    pa_log_debug("created virtual sink input for voice call volume control.");
+}
+
+static void destroy_virtual_stream(struct mv_userdata *u) {
+    pa_assert(u);
+
+    if (!u->virtual_sink_input)
+        return;
+
+    sink_input_kill_cb(u->virtual_sink_input);
+
+    pa_log_debug("removed virtual stream.");
+}
+
 static pa_hook_result_t call_state_cb(pa_call_state_tracker *t, void *active, struct mv_userdata *u) {
     pa_assert(t);
     pa_assert(u);
@@ -159,6 +228,12 @@ static pa_hook_result_t call_state_cb(pa_call_state_tracker *t, void *active, st
 
     pa_log_debug("call is %s (media step %u call step %u)", u->call_active ? "active" : "inactive",
                  u->current_steps->media.current_step, u->current_steps->call.current_step);
+
+    if (u->call_active)
+        create_virtual_stream(u);
+    else
+        destroy_virtual_stream(u);
+
     signal_steps(u, FALSE);
 
     return PA_HOOK_OK;
@@ -321,9 +396,15 @@ int pa__init(pa_module *m) {
     u->current_steps = fallback;
 
     u->tuning_mode = FALSE;
+    u->virtual_stream = FALSE;
 
     if (pa_modargs_get_value_boolean(ma, "tuning_mode", &u->tuning_mode) < 0) {
         pa_log_error("tuning_mode expects boolean argument");
+        goto fail;
+    }
+
+    if (pa_modargs_get_value_boolean(ma, "virtual_stream", &u->virtual_stream) < 0) {
+        pa_log_error("virtual_stream expects boolean argument");
         goto fail;
     }
 
@@ -363,6 +444,8 @@ void pa__done(pa_module *m) {
     signal_timer_stop(u);
 
     dbus_done(u);
+
+    destroy_virtual_stream(u);
 
     if (u->sink_proplist_changed_slot)
         pa_hook_slot_free(u->sink_proplist_changed_slot);
