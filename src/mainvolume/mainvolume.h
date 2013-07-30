@@ -56,6 +56,9 @@ struct mv_userdata {
     pa_core *core;
     pa_module *module;
     pa_bool_t tuning_mode;
+    pa_bool_t virtual_stream;
+
+    pa_sink_input *virtual_sink_input;
 
     pa_hashmap *steps;
     struct mv_volume_steps_set *current_steps;
