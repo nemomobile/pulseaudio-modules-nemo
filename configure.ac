@@ -1,8 +1,8 @@
 AC_PREREQ(2.60)
 
-m4_define(PA_MAJOR, [2])
-m4_define(PA_MINOR, [1])
-m4_define(NEMO_MICRO, [3])
+m4_define(PA_MAJOR, [4])
+m4_define(PA_MINOR, [0])
+m4_define(NEMO_MICRO, [6])
 
 AC_INIT([pulseaudio-modules-nemo], [PA_MAJOR.PA_MINOR.NEMO_MICRO], [mer-general@lists.merproject.org])
 AC_CONFIG_HEADER([config.h])
