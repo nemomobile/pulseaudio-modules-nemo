@@ -233,14 +233,9 @@ Makefile
 src/Makefile
 src/common/Makefile
 src/common/libmeego-common.pc
-src/music/Makefile
-src/record/Makefile
-src/voice/Makefile
 src/test/Makefile
 src/mainvolume/Makefile
 src/mainvolume/tests/Makefile
-src/sidetone/Makefile
-src/sidetone/tests/Makefile
 src/parameters/Makefile
 src/parameters/testmodule/Makefile
 src/stream-restore-nemo/Makefile
