@@ -441,6 +441,8 @@ int pa__init(pa_module *m) {
 void pa__done(pa_module *m) {
     struct mv_userdata *u = m->userdata;
 
+    meego_parameter_stop_updates("mainvolume", (pa_hook_cb_t) parameters_changed_cb, u);
+
     signal_timer_stop(u);
 
     dbus_done(u);
