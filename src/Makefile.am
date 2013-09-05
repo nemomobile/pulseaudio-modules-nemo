@@ -1,1 +1,1 @@
-SUBDIRS = common voice music record test mainvolume sidetone parameters stream-restore-nemo
+SUBDIRS = common test mainvolume parameters stream-restore-nemo

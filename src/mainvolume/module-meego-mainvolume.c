@@ -70,7 +70,7 @@ static void dbus_signal_steps(struct mv_userdata *u);
 
 static void signal_steps(struct mv_userdata *u, pa_bool_t wait_for_mode_change);
 
-static void steps_set_free(struct mv_volume_steps_set *s, void *userdata) {
+static void steps_set_free(struct mv_volume_steps_set *s) {
     pa_assert(s);
 
     pa_xfree(s->route);
@@ -289,7 +289,7 @@ static pa_hook_result_t parameters_changed_cb(pa_core *c, meego_parameter_update
      * normally */
     if (u->tuning_mode && ua->parameters) {
         if ((set = pa_hashmap_remove(u->steps, u->route))) {
-            steps_set_free(set, NULL);
+            steps_set_free(set);
             set = NULL;
         }
     }
@@ -441,6 +441,8 @@ int pa__init(pa_module *m) {
 void pa__done(pa_module *m) {
     struct mv_userdata *u = m->userdata;
 
+    meego_parameter_stop_updates("mainvolume", (pa_hook_cb_t) parameters_changed_cb, u);
+
     signal_timer_stop(u);
 
     dbus_done(u);
@@ -462,7 +464,7 @@ void pa__done(pa_module *m) {
     if (u->volume_proxy)
         pa_volume_proxy_unref(u->volume_proxy);
 
-    pa_hashmap_free(u->steps, (pa_free2_cb_t)steps_set_free, NULL);
+    pa_hashmap_free(u->steps, (pa_free_cb_t) steps_set_free);
 
     pa_assert(m);
 

@@ -1,8 +1,8 @@
 AC_PREREQ(2.60)
 
-m4_define(PA_MAJOR, [2])
-m4_define(PA_MINOR, [1])
-m4_define(NEMO_MICRO, [3])
+m4_define(PA_MAJOR, [4])
+m4_define(PA_MINOR, [0])
+m4_define(NEMO_MICRO, [6])
 
 AC_INIT([pulseaudio-modules-nemo], [PA_MAJOR.PA_MINOR.NEMO_MICRO], [mer-general@lists.merproject.org])
 AC_CONFIG_HEADER([config.h])
@@ -233,14 +233,9 @@ Makefile
 src/Makefile
 src/common/Makefile
 src/common/libmeego-common.pc
-src/music/Makefile
-src/record/Makefile
-src/voice/Makefile
 src/test/Makefile
 src/mainvolume/Makefile
 src/mainvolume/tests/Makefile
-src/sidetone/Makefile
-src/sidetone/tests/Makefile
 src/parameters/Makefile
 src/parameters/testmodule/Makefile
 src/stream-restore-nemo/Makefile
