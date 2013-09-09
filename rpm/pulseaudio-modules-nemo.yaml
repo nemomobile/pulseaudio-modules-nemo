@@ -27,6 +27,11 @@ SubPackages:
       Description: This contains common libs for the Nemo PulseAudio modules.
       Requires:
           - pulseaudio >= 4.0
+      Obsoletes:
+          - pulseaudio-modules-nemo-voice < 4.0.6
+          - pulseaudio-modules-nemo-music < 4.0.6
+          - pulseaudio-modules-nemo-record < 4.0.6
+          - pulseaudio-modules-nemo-sidetone < 4.0.6
 
     - Name: mainvolume
       Summary: Mainvolume module for PulseAudio

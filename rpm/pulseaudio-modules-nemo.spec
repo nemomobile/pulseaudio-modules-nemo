@@ -30,6 +30,10 @@ PulseAudio modules for Nemo.
 Summary:    Common libs for the Nemo PulseAudio modules
 Group:      Multimedia/PulseAudio
 Requires:   pulseaudio >= 4.0
+Obsoletes:  pulseaudio-modules-nemo-voice < 4.0.6
+Obsoletes:  pulseaudio-modules-nemo-music < 4.0.6
+Obsoletes:  pulseaudio-modules-nemo-record < 4.0.6
+Obsoletes:  pulseaudio-modules-nemo-sidetone < 4.0.6
 
 %description common
 This contains common libs for the Nemo PulseAudio modules.
