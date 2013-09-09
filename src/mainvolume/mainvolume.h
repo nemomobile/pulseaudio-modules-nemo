@@ -31,9 +31,11 @@
 #include <pulsecore/core-error.h>
 #include <pulsecore/core-util.h>
 #include <pulsecore/protocol-dbus.h>
+#include <pulsecore/hook-list.h>
 
 #include "call-state-tracker.h"
 #include "volume-proxy.h"
+#include "listening-watchdog.h"
 
 #define MEDIA_STREAM "sink-input-by-media-role:x-maemo"
 #define CALL_STREAM "sink-input-by-media-role:phone"
@@ -50,6 +52,7 @@ struct mv_volume_steps_set {
 
     struct mv_volume_steps call;
     struct mv_volume_steps media;
+    int high_volume_step;
 };
 
 struct mv_userdata {
@@ -82,6 +85,16 @@ struct mv_userdata {
 
     pa_dbus_protocol *dbus_protocol;
     char *dbus_path;
+
+    struct notifier_data {
+        mv_listening_watchdog *watchdog;
+        pa_hook_slot *sink_changed_slot;
+        uint32_t timeout;
+        pa_hashmap *sinks;
+        pa_hashmap *modes;
+        pa_bool_t sink_active;
+        pa_bool_t mode_active;
+    } notifier;
 };
 
 /* return either "media" or "call" volume steps struct based on whether
@@ -116,6 +129,16 @@ int mv_parse_single_steps(struct mv_volume_steps *steps, const char *step_string
  * added to hashmap with route as key.
  * return total steps parsed or -1 on error.
  */
-int mv_parse_steps(struct mv_userdata *u, const char *route, const char *step_string_call, const char *step_string_media);
+int mv_parse_steps(struct mv_userdata *u,
+                   const char *route,
+                   const char *step_string_call,
+                   const char *step_string_media,
+                   const char *high_volume); /* high_volume can be NULL */
+
+/* Return highest step safe for listening with headphones. */
+int mv_safe_step(struct mv_userdata *u);
+
+/* Return true if current media step is same or over high volume step. */
+pa_bool_t mv_high_volume(struct mv_userdata *u);
 
 #endif
