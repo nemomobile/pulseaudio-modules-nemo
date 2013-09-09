@@ -198,7 +198,32 @@ int mv_parse_single_steps(struct mv_volume_steps *steps, const char *step_string
     return count;
 }
 
-int mv_parse_steps(struct mv_userdata *u, const char *route, const char *step_string_call, const char *step_string_media) {
+static int parse_high_volume_step(struct mv_volume_steps_set *set, const char *high_volume) {
+    int step;
+
+    pa_assert(set);
+
+    if (!high_volume)
+        return -1;
+
+    if (pa_atoi(high_volume, &step)) {
+        pa_log_warn("Failed to parse high volume step \"%s\"", high_volume);
+        return -1;
+    }
+
+    if (step > set->media.n_steps - 1) {
+        pa_log_warn("High volume step %d over bounds (max value %u", step, set->media.n_steps - 1);
+        return -1;
+    }
+
+    return step;
+}
+
+int mv_parse_steps(struct mv_userdata *u,
+                   const char *route,
+                   const char *step_string_call,
+                   const char *step_string_media,
+                   const char *high_volume) {
     int count1 = 0;
     int count2 = 0;
     struct mv_volume_steps_set *set;
@@ -231,12 +256,42 @@ int mv_parse_steps(struct mv_userdata *u, const char *route, const char *step_st
     set->route = pa_xstrdup(route);
     set->call = call_steps;
     set->media = media_steps;
+    set->high_volume_step = parse_high_volume_step(set, high_volume);
+
     pa_log_debug("adding %d call and %d media steps with route %s",
                  set->call.n_steps,
                  set->media.n_steps,
                  set->route);
+    if (set->high_volume_step > -1)
+        pa_log_debug("setting media high volume step %d", set->high_volume_step);
+
     pa_hashmap_put(u->steps, set->route, set);
 
     return count1 + count2;
 }
 
+int mv_safe_step(struct mv_userdata *u) {
+    pa_assert(u);
+
+    if (u->call_active)
+        return -1;
+
+    if (u->current_steps)
+        return u->current_steps->high_volume_step - 1;
+
+    return -1;
+}
+
+pa_bool_t mv_high_volume(struct mv_userdata *u) {
+    pa_assert(u);
+
+    if (u->call_active)
+        return FALSE;
+
+    if (u->current_steps
+        && u->current_steps->high_volume_step > -1
+        && u->current_steps->media.current_step >= u->current_steps->high_volume_step)
+        return TRUE;
+
+    return FALSE;
+}

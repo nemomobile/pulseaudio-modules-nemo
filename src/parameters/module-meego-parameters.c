@@ -38,13 +38,15 @@ PA_MODULE_AUTHOR("Pekka Ervasti");
 PA_MODULE_DESCRIPTION("Meego parameters module");
 PA_MODULE_USAGE("directory=<parameter directory> "
                 "cache=<boolean> "
-                "initial_mode=<the mode in which to start>");
+                "initial_mode=<the mode in which to start> "
+                "use_voice=<true/false use voice module for mode detection, default true>");
 PA_MODULE_VERSION(PACKAGE_VERSION);
 
 static const char* const valid_modargs[] = {
     "directory",
     "cache",
     "initial_mode",
+    "use_voice",
     NULL,
 };
 
@@ -74,9 +76,13 @@ static void check_mode(pa_sink *s, struct userdata *u) {
 }
 
 static pa_hook_result_t hw_sink_input_move_finish_cb(pa_core *c, pa_sink_input *i, struct userdata *u) {
-    const char *name = pa_proplist_gets(i->proplist, PA_PROP_MEDIA_NAME);
+    const char *name;
 
-    if (i->sink && name && pa_streq(name, VOICE_MASTER_SINK_INPUT_NAME))
+    if (u->parameters.use_voice) {
+        name = pa_proplist_gets(i->proplist, PA_PROP_MEDIA_NAME);
+        if (i->sink && name && pa_streq(name, VOICE_MASTER_SINK_INPUT_NAME))
+            check_mode(i->sink, u);
+    } else
         check_mode(i->sink, u);
 
     return PA_HOOK_OK;
@@ -86,13 +92,16 @@ static pa_hook_result_t sink_proplist_changed_hook_callback(pa_core *c, pa_sink 
     pa_sink_input *i;
     uint32_t idx;
 
-    PA_IDXSET_FOREACH(i, s->inputs, idx) {
-        const char *name = pa_proplist_gets(i->proplist, PA_PROP_MEDIA_NAME);
-        if (name && pa_streq(name, VOICE_MASTER_SINK_INPUT_NAME)) {
-            check_mode(s, u);
-            break;
+    if (u->parameters.use_voice) {
+        PA_IDXSET_FOREACH(i, s->inputs, idx) {
+                const char *name = pa_proplist_gets(i->proplist, PA_PROP_MEDIA_NAME);
+                if (name && pa_streq(name, VOICE_MASTER_SINK_INPUT_NAME)) {
+                    check_mode(s, u);
+                    break;
+                }
         }
-    }
+    } else
+        check_mode(s, u);
 
     return PA_HOOK_OK;
 }
@@ -113,8 +122,14 @@ int pa__init(pa_module *m) {
     m->userdata = u;
     u->core = m->core;
     u->module = m;
+    u->parameters.use_voice = TRUE;
 
     u->parameters.directory = pa_xstrdup(pa_modargs_get_value(ma, "directory", DEFAULT_DIRECTORY));
+
+    if (pa_modargs_get_value_boolean(ma, "use_voice", &u->parameters.use_voice) < 0) {
+        pa_log("use_voice= expects a boolean argument.");
+        goto fail;
+    }
 
     if (pa_modargs_get_value_boolean(ma, "cache", &u->parameters.cache) < 0) {
         pa_log("cache= expects a boolean argument.");

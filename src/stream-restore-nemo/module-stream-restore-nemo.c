@@ -3071,7 +3071,7 @@ fail:
     return  -1;
 }
 
-static void free_dbus_entry_cb(void *p, void *userdata) {
+static void free_dbus_entry_cb(void *p) {
     struct dbus_entry *de = p;
 
     pa_assert(de);
@@ -3093,7 +3093,7 @@ void pa__done(pa_module*m) {
         pa_assert_se(pa_dbus_protocol_unregister_extension(u->dbus_protocol, INTERFACE_STREAM_RESTORE) >= 0);
         pa_assert_se(pa_dbus_protocol_remove_interface(u->dbus_protocol, OBJECT_PATH, stream_restore_interface_info.name) >= 0);
 
-        pa_hashmap_free(u->dbus_entries, free_dbus_entry_cb, NULL);
+        pa_hashmap_free(u->dbus_entries, free_dbus_entry_cb);
 
         pa_dbus_protocol_unref(u->dbus_protocol);
     }
@@ -3148,7 +3148,7 @@ void pa__done(pa_module*m) {
     }
 
     if (u->subscribed)
-        pa_idxset_free(u->subscribed, NULL, NULL);
+        pa_idxset_free(u->subscribed, NULL);
 
     _free_route_volumes(u);
 
