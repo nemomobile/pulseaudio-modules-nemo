@@ -292,6 +292,18 @@ pa_bool_t mv_high_volume(struct mv_userdata *u) {
         && u->current_steps->high_volume_step > -1
         && u->current_steps->media.current_step >= u->current_steps->high_volume_step)
         return TRUE;
+    else
+        return FALSE;
+}
 
-    return FALSE;
+pa_bool_t mv_has_high_volume(struct mv_userdata *u) {
+    pa_assert(u);
+
+    if (u->call_active)
+        return FALSE;
+
+    if (u->current_steps && u->current_steps->high_volume_step > -1)
+        return TRUE;
+    else
+        return FALSE;
 }

@@ -32,6 +32,7 @@
 #include <pulsecore/core-util.h>
 #include <pulsecore/protocol-dbus.h>
 #include <pulsecore/hook-list.h>
+#include <pulsecore/strlist.h>
 
 #include "call-state-tracker.h"
 #include "volume-proxy.h"
@@ -90,7 +91,7 @@ struct mv_userdata {
         mv_listening_watchdog *watchdog;
         pa_hook_slot *sink_changed_slot;
         uint32_t timeout;
-        pa_hashmap *sinks;
+        pa_strlist *sinks;
         pa_hashmap *modes;
         pa_bool_t sink_active;
         pa_bool_t mode_active;
@@ -140,5 +141,8 @@ int mv_safe_step(struct mv_userdata *u);
 
 /* Return true if current media step is same or over high volume step. */
 pa_bool_t mv_high_volume(struct mv_userdata *u);
+
+/* Return true if currently active media steps have high volume step defined. */
+pa_bool_t mv_has_high_volume(struct mv_userdata *u);
 
 #endif
