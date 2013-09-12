@@ -89,12 +89,24 @@ struct mv_userdata {
 
     struct notifier_data {
         mv_listening_watchdog *watchdog;
-        pa_hook_slot *sink_changed_slot;
+        pa_hook_slot *sink_input_put_slot;
+        pa_hook_slot *sink_input_changed_slot;
+        pa_hook_slot *sink_input_unlink_slot;
         uint32_t timeout;
-        pa_strlist *sinks;
+        /* Modes that are watched. */
         pa_hashmap *modes;
-        pa_bool_t sink_active;
         pa_bool_t mode_active;
+
+        /* Roles for sink-inputs that are watched. */
+        pa_hashmap *roles;
+
+        /* Currently existing sink-inputs matching with roles.
+         * key: sink-input-object data: uint32_t bit flag for sink-input
+         * When sink-input is in playing state, si's flag is applied to enabled_slots
+         * and vice-versa. */
+        pa_hashmap *sink_inputs;
+        uint32_t enabled_slots; /* bit slots that are enabled */
+        uint32_t free_slots;    /* 1 means free, 0 means taken. */
     } notifier;
 };
 
