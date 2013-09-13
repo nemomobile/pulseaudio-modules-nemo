@@ -35,7 +35,9 @@
 
 typedef struct mv_listening_watchdog mv_listening_watchdog;
 
-typedef void (*mv_listening_watchdog_notify_cb_t)(mv_listening_watchdog *watchdog, void *userdata);
+typedef void (*mv_listening_watchdog_notify_cb_t)(mv_listening_watchdog *watchdog,
+                                                  pa_bool_t initial_notify,
+                                                  void *userdata);
 
 /* Timeout in minutes. */
 mv_listening_watchdog* mv_listening_watchdog_new(pa_core *core,

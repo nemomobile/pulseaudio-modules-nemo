@@ -30,6 +30,7 @@
 #include "module-meego-parameters-symdef.h"
 
 #include <parameters.h>
+#include <meego/call-state-tracker.h>
 
 #include <meego/proplist-meego.h>
 #include "voice/module-voice-api.h"
@@ -52,6 +53,17 @@ static const char* const valid_modargs[] = {
 
 static const char *DEFAULT_INITIAL_MODE = "ihf";
 static const char *DEFAULT_DIRECTORY = "/var/lib/pulse-nokia";
+static const char *PROP_VOICECALL_STATUS = "x-nemo.voicecall.status";
+
+static void check_voicecall_status(struct userdata *u, const char *str) {
+    pa_assert(u);
+    pa_assert(str);
+
+    if (pa_streq(str, "active"))
+        pa_call_state_tracker_set_active(u->call_state_tracker, TRUE);
+    else
+        pa_call_state_tracker_set_active(u->call_state_tracker, FALSE);
+}
 
 static void check_mode(pa_sink *s, struct userdata *u) {
     const char *tuning_alg;
@@ -89,19 +101,24 @@ static pa_hook_result_t hw_sink_input_move_finish_cb(pa_core *c, pa_sink_input *
 }
 
 static pa_hook_result_t sink_proplist_changed_hook_callback(pa_core *c, pa_sink *s, struct userdata *u) {
+    const char *str;
     pa_sink_input *i;
     uint32_t idx;
 
     if (u->parameters.use_voice) {
         PA_IDXSET_FOREACH(i, s->inputs, idx) {
-                const char *name = pa_proplist_gets(i->proplist, PA_PROP_MEDIA_NAME);
-                if (name && pa_streq(name, VOICE_MASTER_SINK_INPUT_NAME)) {
+                str = pa_proplist_gets(i->proplist, PA_PROP_MEDIA_NAME);
+                if (str && pa_streq(str, VOICE_MASTER_SINK_INPUT_NAME)) {
                     check_mode(s, u);
                     break;
                 }
         }
-    } else
+    } else {
         check_mode(s, u);
+
+        if ((str = pa_proplist_gets(s->proplist, PROP_VOICECALL_STATUS)))
+            check_voicecall_status(u, str);
+    }
 
     return PA_HOOK_OK;
 }
@@ -136,6 +153,11 @@ int pa__init(pa_module *m) {
         goto fail;
     }
 
+    if (!(u->call_state_tracker = pa_call_state_tracker_get(u->core))) {
+        pa_log("Failed to get call state tracker object.");
+        goto fail;
+    }
+
     if (initme(u, pa_modargs_get_value(ma, "initial_mode", DEFAULT_INITIAL_MODE)) < 0) {
         unloadme(u);
         goto fail;
@@ -162,6 +184,9 @@ void pa__done(pa_module *m) {
     struct userdata *u = m->userdata;
 
     assert(m);
+
+    if (u->call_state_tracker)
+        pa_call_state_tracker_unref(u->call_state_tracker);
 
     unloadme(u);
 

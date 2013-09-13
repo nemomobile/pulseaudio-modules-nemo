@@ -31,6 +31,7 @@
 #include <pulsecore/modargs.h>
 
 #include <meego/parameter-hook-implementor.h>
+#include <meego/call-state-tracker.h>
 
 struct userdata {
     pa_core *core;
@@ -53,6 +54,8 @@ struct userdata {
 
     pa_hook_slot *sink_proplist_changed_slot;
     pa_hook_slot *sink_input_move_finished_slot;
+
+    pa_call_state_tracker *call_state_tracker;
 };
 
 #endif

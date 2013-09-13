@@ -65,6 +65,7 @@ static void dbus_init(struct mv_userdata *u);
 static void dbus_done(struct mv_userdata *u);
 static void dbus_signal_steps(struct mv_userdata *u);
 static void dbus_signal_listening_notifier(struct mv_userdata *u, uint32_t listening_time);
+static void dbus_signal_high_volume(struct mv_userdata *u, uint32_t safe_step);
 
 static void check_notifier(struct mv_userdata *u);
 
@@ -342,6 +343,11 @@ static pa_hook_result_t parameters_changed_cb(pa_core *c, meego_parameter_update
     pa_log_debug("mode changes to %s (media step %d, call step %d)",
                  u->route, u->current_steps->media.current_step, u->current_steps->call.current_step);
 
+    /* Initially send high volume notification with 0 (no-high-volume-defined), but
+     * later when we have proper volume for this mode we might send high volume notification
+     * if restored step is high-volume-step or higher. */
+    dbus_signal_high_volume(u, 0);
+
     u->mode_change_ready = TRUE;
     signal_steps(u, TRUE);
 
@@ -405,36 +411,53 @@ static void check_notifier(struct mv_userdata *u) {
         mv_listening_watchdog_pause(u->notifier.watchdog);
 }
 
-static void notify_event_cb(struct mv_listening_watchdog *wd, void *userdata) {
+static void notify_event_cb(struct mv_listening_watchdog *wd, pa_bool_t initial_notify, void *userdata) {
     struct mv_userdata *u = userdata;
 
     pa_assert(wd);
     pa_assert(u);
 
-    pa_log_debug("Listening timer expired, send warning signal.");
-    dbus_signal_listening_notifier(u, u->notifier.timeout);
-
-    check_notifier(u);
+    pa_log_debug("Listening timer expired, send %snotify signal.", initial_notify ? "initial " : "");
+    if (initial_notify)
+        dbus_signal_listening_notifier(u, 0);
+    else {
+        dbus_signal_listening_notifier(u, u->notifier.timeout);
+        check_notifier(u);
+    }
 }
 
 static pa_hook_result_t sink_state_changed_cb(pa_core *c, pa_object *o, struct mv_userdata *u) {
     pa_sink *s;
+    pa_strlist *l;
 
     pa_assert(o);
     pa_assert(u);
 
     if (pa_sink_isinstance(o)) {
         s = PA_SINK(o);
-        if (pa_sink_get_state(s) == PA_SINK_RUNNING && pa_hashmap_get(u->notifier.sinks, s->name))
-            u->notifier.sink_active = TRUE;
-        else
+        if (pa_sink_get_state(s) == PA_SINK_RUNNING) {
+            if (u->notifier.sink_active)
+                goto end;
+
+            l = u->notifier.sinks;
+            while (l) {
+                if (pa_startswith(s->name, pa_strlist_data(l))) {
+                    u->notifier.sink_active = TRUE;
+                    goto end;
+                }
+                l = pa_strlist_next(l);
+            }
+        } else
             u->notifier.sink_active = FALSE;
     }
 
+end:
     check_notifier(u);
 
     return PA_HOOK_OK;
 }
+
+#define NOTIFIER_LIST_DELIMITER ";"
 
 static int parse_list(pa_config_parser_state *state) {
     const char *split_state = NULL;
@@ -442,7 +465,7 @@ static int parse_list(pa_config_parser_state *state) {
 
     pa_assert(state);
 
-    while ((c = pa_split(state->rvalue, ",", &split_state))) {
+    while ((c = pa_split(state->rvalue, NOTIFIER_LIST_DELIMITER, &split_state))) {
         pa_hashmap *m = state->data;
         if (pa_hashmap_put(m, c, c) != 0) {
             pa_log_warn("Duplicate %s entry: \"%s\"", state->lvalue, c);
@@ -454,19 +477,35 @@ static int parse_list(pa_config_parser_state *state) {
     return 0;
 }
 
+static int parse_str_list(pa_config_parser_state *state) {
+    const char *split_state = NULL;
+    pa_strlist **l;
+    char *c;
+
+    pa_assert(state);
+
+    l = state->data;
+    while ((c = pa_split(state->rvalue, NOTIFIER_LIST_DELIMITER, &split_state))) {
+        *l = pa_strlist_prepend(*l, c);
+        pa_log_debug("Notifier conf %s add: \"%s\"", state->lvalue, c);
+        pa_xfree(c);
+    }
+
+    return 0;
+}
+
 static void setup_notifier(struct mv_userdata *u, const char *conf_file) {
     uint32_t timeout = 0;
     const char *conf;
-    pa_hashmap *sink_list;
     pa_hashmap *mode_list;
+    pa_strlist *sink_list = NULL;
 
-    sink_list = pa_hashmap_new(pa_idxset_string_hash_func, pa_idxset_string_compare_func);
     mode_list = pa_hashmap_new(pa_idxset_string_hash_func, pa_idxset_string_compare_func);
 
     pa_config_item items[] = {
         { "timeout",    pa_config_parse_unsigned,   &timeout,   NULL },
-        { "sink-list",  parse_list,                 sink_list, NULL },
-        { "mode-list",  parse_list,                 mode_list, NULL },
+        { "sink-list",  parse_str_list,             &sink_list, NULL },
+        { "mode-list",  parse_list,                 mode_list,  NULL },
         { NULL, NULL, NULL, NULL }
     };
 
@@ -474,9 +513,8 @@ static void setup_notifier(struct mv_userdata *u, const char *conf_file) {
     pa_log_debug("Read long listening time notifier config from %s", conf);
     pa_config_parse(conf, NULL, items, NULL, NULL);
 
-    if (pa_hashmap_isempty(sink_list) || pa_hashmap_isempty(mode_list) || timeout == 0) {
+    if (!sink_list || pa_hashmap_isempty(mode_list) || timeout == 0) {
         /* No valid configuration parsed, free and return */
-        pa_hashmap_free(sink_list, NULL);
         pa_hashmap_free(mode_list, NULL);
         pa_log_debug("Long listening time notifier disabled.");
         return;
@@ -503,7 +541,7 @@ static void notifier_done(struct mv_userdata *u) {
     mv_listening_watchdog_free(u->notifier.watchdog);
 
     if (u->notifier.sinks)
-        pa_hashmap_free(u->notifier.sinks, pa_xfree);
+        pa_strlist_free(u->notifier.sinks);
     if (u->notifier.modes)
         pa_hashmap_free(u->notifier.modes, pa_xfree);
 }
@@ -727,14 +765,10 @@ void dbus_done(struct mv_userdata *u) {
     pa_dbus_protocol_unref(u->dbus_protocol);
 }
 
-static void dbus_signal_high_volume(struct mv_userdata *u) {
+static void dbus_signal_high_volume(struct mv_userdata *u, uint32_t safe_step) {
     DBusMessage *signal;
-    uint32_t safe_step;
 
     pa_assert(u);
-    pa_assert(u->current_steps);
-
-    safe_step = mv_safe_step(u);
 
     pa_assert_se((signal = dbus_message_new_signal(MAINVOLUME_PATH,
                                                    MAINVOLUME_IFACE,
@@ -744,6 +778,8 @@ static void dbus_signal_high_volume(struct mv_userdata *u) {
                                           DBUS_TYPE_INVALID));
     pa_dbus_protocol_send_signal(u->dbus_protocol, signal);
     dbus_message_unref(signal);
+
+    pa_log_debug("Signal %s. Safe step: %u", mainvolume_signals[MAINVOLUME_SIGNAL_HIGH_VOLUME].name, safe_step);
 }
 
 void dbus_signal_steps(struct mv_userdata *u) {
@@ -775,7 +811,7 @@ void dbus_signal_steps(struct mv_userdata *u) {
 
     /* If our current step is same or higher than high-volume-step, signal high volume level warning as well. */
     if (mv_high_volume(u))
-        dbus_signal_high_volume(u);
+        dbus_signal_high_volume(u, mv_safe_step(u));
 }
 
 static void dbus_signal_listening_notifier(struct mv_userdata *u, uint32_t timeout) {
