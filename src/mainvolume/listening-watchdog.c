@@ -36,6 +36,7 @@
 struct mv_listening_watchdog {
     pa_core *core;
 
+    pa_bool_t initial_notify;
     pa_usec_t timeout;
     pa_usec_t start_time;
     pa_usec_t counter;
@@ -61,6 +62,7 @@ mv_listening_watchdog* mv_listening_watchdog_new(pa_core *core,
     wd->notify_cb = cb;
     wd->userdata = userdata;
     wd->timeout = timeout * PA_USEC_PER_SEC * 60;
+    wd->initial_notify = TRUE;
 
     return wd;
 }
@@ -84,7 +86,7 @@ static void timer_event_cb(pa_mainloop_api *a, pa_time_event *e, const struct ti
     mv_listening_watchdog_reset(wd);
 
     pa_log_debug("Listening watchdog notify event.");
-    wd->notify_cb(wd, wd->userdata);
+    wd->notify_cb(wd, FALSE, wd->userdata);
 }
 
 void mv_listening_watchdog_start(mv_listening_watchdog *wd) {
@@ -98,6 +100,11 @@ void mv_listening_watchdog_start(mv_listening_watchdog *wd) {
     now = pa_rtclock_now();
     wd->start_time = now;
     timer = now + (wd->timeout - wd->counter);
+
+    if (wd->initial_notify) {
+        wd->notify_cb(wd, TRUE, wd->userdata);
+        wd->initial_notify = FALSE;
+    }
 
     wd->timer_event = pa_core_rttime_new(wd->core, timer, timer_event_cb, wd);
 }
