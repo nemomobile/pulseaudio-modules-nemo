@@ -457,7 +457,7 @@ end:
     return PA_HOOK_OK;
 }
 
-#define NOTIFIER_LIST_DELIMITER ";"
+#define NOTIFIER_LIST_DELIMITER ","
 
 static int parse_list(pa_config_parser_state *state) {
     const char *split_state = NULL;
