@@ -405,7 +405,7 @@ static pa_hook_result_t volume_changed_cb(pa_volume_proxy *r, const char *name, 
 static void check_notifier(struct mv_userdata *u) {
     pa_assert(u);
 
-    if (u->notifier.sink_active && u->notifier.mode_active && !u->call_active)
+    if (u->notifier.mode_active && u->notifier.enabled_slots && !u->call_active)
         mv_listening_watchdog_start(u->notifier.watchdog);
     else
         mv_listening_watchdog_pause(u->notifier.watchdog);
@@ -426,34 +426,128 @@ static void notify_event_cb(struct mv_listening_watchdog *wd, pa_bool_t initial_
     }
 }
 
-static pa_hook_result_t sink_state_changed_cb(pa_core *c, pa_object *o, struct mv_userdata *u) {
-    pa_sink *s;
-    pa_strlist *l;
+static uint32_t acquire_slot(struct mv_userdata *u) {
+    uint32_t i;
+    uint32_t slot;
+
+    pa_assert(u);
+
+    if (!u->notifier.free_slots) {
+        pa_log_warn("All sink-input watcher slots taken.");
+        return 0;
+    }
+
+    for (i = 0; i < 32; i++) {
+        slot = (1 << i);
+        if (u->notifier.free_slots & slot) {
+            u->notifier.free_slots &= ~slot;
+            return slot;
+        }
+    }
+    return 0;
+}
+
+static void release_slot(struct mv_userdata *u, uint32_t slot) {
+    pa_assert(u);
+
+    u->notifier.free_slots |= slot;
+}
+
+static pa_hook_result_t sink_input_put_cb(pa_core *c, pa_object *o, struct mv_userdata *u) {
+    pa_sink_input *si;
+    pa_sink_input_state_t state;
+    const char *role;
+    uint32_t slot;
 
     pa_assert(o);
     pa_assert(u);
+    si = PA_SINK_INPUT(o);
 
-    if (pa_sink_isinstance(o)) {
-        s = PA_SINK(o);
-        if (pa_sink_get_state(s) == PA_SINK_RUNNING) {
-            if (u->notifier.sink_active)
-                goto end;
+    if (!(role = pa_proplist_gets(si->proplist, PA_PROP_MEDIA_ROLE)))
+        /* No media role, skip */
+        goto end;
 
-            l = u->notifier.sinks;
-            while (l) {
-                if (pa_startswith(s->name, pa_strlist_data(l))) {
-                    u->notifier.sink_active = TRUE;
-                    goto end;
-                }
-                l = pa_strlist_next(l);
-            }
-        } else
-            u->notifier.sink_active = FALSE;
+    if (!pa_hashmap_get(u->notifier.roles, role))
+        /* Not our stream, skip */
+        goto end;
+
+    if (!(slot = acquire_slot(u)))
+        /* All slots taken, skip */
+        goto end;
+
+    pa_sink_input_ref(si);
+    if (pa_hashmap_put(u->notifier.sink_inputs, si, PA_UINT32_TO_PTR(slot))) {
+        /* Already in our hashmap? Shouldn't happen... */
+        pa_sink_input_unref(si);
+        release_slot(u, slot);
+        goto end;
     }
 
-end:
+    state = pa_sink_input_get_state(si);
+    if (state == PA_SINK_INPUT_DRAINED ||
+        state == PA_SINK_INPUT_RUNNING)
+        u->notifier.enabled_slots |= slot;
+
     check_notifier(u);
 
+end:
+    return PA_HOOK_OK;
+}
+static pa_hook_result_t sink_input_state_changed_cb(pa_core *c, pa_object *o, struct mv_userdata *u) {
+    pa_sink_input *si;
+    pa_sink_input_state_t state;
+    uintptr_t *slot_ptr;
+    uint32_t slot;
+
+    pa_assert(o);
+    pa_assert(u);
+    pa_assert(pa_sink_input_isinstance(o));
+
+    si = PA_SINK_INPUT(o);
+
+    if (!(slot_ptr = pa_hashmap_get(u->notifier.sink_inputs, si)))
+        /* Not our stream, skip */
+        goto end;
+
+    slot = PA_PTR_TO_UINT32(slot_ptr);
+
+    state = pa_sink_input_get_state(si);
+    if (state == PA_SINK_INPUT_DRAINED ||
+        state == PA_SINK_INPUT_RUNNING)
+        u->notifier.enabled_slots |= slot;
+    else
+        u->notifier.enabled_slots &= ~slot;
+
+    check_notifier(u);
+
+end:
+    return PA_HOOK_OK;
+}
+
+static pa_hook_result_t sink_input_unlink_cb(pa_core *c, pa_object *o, struct mv_userdata *u) {
+    pa_sink_input *si;
+    uintptr_t *slot_ptr;
+    uint32_t slot;
+
+    pa_assert(o);
+    pa_assert(u);
+    pa_assert(pa_sink_input_isinstance(o));
+
+    si = PA_SINK_INPUT(o);
+
+    if (!(slot_ptr = pa_hashmap_remove(u->notifier.sink_inputs, si)))
+        /* Not our stream, skip */
+        goto end;
+
+    slot = PA_PTR_TO_UINT32(slot_ptr);
+    u->notifier.enabled_slots &= ~slot;
+    release_slot(u, slot);
+
+    pa_sink_input_unref(si);
+
+    check_notifier(u);
+
+end:
     return PA_HOOK_OK;
 }
 
@@ -477,34 +571,18 @@ static int parse_list(pa_config_parser_state *state) {
     return 0;
 }
 
-static int parse_str_list(pa_config_parser_state *state) {
-    const char *split_state = NULL;
-    pa_strlist **l;
-    char *c;
-
-    pa_assert(state);
-
-    l = state->data;
-    while ((c = pa_split(state->rvalue, NOTIFIER_LIST_DELIMITER, &split_state))) {
-        *l = pa_strlist_prepend(*l, c);
-        pa_log_debug("Notifier conf %s add: \"%s\"", state->lvalue, c);
-        pa_xfree(c);
-    }
-
-    return 0;
-}
-
 static void setup_notifier(struct mv_userdata *u, const char *conf_file) {
     uint32_t timeout = 0;
     const char *conf;
     pa_hashmap *mode_list;
-    pa_strlist *sink_list = NULL;
+    pa_hashmap *role_list;
 
     mode_list = pa_hashmap_new(pa_idxset_string_hash_func, pa_idxset_string_compare_func);
+    role_list = pa_hashmap_new(pa_idxset_string_hash_func, pa_idxset_string_compare_func);
 
     pa_config_item items[] = {
         { "timeout",    pa_config_parse_unsigned,   &timeout,   NULL },
-        { "sink-list",  parse_str_list,             &sink_list, NULL },
+        { "role-list",  parse_list,                 role_list,  NULL },
         { "mode-list",  parse_list,                 mode_list,  NULL },
         { NULL, NULL, NULL, NULL }
     };
@@ -513,20 +591,46 @@ static void setup_notifier(struct mv_userdata *u, const char *conf_file) {
     pa_log_debug("Read long listening time notifier config from %s", conf);
     pa_config_parse(conf, NULL, items, NULL, NULL);
 
-    if (!sink_list || pa_hashmap_isempty(mode_list) || timeout == 0) {
+    if (pa_hashmap_isempty(role_list) || pa_hashmap_isempty(mode_list) || timeout == 0) {
         /* No valid configuration parsed, free and return */
         pa_hashmap_free(mode_list, NULL);
+        pa_hashmap_free(role_list, NULL);
         pa_log_debug("Long listening time notifier disabled.");
         return;
     }
 
     u->notifier.watchdog = mv_listening_watchdog_new(u->core, notify_event_cb, timeout, u);
     u->notifier.timeout = timeout;
-    u->notifier.sinks = sink_list;
+    u->notifier.roles = role_list;
     u->notifier.modes = mode_list;
+    u->notifier.free_slots = UINT32_MAX;
+    u->notifier.sink_inputs = pa_hashmap_new(pa_idxset_trivial_hash_func, pa_idxset_trivial_compare_func);
 
-    u->notifier.sink_changed_slot = pa_hook_connect(&u->core->hooks[PA_CORE_HOOK_SINK_STATE_CHANGED], PA_HOOK_LATE, (pa_hook_cb_t) sink_state_changed_cb, u);
+    u->notifier.sink_input_put_slot = pa_hook_connect(&u->core->hooks[PA_CORE_HOOK_SINK_INPUT_PUT], PA_HOOK_LATE, (pa_hook_cb_t) sink_input_put_cb, u);
+    u->notifier.sink_input_changed_slot = pa_hook_connect(&u->core->hooks[PA_CORE_HOOK_SINK_INPUT_STATE_CHANGED], PA_HOOK_LATE, (pa_hook_cb_t) sink_input_state_changed_cb, u);
+    u->notifier.sink_input_unlink_slot = pa_hook_connect(&u->core->hooks[PA_CORE_HOOK_SINK_INPUT_UNLINK], PA_HOOK_LATE, (pa_hook_cb_t) sink_input_unlink_cb, u);
+
     pa_log_debug("Long listening time notifier setup done.");
+}
+
+static void free_si_hashmap(pa_hashmap *h) {
+    pa_sink_input *si;
+    void *state = NULL;
+    const void *key;
+
+    pa_assert(h);
+
+    while (pa_hashmap_iterate(h, &state, &key)) {
+        /* Yes we strip const from key pointer. We shouldn't get
+         * here other than when mainvolume-module is unloaded
+         * while daemon is running. And when we do, we have our a bit
+         * cleverly used hashmap with data as keys, which we need
+         * to unref. */
+        si = (pa_sink_input *) key;
+        pa_sink_input_unref(si);
+    }
+
+    pa_hashmap_free(h, NULL);
 }
 
 static void notifier_done(struct mv_userdata *u) {
@@ -535,15 +639,21 @@ static void notifier_done(struct mv_userdata *u) {
     if (!u->notifier.watchdog)
         return;
 
-    if (u->notifier.sink_changed_slot)
-        pa_hook_slot_free(u->notifier.sink_changed_slot);
+    if (u->notifier.sink_input_put_slot)
+        pa_hook_slot_free(u->notifier.sink_input_put_slot);
+    if (u->notifier.sink_input_changed_slot)
+        pa_hook_slot_free(u->notifier.sink_input_changed_slot);
+    if (u->notifier.sink_input_unlink_slot)
+        pa_hook_slot_free(u->notifier.sink_input_unlink_slot);
 
     mv_listening_watchdog_free(u->notifier.watchdog);
 
-    if (u->notifier.sinks)
-        pa_strlist_free(u->notifier.sinks);
+    if (u->notifier.roles)
+        pa_hashmap_free(u->notifier.roles, pa_xfree);
     if (u->notifier.modes)
         pa_hashmap_free(u->notifier.modes, pa_xfree);
+    if (u->notifier.sink_inputs)
+        free_si_hashmap(u->notifier.sink_inputs);
 }
 
 int pa__init(pa_module *m) {
