@@ -66,6 +66,7 @@ static void dbus_done(struct mv_userdata *u);
 static void dbus_signal_steps(struct mv_userdata *u);
 static void dbus_signal_listening_notifier(struct mv_userdata *u, uint32_t listening_time);
 static void dbus_signal_high_volume(struct mv_userdata *u, uint32_t safe_step);
+static void dbus_signal_call_status(struct mv_userdata *u);
 
 static void check_notifier(struct mv_userdata *u);
 
@@ -115,6 +116,19 @@ static void signal_timer_set(struct mv_userdata *u, const pa_usec_t time) {
     /* only set time event if none currently pending */
     if (!u->signal_time_event)
         u->signal_time_event = pa_core_rttime_new(u->core, time, signal_time_callback, u);
+}
+
+static void check_and_signal_high_volume(struct mv_userdata *u) {
+    pa_assert(u);
+
+    /* When call mode changes to active we don't have HighVolume steps. Send 0 when call active,
+     * send possible safe step if call is inactive. */
+    if (u->call_active)
+        dbus_signal_high_volume(u, 0);
+    else if (mv_has_high_volume(u))
+        dbus_signal_high_volume(u, mv_safe_step(u));
+    else
+        dbus_signal_high_volume(u, 0);
 }
 
 static void signal_steps(struct mv_userdata *u, pa_bool_t wait_for_mode_change) {
@@ -250,6 +264,11 @@ static pa_hook_result_t call_state_cb(pa_call_state_tracker *t, void *active, st
     if (u->notifier.watchdog)
         check_notifier(u);
 
+    check_and_signal_high_volume(u);
+
+    /* Notify users of new call status. */
+    dbus_signal_call_status(u);
+
     return PA_HOOK_OK;
 }
 
@@ -343,11 +362,6 @@ static pa_hook_result_t parameters_changed_cb(pa_core *c, meego_parameter_update
     pa_log_debug("mode changes to %s (media step %d, call step %d)",
                  u->route, u->current_steps->media.current_step, u->current_steps->call.current_step);
 
-    /* Initially send high volume notification with 0 (no-high-volume-defined), but
-     * later when we have proper volume for this mode we might send high volume notification
-     * if restored step is high-volume-step or higher. */
-    dbus_signal_high_volume(u, 0);
-
     u->mode_change_ready = TRUE;
     signal_steps(u, TRUE);
 
@@ -361,6 +375,10 @@ static pa_hook_result_t parameters_changed_cb(pa_core *c, meego_parameter_update
         check_notifier(u);
     }
 
+    /* When mode changes immediately send HighVolume signal
+     * containing the safe step if one is defined */
+    check_and_signal_high_volume(u);
+
     return PA_HOOK_OK;
 }
 
@@ -369,6 +387,7 @@ static pa_hook_result_t volume_changed_cb(pa_volume_proxy *r, const char *name, 
     struct mv_volume_steps *steps;
     int new_step;
     pa_bool_t call_steps;
+    pa_bool_t changed = FALSE;
 
     pa_assert(u);
 
@@ -391,7 +410,23 @@ static pa_hook_result_t volume_changed_cb(pa_volume_proxy *r, const char *name, 
         pa_log_debug("volume changed for stream %s, vol %d (step %d)", name, vol, new_step);
 
         steps->current_step = new_step;
+        changed = TRUE;
+    }
 
+    /* Check only once per module load / parsed step set
+     * if volume is higher than safe step. If so, reset to
+     * safe step. */
+    if (!call_steps && u->current_steps->first) {
+        if (mv_high_volume(u)) {
+            pa_log_info("high volume after module load, requested %d, we will reset to safe step %d", new_step, mv_safe_step(u));
+            mv_set_step(u, mv_safe_step(u));
+            changed = TRUE;
+        }
+
+        u->current_steps->first = FALSE;
+    }
+
+    if (changed) {
         /* signal changed step forward */
         if (call_steps == u->call_active) {
             u->volume_change_ready = TRUE;
@@ -810,6 +845,7 @@ enum mainvolume_signal_index {
     MAINVOLUME_SIGNAL_STEPS_UPDATED,
     MAINVOLUME_SIGNAL_NOTIFY_LISTENER,  /* Notify user that one has listened to audio for a long time. */
     MAINVOLUME_SIGNAL_HIGH_VOLUME,      /* Notify user that current volume is harmful for hearing. */
+    MAINVOLUME_SIGNAL_CALL_STATUS,      /* Notify user of current call state. */
     MAINVOLUME_SIGNAL_MAX
 };
 
@@ -826,6 +862,10 @@ static pa_dbus_arg_info listening_time_args[] = {
     {"ListeningTime", "u", NULL}
 };
 
+static pa_dbus_arg_info call_state_args[] = {
+    {"Status", "s", NULL}
+};
+
 static pa_dbus_signal_info mainvolume_signals[MAINVOLUME_SIGNAL_MAX] = {
     [MAINVOLUME_SIGNAL_STEPS_UPDATED] = {
         .name = "StepsUpdated",
@@ -840,6 +880,11 @@ static pa_dbus_signal_info mainvolume_signals[MAINVOLUME_SIGNAL_MAX] = {
     [MAINVOLUME_SIGNAL_HIGH_VOLUME] = {
         .name = "NotifyHighVolume",
         .arguments = high_volume_args,
+        .n_arguments = 1
+    },
+    [MAINVOLUME_SIGNAL_CALL_STATUS] = {
+        .name = "CallStatus",
+        .arguments = call_state_args,
         .n_arguments = 1
     }
 };
@@ -873,6 +918,29 @@ void dbus_done(struct mv_userdata *u) {
     pa_dbus_protocol_remove_interface(u->dbus_protocol, u->dbus_path, mainvolume_info.name);
     pa_xfree(u->dbus_path);
     pa_dbus_protocol_unref(u->dbus_protocol);
+}
+
+static void dbus_signal_call_status(struct mv_userdata *u) {
+    DBusMessage *signal;
+    const char *status_str;
+
+    pa_assert(u);
+
+    if (u->call_active)
+        status_str = "active";
+    else
+        status_str = "inactive";
+
+    pa_assert_se((signal = dbus_message_new_signal(MAINVOLUME_PATH,
+                                                   MAINVOLUME_IFACE,
+                                                   mainvolume_signals[MAINVOLUME_SIGNAL_CALL_STATUS].name)));
+    pa_assert_se(dbus_message_append_args(signal,
+                                          DBUS_TYPE_STRING, &status_str,
+                                          DBUS_TYPE_INVALID));
+    pa_dbus_protocol_send_signal(u->dbus_protocol, signal);
+    dbus_message_unref(signal);
+
+    pa_log_debug("Signal %s. Status: %s", mainvolume_signals[MAINVOLUME_SIGNAL_CALL_STATUS].name, status_str);
 }
 
 static void dbus_signal_high_volume(struct mv_userdata *u, uint32_t safe_step) {
@@ -918,10 +986,6 @@ void dbus_signal_steps(struct mv_userdata *u) {
     u->volume_change_ready = FALSE;
     u->mode_change_ready = FALSE;
     u->last_signal_timestamp = pa_rtclock_now();
-
-    /* If our current step is same or higher than high-volume-step, signal high volume level warning as well. */
-    if (mv_high_volume(u))
-        dbus_signal_high_volume(u, mv_safe_step(u));
 }
 
 static void dbus_signal_listening_notifier(struct mv_userdata *u, uint32_t timeout) {

@@ -54,6 +54,12 @@ struct mv_volume_steps_set {
     struct mv_volume_steps call;
     struct mv_volume_steps media;
     int high_volume_step;
+    /* when parsing volume steps first is set TRUE,
+     * and if entering a route with volume higher than high_volume_step,
+     * volume is reset to safe volume.
+     * This is done once per parsed steps, first is set
+     * to FALSE after first check. */
+    pa_bool_t first;
 };
 
 struct mv_userdata {
