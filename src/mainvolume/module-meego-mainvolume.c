@@ -383,6 +383,7 @@ static pa_hook_result_t volume_changed_cb(pa_volume_proxy *r, const char *name, 
     struct mv_volume_steps *steps;
     int new_step;
     pa_bool_t call_steps;
+    pa_bool_t changed = FALSE;
 
     pa_assert(u);
 
@@ -405,7 +406,23 @@ static pa_hook_result_t volume_changed_cb(pa_volume_proxy *r, const char *name, 
         pa_log_debug("volume changed for stream %s, vol %d (step %d)", name, vol, new_step);
 
         steps->current_step = new_step;
+        changed = TRUE;
+    }
 
+    /* Check only once per module load / parsed step set
+     * if volume is higher than safe step. If so, reset to
+     * safe step. */
+    if (!call_steps && u->current_steps->first) {
+        if (mv_high_volume(u)) {
+            pa_log_info("high volume after module load, requested %d, we will reset to safe step %d", new_step, mv_safe_step(u));
+            mv_set_step(u, mv_safe_step(u));
+            changed = TRUE;
+        }
+
+        u->current_steps->first = FALSE;
+    }
+
+    if (changed) {
         /* signal changed step forward */
         if (call_steps == u->call_active) {
             u->volume_change_ready = TRUE;

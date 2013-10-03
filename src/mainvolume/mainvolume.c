@@ -257,6 +257,7 @@ int mv_parse_steps(struct mv_userdata *u,
     set->call = call_steps;
     set->media = media_steps;
     set->high_volume_step = parse_high_volume_step(set, high_volume);
+    set->first = TRUE;
 
     pa_log_debug("adding %d call and %d media steps with route %s",
                  set->call.n_steps,
