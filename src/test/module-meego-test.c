@@ -41,7 +41,8 @@
 #include <pulsecore/core-util.h>
 
 #include "proplist-meego.h"
-#include "call-state-tracker.h"
+#include "shared-data.h"
+#include "proplist-nemo.h"
 
 #include "module-meego-test-symdef.h"
 
@@ -143,24 +144,25 @@ static void test_sink_input(struct userdata *u) {
 }
 
 static void test_call(struct userdata *u, pa_modargs *ma) {
-    pa_call_state_tracker *tracker;
+    pa_shared_data *shared;
     pa_bool_t active;
 
-    tracker = pa_call_state_tracker_get(u->core);
+    shared = pa_shared_data_get(u->core);
 
-    pa_assert(tracker);
+    pa_assert(shared);
 
     if (pa_modargs_get_value_boolean(ma, "active", &active) < 0) {
         pa_log_error("call op (active) expects boolean argument");
         goto end;
     }
 
-    pa_call_state_tracker_set_active(tracker, active);
+    pa_shared_data_sets(shared, PA_NEMO_PROP_CALL_STATE, active ? PA_NEMO_PROP_CALL_STATE_ACTIVE : PA_NEMO_PROP_CALL_STATE_INACTIVE);
 
 end:
-    pa_call_state_tracker_unref(tracker);
+    pa_shared_data_unref(shared);
     pa_module_unload_request(u->module, TRUE);
 }
+
 static void test_proplist(struct userdata *u, pa_modargs *ma) {
     const char *sink_name;
     const char *property;

@@ -53,17 +53,6 @@ static const char* const valid_modargs[] = {
 
 static const char *DEFAULT_INITIAL_MODE = "ihf";
 static const char *DEFAULT_DIRECTORY = "/var/lib/pulse-nokia";
-static const char *PROP_VOICECALL_STATUS = "x-nemo.voicecall.status";
-
-static void check_voicecall_status(struct userdata *u, const char *str) {
-    pa_assert(u);
-    pa_assert(str);
-
-    if (pa_streq(str, "active"))
-        pa_call_state_tracker_set_active(u->call_state_tracker, TRUE);
-    else
-        pa_call_state_tracker_set_active(u->call_state_tracker, FALSE);
-}
 
 static void check_mode(pa_sink *s, struct userdata *u) {
     const char *tuning_alg;
@@ -90,11 +79,9 @@ static void check_mode(pa_sink *s, struct userdata *u) {
 static pa_hook_result_t hw_sink_input_move_finish_cb(pa_core *c, pa_sink_input *i, struct userdata *u) {
     const char *name;
 
-    if (u->parameters.use_voice) {
-        name = pa_proplist_gets(i->proplist, PA_PROP_MEDIA_NAME);
-        if (i->sink && name && pa_streq(name, VOICE_MASTER_SINK_INPUT_NAME))
-            check_mode(i->sink, u);
-    } else
+    name = pa_proplist_gets(i->proplist, PA_PROP_MEDIA_NAME);
+
+    if (i->sink && name && pa_streq(name, VOICE_MASTER_SINK_INPUT_NAME))
         check_mode(i->sink, u);
 
     return PA_HOOK_OK;
@@ -105,19 +92,34 @@ static pa_hook_result_t sink_proplist_changed_hook_callback(pa_core *c, pa_sink 
     pa_sink_input *i;
     uint32_t idx;
 
-    if (u->parameters.use_voice) {
-        PA_IDXSET_FOREACH(i, s->inputs, idx) {
-                str = pa_proplist_gets(i->proplist, PA_PROP_MEDIA_NAME);
-                if (str && pa_streq(str, VOICE_MASTER_SINK_INPUT_NAME)) {
-                    check_mode(s, u);
-                    break;
-                }
-        }
-    } else {
-        check_mode(s, u);
+    PA_IDXSET_FOREACH(i, s->inputs, idx) {
+            str = pa_proplist_gets(i->proplist, PA_PROP_MEDIA_NAME);
+            if (str && pa_streq(str, VOICE_MASTER_SINK_INPUT_NAME)) {
+                check_mode(s, u);
+                break;
+            }
+    }
 
-        if ((str = pa_proplist_gets(s->proplist, PROP_VOICECALL_STATUS)))
-            check_voicecall_status(u, str);
+    return PA_HOOK_OK;
+}
+
+static pa_hook_result_t mode_changed_hook_callback(pa_core *c, const char *key, struct userdata *u) {
+    const char *mode = NULL;
+    const char *hwid = NULL;
+    char *mode_hwid;
+
+    pa_assert(c);
+    pa_assert(key);
+    pa_assert(u);
+
+    mode = pa_shared_data_gets(u->shared, key);
+    hwid = pa_shared_data_gets(u->shared, PA_NOKIA_PROP_AUDIO_ACCESSORY_HWID);
+
+    if (mode) {
+        mode_hwid = pa_sprintf_malloc("%s%s", mode, hwid ? hwid : "");
+
+        switch_mode(u, mode_hwid);
+        pa_xfree(mode_hwid);
     }
 
     return PA_HOOK_OK;
@@ -153,8 +155,8 @@ int pa__init(pa_module *m) {
         goto fail;
     }
 
-    if (!(u->call_state_tracker = pa_call_state_tracker_get(u->core))) {
-        pa_log("Failed to get call state tracker object.");
+    if (!(u->shared = pa_shared_data_get(u->core))) {
+        pa_log("Failed to get shared data object.");
         goto fail;
     }
 
@@ -163,8 +165,12 @@ int pa__init(pa_module *m) {
         goto fail;
     }
 
-    u->sink_proplist_changed_slot = pa_hook_connect(&m->core->hooks[PA_CORE_HOOK_SINK_PROPLIST_CHANGED], PA_HOOK_NORMAL, (pa_hook_cb_t) sink_proplist_changed_hook_callback, u);
-    u->sink_input_move_finished_slot = pa_hook_connect(&m->core->hooks[PA_CORE_HOOK_SINK_INPUT_MOVE_FINISH], PA_HOOK_NORMAL, (pa_hook_cb_t) hw_sink_input_move_finish_cb, u);
+    if (u->parameters.use_voice) {
+        u->sink_proplist_changed_slot = pa_hook_connect(&m->core->hooks[PA_CORE_HOOK_SINK_PROPLIST_CHANGED], PA_HOOK_NORMAL, (pa_hook_cb_t) sink_proplist_changed_hook_callback, u);
+        u->sink_input_move_finished_slot = pa_hook_connect(&m->core->hooks[PA_CORE_HOOK_SINK_INPUT_MOVE_FINISH], PA_HOOK_NORMAL, (pa_hook_cb_t) hw_sink_input_move_finish_cb, u);
+    } else {
+        u->mode_changed_slot = pa_shared_data_connect(u->shared, PA_NOKIA_PROP_AUDIO_MODE, (pa_hook_cb_t) mode_changed_hook_callback, u);
+    }
 
     pa_modargs_free(ma);
 
@@ -185,13 +191,17 @@ void pa__done(pa_module *m) {
 
     assert(m);
 
-    if (u->call_state_tracker)
-        pa_call_state_tracker_unref(u->call_state_tracker);
-
     unloadme(u);
 
-    pa_hook_slot_free(u->sink_proplist_changed_slot);
-    pa_hook_slot_free(u->sink_input_move_finished_slot);
+    if (u->sink_proplist_changed_slot)
+        pa_hook_slot_free(u->sink_proplist_changed_slot);
+    if (u->sink_input_move_finished_slot)
+        pa_hook_slot_free(u->sink_input_move_finished_slot);
+    if (u->mode_changed_slot)
+        pa_hook_slot_free(u->mode_changed_slot);
+
+    if (u->shared)
+        pa_shared_data_unref(u->shared);
 
     if (u)
         pa_xfree(u);

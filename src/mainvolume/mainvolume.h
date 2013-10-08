@@ -34,7 +34,7 @@
 #include <pulsecore/hook-list.h>
 #include <pulsecore/strlist.h>
 
-#include "call-state-tracker.h"
+#include "shared-data.h"
 #include "volume-proxy.h"
 #include "listening-watchdog.h"
 
@@ -74,8 +74,8 @@ struct mv_userdata {
     struct mv_volume_steps_set *current_steps;
     char *route;
 
-    pa_call_state_tracker *call_state_tracker;
-    pa_hook_slot *call_state_tracker_slot;
+    pa_shared_data *shared;
+    pa_hook_slot *call_state_hook_slot;
     pa_bool_t call_active;
 
     pa_volume_proxy *volume_proxy;
