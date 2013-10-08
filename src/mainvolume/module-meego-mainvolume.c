@@ -44,7 +44,8 @@
 
 #include "parameter-hook.h"
 #include "proplist-meego.h"
-#include "call-state-tracker.h"
+#include "proplist-nemo.h"
+#include "shared-data.h"
 #include "volume-proxy.h"
 
 PA_MODULE_AUTHOR("Juho Hämäläinen");
@@ -244,12 +245,17 @@ static void destroy_virtual_stream(struct mv_userdata *u) {
     pa_log_debug("removed virtual stream.");
 }
 
-static pa_hook_result_t call_state_cb(pa_call_state_tracker *t, void *active, struct mv_userdata *u) {
-    pa_assert(t);
+static pa_hook_result_t call_state_cb(pa_core *c, const char *key, struct mv_userdata *u) {
+    const char *str;
+
+    pa_assert(c);
     pa_assert(u);
     pa_assert(u->current_steps);
 
-    u->call_active = pa_call_state_tracker_get_active(t);
+    if ((str = pa_shared_data_gets(u->shared, key)) && pa_streq(str, PA_NEMO_PROP_CALL_STATE_ACTIVE))
+        u->call_active = TRUE;
+    else
+        u->call_active = FALSE;
 
     pa_log_debug("call is %s (media step %u call step %u)", u->call_active ? "active" : "inactive",
                  u->current_steps->media.current_step, u->current_steps->call.current_step);
@@ -732,11 +738,8 @@ int pa__init(pa_module *m) {
     notifier_conf = pa_modargs_get_value(ma, "listening_time_notifier_conf", NULL);
     setup_notifier(u, notifier_conf);
 
-    u->call_state_tracker = pa_call_state_tracker_get(u->core);
-    u->call_state_tracker_slot = pa_hook_connect(&pa_call_state_tracker_hooks(u->call_state_tracker)[PA_CALL_STATE_HOOK_CHANGED],
-                                                 PA_HOOK_NORMAL,
-                                                 (pa_hook_cb_t)call_state_cb,
-                                                 u);
+    u->shared = pa_shared_data_get(u->core);
+    u->call_state_hook_slot = pa_shared_data_connect(u->shared, PA_NEMO_PROP_CALL_STATE, (pa_hook_cb_t) call_state_cb, u);
 
     u->volume_proxy = pa_volume_proxy_get(u->core);
     u->volume_proxy_slot = pa_hook_connect(&pa_volume_proxy_hooks(u->volume_proxy)[PA_VOLUME_PROXY_HOOK_CHANGED],
@@ -778,11 +781,11 @@ void pa__done(pa_module *m) {
     if (u->sink_proplist_changed_slot)
         pa_hook_slot_free(u->sink_proplist_changed_slot);
 
-    if (u->call_state_tracker_slot)
-        pa_hook_slot_free(u->call_state_tracker_slot);
+    if (u->call_state_hook_slot)
+        pa_hook_slot_free(u->call_state_hook_slot);
 
-    if (u->call_state_tracker)
-        pa_call_state_tracker_unref(u->call_state_tracker);
+    if (u->shared)
+        pa_shared_data_unref(u->shared);
 
     if (u->volume_proxy_slot)
         pa_hook_slot_free(u->volume_proxy_slot);
