@@ -36,6 +36,8 @@
 #include "voice-voip-source.h"
 #include "voice-voip-sink.h"
 
+#include "shared-data.h"
+
 /*** Deallocate stuff ***/
 void voice_clear_up(struct userdata *u) {
     pa_assert(u);
@@ -228,7 +230,7 @@ int voice_sink_set_state(pa_sink *s, pa_sink *other, pa_sink_state_t state) {
     if (om_sink == NULL) {
         pa_log_info("No master sink, assuming primary mixer tuning.\n");
         pa_atomic_store(&u->mixer_state, PROP_MIXER_TUNING_PRI);
-        pa_call_state_tracker_set_active(u->call_state_tracker, FALSE);
+        pa_shared_data_sets(u->shared, PA_NEMO_PROP_CALL_STATE, PA_NEMO_PROP_CALL_STATE_INACTIVE);
     }
     else if (voice_voip_sink_active(u)) {
         if (pa_atomic_load(&u->mixer_state) == PROP_MIXER_TUNING_PRI) {
@@ -237,7 +239,7 @@ int voice_sink_set_state(pa_sink *s, pa_sink *other, pa_sink_state_t state) {
              pa_proplist_sets(p, PROP_MIXER_TUNING_MODE, PROP_MIXER_TUNING_ALT_S);
              pa_sink_update_proplist(om_sink, PA_UPDATE_REPLACE, p);
              pa_atomic_store(&u->mixer_state, PROP_MIXER_TUNING_ALT);
-             pa_call_state_tracker_set_active(u->call_state_tracker, TRUE);
+             pa_shared_data_sets(u->shared, PA_NEMO_PROP_CALL_STATE, PA_NEMO_PROP_CALL_STATE_ACTIVE);
              pa_proplist_free(p);
 
              meego_algorithm_hook_fire(u->hooks[HOOK_CALL_BEGIN], s);
@@ -250,7 +252,7 @@ int voice_sink_set_state(pa_sink *s, pa_sink *other, pa_sink_state_t state) {
             pa_proplist_sets(p, PROP_MIXER_TUNING_MODE, PROP_MIXER_TUNING_PRI_S);
             pa_sink_update_proplist(om_sink, PA_UPDATE_REPLACE, p);
             pa_atomic_store(&u->mixer_state, PROP_MIXER_TUNING_PRI);
-            pa_call_state_tracker_set_active(u->call_state_tracker, FALSE);
+            pa_shared_data_sets(u->shared, PA_NEMO_PROP_CALL_STATE, PA_NEMO_PROP_CALL_STATE_INACTIVE);
             pa_proplist_free(p);
 
             meego_algorithm_hook_fire(u->hooks[HOOK_CALL_END], s);
