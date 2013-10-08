@@ -39,7 +39,9 @@
 #include "voice-mainloop-handler.h"
 #include "module-voice-api.h"
 
+#include "shared-data.h"
 #include "proplist-meego.h"
+#include "proplist-nemo.h"
 
 PA_MODULE_AUTHOR("Jyri Sarha");
 PA_MODULE_DESCRIPTION("Nokia voice module");
@@ -267,10 +269,10 @@ int pa__init(pa_module*m) {
     if (voice_init_raw_sink(u, raw_sink_name))
         goto fail;
 
-    u->call_state_tracker = pa_call_state_tracker_get(m->core);
+    u->shared = pa_shared_data_get(m->core);
 
     pa_atomic_store(&u->mixer_state, PROP_MIXER_TUNING_PRI);
-    pa_call_state_tracker_set_active(u->call_state_tracker, FALSE);
+    pa_shared_data_sets(u->shared, PA_NEMO_PROP_CALL_STATE, PA_NEMO_PROP_CALL_STATE_INACTIVE);
     u->alt_mixer_compensation = PA_VOLUME_NORM;
 
     if (voice_init_hw_sink_input(u))
@@ -375,8 +377,8 @@ void pa__done(pa_module*m) {
     if (!u)
         return;
 
-    if (u->call_state_tracker)
-        pa_call_state_tracker_unref(u->call_state_tracker);
+    if (u->shared)
+        pa_shared_data_unref(u->shared);
 
     voice_clear_up(u);
 
