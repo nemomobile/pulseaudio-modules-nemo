@@ -2994,17 +2994,10 @@ int pa__init(pa_module*m) {
     if (restore_volume || restore_muted)
         u->sink_input_fixate_hook_slot = pa_hook_connect(&m->core->hooks[PA_CORE_HOOK_SINK_INPUT_FIXATE], PA_HOOK_EARLY, (pa_hook_cb_t) sink_input_fixate_hook_callback, u);
 
-    if (u->restore_route_volume) {
-        if (u->use_voice) {
-            u->sink_proplist_changed_slot = pa_hook_connect(&m->core->hooks[PA_CORE_HOOK_SINK_PROPLIST_CHANGED], PA_HOOK_LATE, (pa_hook_cb_t)sink_proplist_changed_hook_callback, u);
-            u->sink_input_move_finished_slot = pa_hook_connect(&m->core->hooks[PA_CORE_HOOK_SINK_INPUT_MOVE_FINISH], PA_HOOK_NORMAL, (pa_hook_cb_t)hw_sink_input_move_finish_callback, u);
-        } else {
-            /* Listen for parameter updates from parameter module. */
-            meego_parameter_request_updates(NULL, (pa_hook_cb_t) parameters_changed_cb, PA_HOOK_NORMAL, TRUE, u);
-        }
+    if (u->restore_route_volume && u->use_voice) {
+        u->sink_proplist_changed_slot = pa_hook_connect(&m->core->hooks[PA_CORE_HOOK_SINK_PROPLIST_CHANGED], PA_HOOK_LATE, (pa_hook_cb_t)sink_proplist_changed_hook_callback, u);
+        u->sink_input_move_finished_slot = pa_hook_connect(&m->core->hooks[PA_CORE_HOOK_SINK_INPUT_MOVE_FINISH], PA_HOOK_NORMAL, (pa_hook_cb_t)hw_sink_input_move_finish_callback, u);
     }
-
-    u->route = NULL;
 
     if (!(fname = pa_state_path("stream-volumes", TRUE)))
         goto fail;
@@ -3077,6 +3070,14 @@ int pa__init(pa_module*m) {
 
     PA_IDXSET_FOREACH(so, m->core->source_outputs, idx)
         subscribe_callback(m->core, PA_SUBSCRIPTION_EVENT_SOURCE_OUTPUT|PA_SUBSCRIPTION_EVENT_NEW, so->index, u);
+
+    if (u->restore_route_volume && !u->use_voice) {
+        /* Listen for parameter updates from parameter module. We do the connect this late, so that all route
+         * databases are filled and in shape. When we request parameter mode updates, parameter module immediately
+         * sends us the current audio mode, and we need to have route values to properly forward them again to
+         * volume proxy. */
+        meego_parameter_request_updates(NULL, (pa_hook_cb_t) parameters_changed_cb, PA_HOOK_NORMAL, TRUE, u);
+    }
 
     pa_modargs_free(ma);
     return 0;
