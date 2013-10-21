@@ -805,21 +805,23 @@ void pa__done(pa_module *m) {
  * DBus
  */
 
-#define MAINVOLUME_API_MAJOR (1)
+#define MAINVOLUME_API_MAJOR (2)
 #define MAINVOLUME_API_MINOR (1)
-#define MAINVOLUME_PATH "/com/meego/mainvolume1"
-#define MAINVOLUME_IFACE "com.Nokia.MainVolume1"
+#define MAINVOLUME_PATH "/com/meego/mainvolume2"
+#define MAINVOLUME_IFACE "com.Meego.MainVolume2"
 
 static void mainvolume_get_revision(DBusConnection *conn, DBusMessage *msg, void *_u);
 static void mainvolume_get_step_count(DBusConnection *conn, DBusMessage *msg, void *_u);
 static void mainvolume_get_current_step(DBusConnection *conn, DBusMessage *msg, void *_u);
 static void mainvolume_set_current_step(DBusConnection *conn, DBusMessage *msg, DBusMessageIter *iter, void *_u);
+static void mainvolume_get_high_volume_step(DBusConnection *conn, DBusMessage *msg, void *_u);
 static void mainvolume_get_all(DBusConnection *conn, DBusMessage *msg, void *_u);
 
 enum mainvolume_handler_index {
     MAINVOLUME_HANDLER_REVISION,
     MAINVOLUME_HANDLER_STEP_COUNT,
     MAINVOLUME_HANDLER_CURRENT_STEP,
+    MAINVOLUME_HANDLER_HIGH_VOLUME,
     MAINVOLUME_HANDLER_MAX
 };
 
@@ -841,6 +843,12 @@ static pa_dbus_property_handler mainvolume_handlers[MAINVOLUME_HANDLER_MAX] = {
         .type = "u",
         .get_cb = mainvolume_get_current_step,
         .set_cb = mainvolume_set_current_step
+    },
+    [MAINVOLUME_HANDLER_HIGH_VOLUME] = {
+        .property_name = "HighVolumeStep",
+        .type = "u",
+        .get_cb = mainvolume_get_high_volume_step,
+        .set_cb = NULL
     }
 };
 
@@ -1074,6 +1082,22 @@ void mainvolume_set_current_step(DBusConnection *conn, DBusMessage *msg, DBusMes
     signal_steps(u, FALSE);
 }
 
+void mainvolume_get_high_volume_step(DBusConnection *conn, DBusMessage *msg, void *_u) {
+    struct mv_userdata *u = (struct mv_userdata*)_u;
+    uint32_t high_volume_step = 0;
+
+    pa_assert(conn);
+    pa_assert(msg);
+    pa_assert(u);
+
+    if (mv_has_high_volume(u))
+        high_volume_step = mv_safe_step(u) + 1;
+
+    pa_log_debug("D-Bus: Get high volume step (%u)", high_volume_step);
+
+    pa_dbus_send_basic_variant_reply(conn, msg, DBUS_TYPE_UINT32, &high_volume_step);
+}
+
 void mainvolume_get_all(DBusConnection *conn, DBusMessage *msg, void *_u) {
     struct mv_userdata *u = (struct mv_userdata*)_u;
     DBusMessage *reply = NULL;
@@ -1083,6 +1107,7 @@ void mainvolume_get_all(DBusConnection *conn, DBusMessage *msg, void *_u) {
     struct mv_volume_steps *steps;
     uint32_t step_count;
     uint32_t current_step;
+    uint32_t high_volume_step = 0;
 
     pa_assert(conn);
     pa_assert(msg);
@@ -1093,6 +1118,9 @@ void mainvolume_get_all(DBusConnection *conn, DBusMessage *msg, void *_u) {
     rev = MAINVOLUME_API_MINOR;
     step_count = steps->n_steps;
     current_step = steps->current_step;
+
+    if (mv_has_high_volume(u))
+        high_volume_step = mv_safe_step(u) + 1;
 
     pa_assert_se((reply = dbus_message_new_method_return(msg)));
     dbus_message_iter_init_append(reply, &msg_iter);
@@ -1107,8 +1135,11 @@ void mainvolume_get_all(DBusConnection *conn, DBusMessage *msg, void *_u) {
     pa_dbus_append_basic_variant_dict_entry(&dict_iter,
                                             mainvolume_handlers[MAINVOLUME_HANDLER_CURRENT_STEP].property_name,
                                             DBUS_TYPE_UINT32, &current_step);
+    pa_dbus_append_basic_variant_dict_entry(&dict_iter,
+                                            mainvolume_handlers[MAINVOLUME_HANDLER_HIGH_VOLUME].property_name,
+                                            DBUS_TYPE_UINT32, &high_volume_step);
 
-    pa_log_debug("D-Bus: Get all, revision %u, step count %u, current step %u", rev, step_count, current_step);
+    pa_log_debug("D-Bus: Get all: revision %u, step count %u, current step %u, high volume step %u", rev, step_count, current_step, high_volume_step);
     pa_assert_se(dbus_message_iter_close_container(&msg_iter, &dict_iter));
     pa_assert_se(dbus_connection_send(conn, reply, NULL));
     dbus_message_unref(reply);
