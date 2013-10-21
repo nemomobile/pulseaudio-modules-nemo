@@ -38,6 +38,33 @@ Obsoletes:  pulseaudio-modules-nemo-sidetone < 4.0.6
 %description common
 This contains common libs for the Nemo PulseAudio modules.
 
+%package music
+Summary:    Music module for PulseAudio
+Group:      Multimedia/PulseAudio
+Requires:   %{name}-common = %{version}-%{release}
+Requires:   pulseaudio >= 4.0
+
+%description music
+This contains music module for PulseAudio
+
+%package record
+Summary:    Cmtspeech module for PulseAudio
+Group:      Multimedia/PulseAudio
+Requires:   %{name}-common = %{version}-%{release}
+Requires:   pulseaudio >= 4.0
+
+%description record
+This contains record module for PulseAudio
+
+%package voice
+Summary:    Voice module for PulseAudio
+Group:      Multimedia/PulseAudio
+Requires:   %{name}-common = %{version}-%{release}
+Requires:   pulseaudio >= 4.0
+
+%description voice
+This contains voice module for PulseAudio
+
 %package mainvolume
 Summary:    Mainvolume module for PulseAudio
 Group:      Multimedia/PulseAudio
@@ -56,6 +83,15 @@ Requires:   pulseaudio >= 4.0
 
 %description parameters
 This contains an algorithm parameter manager module for PulseAudio
+
+%package sidetone
+Summary:    Sidetone module for PulseAudio
+Group:      Multimedia/PulseAudio
+Requires:   %{name}-common = %{version}-%{release}
+Requires:   pulseaudio >= 4.0
+
+%description sidetone
+This contains a sidetone module for PulseAudio
 
 %package test
 Summary:    Test module for PulseAudio
@@ -110,6 +146,9 @@ rm -rf %{buildroot}
 # >> install post
 install -d %{buildroot}/%{_prefix}/include/pulsecore/modules/meego
 install -m 644 src/common/include/meego/*.h %{buildroot}/%{_prefix}/include/pulsecore/modules/meego
+install -m 644 src/voice/module-voice-api.h %{buildroot}/%{_prefix}/include/pulsecore/modules/meego
+install -m 644 src/music/module-music-api.h %{buildroot}/%{_prefix}/include/pulsecore/modules/meego
+install -m 644 src/record/module-record-api.h %{buildroot}/%{_prefix}/include/pulsecore/modules/meego
 install -d %{buildroot}/%{_libdir}/pkgconfig
 install -m 644 src/common/*.pc %{buildroot}/%{_libdir}/pkgconfig
 # << install post
@@ -120,6 +159,24 @@ install -m 644 src/common/*.pc %{buildroot}/%{_libdir}/pkgconfig
 # >> files common
 %{_libdir}/pulse-%{pulseversion}/modules/libmeego-common.so
 # << files common
+
+%files music
+%defattr(-,root,root,-)
+# >> files music
+%{_libdir}/pulse-%{pulseversion}/modules/module-meego-music.so
+# << files music
+
+%files record
+%defattr(-,root,root,-)
+# >> files record
+%{_libdir}/pulse-%{pulseversion}/modules/module-meego-record.so
+# << files record
+
+%files voice
+%defattr(-,root,root,-)
+# >> files voice
+%{_libdir}/pulse-%{pulseversion}/modules/module-meego-voice.so
+# << files voice
 
 %files mainvolume
 %defattr(-,root,root,-)
@@ -132,6 +189,12 @@ install -m 644 src/common/*.pc %{buildroot}/%{_libdir}/pkgconfig
 # >> files parameters
 %{_libdir}/pulse-%{pulseversion}/modules/module-meego-parameters.so
 # << files parameters
+
+%files sidetone
+%defattr(-,root,root,-)
+# >> files sidetone
+%{_libdir}/pulse-%{pulseversion}/modules/module-meego-sidetone.so
+# << files sidetone
 
 %files test
 %defattr(-,root,root,-)

@@ -33,6 +33,30 @@ SubPackages:
           - pulseaudio-modules-nemo-record < 4.0.6
           - pulseaudio-modules-nemo-sidetone < 4.0.6
 
+    - Name: music
+      Summary: Music module for PulseAudio
+      Group: Multimedia/PulseAudio
+      Description: This contains music module for PulseAudio
+      Requires:
+          - "%{name}-common = %{version}-%{release}"
+          - pulseaudio >= 4.0
+
+    - Name: record
+      Summary: Cmtspeech module for PulseAudio
+      Group: Multimedia/PulseAudio
+      Description: This contains record module for PulseAudio
+      Requires:
+          - "%{name}-common = %{version}-%{release}"
+          - pulseaudio >= 4.0
+
+    - Name: voice
+      Summary: Voice module for PulseAudio
+      Group: Multimedia/PulseAudio
+      Description: This contains voice module for PulseAudio
+      Requires:
+          - "%{name}-common = %{version}-%{release}"
+          - pulseaudio >= 4.0
+
     - Name: mainvolume
       Summary: Mainvolume module for PulseAudio
       Group: Multimedia/PulseAudio
@@ -46,6 +70,14 @@ SubPackages:
       Summary: Algorithm parameter manager module for PulseAudio
       Group: Multimedia/PulseAudio
       Description: This contains an algorithm parameter manager module for PulseAudio
+      Requires:
+          - "%{name}-common = %{version}-%{release}"
+          - pulseaudio >= 4.0
+
+    - Name: sidetone
+      Summary: Sidetone module for PulseAudio
+      Group: Multimedia/PulseAudio
+      Description: This contains a sidetone module for PulseAudio
       Requires:
           - "%{name}-common = %{version}-%{release}"
           - pulseaudio >= 4.0
