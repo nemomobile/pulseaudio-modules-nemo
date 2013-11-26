@@ -31,6 +31,7 @@
 #include "voice-aep-ear-ref.h"
 #include "voice-convert.h"
 #include "proplist-meego.h"
+#include "proplist-nemo.h"
 #include "voice-mainloop-handler.h"
 
 #include "voice-voip-source.h"
@@ -66,6 +67,14 @@ void voice_clear_up(struct userdata *u) {
     }
 
     if (u->hw_source_output) {
+        if (u->hw_source_output_move_fail_slot) {
+            pa_hook_slot_free(u->hw_source_output_move_fail_slot);
+            u->hw_source_output_move_fail_slot = NULL;
+        }
+        if (u->hw_source_output_flags_changed_slot) {
+            pa_hook_slot_free(u->hw_source_output_flags_changed_slot);
+            u->hw_source_output_flags_changed_slot = NULL;
+        }
         pa_source_output_unlink(u->hw_source_output);
         pa_source_output_unref(u->hw_source_output);
         u->hw_source_output = NULL;

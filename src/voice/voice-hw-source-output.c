@@ -547,41 +547,15 @@ static void hw_source_output_update_source_fixed_latency_cb(pa_source_output *o)
         pa_source_set_fixed_latency_within_thread(u->voip_source, o->source->thread_info.fixed_latency);
 }
 
-/* Called from the main thread while the IO thread is inactive. */
-static void hw_source_output_update_source_latency_flag_cb(pa_source_output *o) {
-    struct userdata *u;
-
-    pa_source_output_assert_ref(o);
-    pa_assert_se(u = o->userdata);
-
-    /* The raw source's latency flag can be handled with the default cb. */
-    pa_source_output_update_source_latency_flag_cb(o);
+static pa_hook_result_t hw_source_output_flags_changed_cb(pa_core *c, pa_source *o, struct userdata *u) {
+    pa_assert(u);
+    pa_source_assert_ref(o);
 
     /* FIXME: There's no source output between the voip source and the raw
      * source, so we need to propagate the flag change to the voip source
-     * manually. If there was a source output between the sources, this whole
-     * function could be replaced with the default cb implementation. */
+     * manually. */
     if (u->voip_source)
-        pa_source_set_latency_flag(u->voip_source, o->source->flags & PA_SOURCE_LATENCY);
-}
-
-/* Called from the main thread while the IO thread is inactive. */
-static void hw_source_output_update_source_dynamic_latency_flag_cb(pa_source_output *o) {
-    struct userdata *u;
-
-    pa_source_output_assert_ref(o);
-    pa_assert_se(u = o->userdata);
-
-    /* The raw source's dynamic latency flag can be handled with the default
-     * cb. */
-    pa_source_output_update_source_latency_flag_cb(o);
-
-    /* FIXME: There's no source output between the voip source and the raw
-     * source, so we need to propagate the flag change to the voip source
-     * manually. If there was a source output between the sources, this whole
-     * function could be replaced with the default cb implementation. */
-    if (u->voip_source)
-        pa_source_set_dynamic_latency_flag(u->voip_source, o->source->flags & PA_SOURCE_DYNAMIC_LATENCY);
+        pa_source_update_flags(u->voip_source, PA_SOURCE_LATENCY|PA_SOURCE_DYNAMIC_LATENCY, o->flags);
 }
 
 /* Called from the IO thread. */
@@ -658,8 +632,7 @@ static void hw_source_output_update_slave_source(struct userdata *u, pa_source *
     }
 
     pa_source_set_asyncmsgq(source, new_master->asyncmsgq);
-    pa_source_set_latency_flag(source, new_master->flags & PA_SOURCE_LATENCY);
-    pa_source_set_dynamic_latency_flag(source, new_master->flags & PA_SOURCE_DYNAMIC_LATENCY);
+    pa_source_update_flags(source, PA_SOURCE_LATENCY|PA_SOURCE_DYNAMIC_LATENCY, new_master->flags);
 
     p = pa_proplist_new();
     pa_proplist_setf(p, PA_PROP_DEVICE_DESCRIPTION, "%s source connected to %s", source->name, new_master->name);
@@ -811,8 +784,6 @@ static pa_source_output *voice_hw_source_output_new(struct userdata *u, pa_sourc
     new_source_output->update_max_rewind = hw_source_output_update_max_rewind_cb;
     new_source_output->update_source_latency_range = hw_source_output_update_source_latency_range_cb;
     new_source_output->update_source_fixed_latency = hw_source_output_update_source_fixed_latency_cb;
-    new_source_output->update_source_latency_flag = hw_source_output_update_source_latency_flag_cb;
-    new_source_output->update_source_dynamic_latency_flag = hw_source_output_update_source_dynamic_latency_flag_cb;
     new_source_output->attach = hw_source_output_attach_cb;
     new_source_output->detach = hw_source_output_detach_cb;
     new_source_output->moving = hw_source_output_moving_cb;
@@ -830,6 +801,7 @@ int voice_init_hw_source_output(struct userdata *u) {
     pa_return_val_if_fail (u->hw_source_output, -1);
 
     u->hw_source_output_move_fail_slot = pa_hook_connect(&u->core->hooks[PA_CORE_HOOK_SOURCE_OUTPUT_MOVE_FAIL], PA_HOOK_EARLY, (pa_hook_cb_t) hw_source_output_move_fail_cb, u);
+    u->hw_source_output_flags_changed_slot = pa_hook_connect(&u->core->hooks[PA_CORE_HOOK_SOURCE_FLAGS_CHANGED], PA_HOOK_EARLY, (pa_hook_cb_t) hw_source_output_flags_changed_cb, u);
 
     return 0;
 }
@@ -861,14 +833,12 @@ static void voice_hw_source_output_reinit_defer_cb(pa_mainloop_api *m, pa_defer_
     new_so = voice_hw_source_output_new(u, start_uncorked ? 0 : PA_SOURCE_OUTPUT_START_CORKED);
     pa_return_if_fail (new_so);
 
-    pa_source_set_latency_flag(u->raw_source, new_so->source->flags & PA_SOURCE_LATENCY);
-    pa_source_set_dynamic_latency_flag(u->raw_source, new_so->source->flags & PA_SOURCE_DYNAMIC_LATENCY);
+    pa_source_update_flags(u->raw_source, PA_SOURCE_LATENCY|PA_SOURCE_DYNAMIC_LATENCY, new_so->source->flags);
 
     /* FIXME: This wouldn't be needed if the voip source would create a source
      * output, because updating the raw source flags would then automatically
      * get propagated also to the voip source. */
-    pa_source_set_latency_flag(u->voip_source, new_so->source->flags & PA_SOURCE_LATENCY);
-    pa_source_set_dynamic_latency_flag(u->voip_source, new_so->source->flags & PA_SOURCE_DYNAMIC_LATENCY);
+    pa_source_update_flags(u->voip_source, PA_SOURCE_LATENCY|PA_SOURCE_DYNAMIC_LATENCY, new_so->source->flags);
 
     pa_source_output_cork(old_so, TRUE);
 

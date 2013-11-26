@@ -119,6 +119,7 @@ struct userdata {
 
     pa_source_output *hw_source_output;
     pa_hook_slot *hw_source_output_move_fail_slot;
+    pa_hook_slot *hw_source_output_flags_changed_slot;
 
     pa_memblockq *hw_source_memblockq;
 
