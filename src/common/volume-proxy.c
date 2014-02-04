@@ -86,7 +86,7 @@ pa_volume_proxy *pa_volume_proxy_ref(pa_volume_proxy *r) {
     return r;
 }
 
-static void volume_entry_free(struct volume_entry *e, void *userdata) {
+static void volume_entry_free(struct volume_entry *e) {
     pa_assert(e);
     pa_assert(e->name);
 
@@ -108,7 +108,7 @@ void pa_volume_proxy_unref(pa_volume_proxy *r) {
 
     pa_assert_se(pa_shared_remove(r->core, "volume-proxy") >= 0);
 
-    pa_hashmap_free(r->volumes, (pa_free2_cb_t)volume_entry_free, NULL);
+    pa_hashmap_free(r->volumes, (pa_free_cb_t) volume_entry_free);
 
     pa_xfree(r);
 }

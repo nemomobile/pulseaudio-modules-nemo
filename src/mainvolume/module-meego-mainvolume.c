@@ -34,35 +34,48 @@
 #include <pulsecore/hook-list.h>
 #include <pulsecore/idxset.h>
 #include <pulsecore/hashmap.h>
+#include <pulsecore/conf-parser.h>
 #include <pulse/timeval.h>
 #include <pulse/rtclock.h>
 
 #include "module-meego-mainvolume-symdef.h"
 #include "mainvolume.h"
+#include "listening-watchdog.h"
 
 #include "parameter-hook.h"
 #include "proplist-meego.h"
-#include "call-state-tracker.h"
+#include "proplist-nemo.h"
+#include "shared-data.h"
 #include "volume-proxy.h"
 
 PA_MODULE_AUTHOR("Juho Hämäläinen");
 PA_MODULE_DESCRIPTION("Nokia mainvolume module");
 PA_MODULE_USAGE("tuning_mode=<true/false> defaults to false "
-                "virtual_stream=<true/false> create virtual stream for voice call volume control (default false)");
+                "virtual_stream=<true/false> create virtual stream for voice call volume control (default false) "
+                "listening_time_notifier_conf=<file location for listening time notifier configuration>");
 PA_MODULE_VERSION(PACKAGE_VERSION);
 
 static const char* const valid_modargs[] = {
     "tuning_mode",
     "virtual_stream",
+    "listening_time_notifier_conf",
     NULL,
 };
 
 static void dbus_init(struct mv_userdata *u);
 static void dbus_done(struct mv_userdata *u);
 static void dbus_signal_steps(struct mv_userdata *u);
+static void dbus_signal_listening_notifier(struct mv_userdata *u, uint32_t listening_time);
+static void dbus_signal_high_volume(struct mv_userdata *u, uint32_t safe_step);
+static void dbus_signal_call_status(struct mv_userdata *u);
 
-#define XMAEMO_CALL_STEPS "x-maemo.mainvolume.call"
-#define XMAEMO_MEDIA_STEPS "x-maemo.mainvolume.media"
+static void check_notifier(struct mv_userdata *u);
+
+#define DEFAULT_LISTENING_NOTIFIER_CONF_FILE PA_DEFAULT_CONFIG_DIR PA_PATH_SEP "mainvolume-listening-time-notifier.conf"
+
+#define PROP_CALL_STEPS "x-nemo.mainvolume.call"
+#define PROP_MEDIA_STEPS "x-nemo.mainvolume.media"
+#define PROP_HIGH_VOLUME "x-nemo.mainvolume.high-volume-step"
 
 /* If multiple step change calls are coming in succession, wait SIGNAL_WAIT_TIME before
  * sending change signal. */
@@ -70,7 +83,7 @@ static void dbus_signal_steps(struct mv_userdata *u);
 
 static void signal_steps(struct mv_userdata *u, pa_bool_t wait_for_mode_change);
 
-static void steps_set_free(struct mv_volume_steps_set *s, void *userdata) {
+static void steps_set_free(struct mv_volume_steps_set *s) {
     pa_assert(s);
 
     pa_xfree(s->route);
@@ -104,6 +117,19 @@ static void signal_timer_set(struct mv_userdata *u, const pa_usec_t time) {
     /* only set time event if none currently pending */
     if (!u->signal_time_event)
         u->signal_time_event = pa_core_rttime_new(u->core, time, signal_time_callback, u);
+}
+
+static void check_and_signal_high_volume(struct mv_userdata *u) {
+    pa_assert(u);
+
+    /* When call mode changes to active we don't have HighVolume steps. Send 0 when call active,
+     * send possible safe step if call is inactive. */
+    if (u->call_active)
+        dbus_signal_high_volume(u, 0);
+    else if (mv_has_high_volume(u))
+        dbus_signal_high_volume(u, mv_safe_step(u));
+    else
+        dbus_signal_high_volume(u, 0);
 }
 
 static void signal_steps(struct mv_userdata *u, pa_bool_t wait_for_mode_change) {
@@ -184,7 +210,7 @@ static void create_virtual_stream(struct mv_userdata *u) {
 
     data.driver = __FILE__;
     data.module = u->module;
-    pa_proplist_setf(data.proplist, PA_PROP_MEDIA_NAME, "Virtual Stream for MainVolume Volume Control");
+    pa_proplist_sets(data.proplist, PA_PROP_MEDIA_NAME, "Virtual Stream for MainVolume Volume Control");
     pa_proplist_sets(data.proplist, PA_PROP_MEDIA_ROLE, "phone");
     pa_sink_input_new_data_set_sample_spec(&data, &u->core->default_sample_spec);
     pa_sink_input_new_data_set_channel_map(&data, &u->core->default_channel_map);
@@ -219,12 +245,17 @@ static void destroy_virtual_stream(struct mv_userdata *u) {
     pa_log_debug("removed virtual stream.");
 }
 
-static pa_hook_result_t call_state_cb(pa_call_state_tracker *t, void *active, struct mv_userdata *u) {
-    pa_assert(t);
+static pa_hook_result_t call_state_cb(pa_core *c, const char *key, struct mv_userdata *u) {
+    const char *str;
+
+    pa_assert(c);
     pa_assert(u);
     pa_assert(u->current_steps);
 
-    u->call_active = pa_call_state_tracker_get_active(t);
+    if ((str = pa_shared_data_gets(u->shared, key)) && pa_streq(str, PA_NEMO_PROP_CALL_STATE_ACTIVE))
+        u->call_active = TRUE;
+    else
+        u->call_active = FALSE;
 
     pa_log_debug("call is %s (media step %u call step %u)", u->call_active ? "active" : "inactive",
                  u->current_steps->media.current_step, u->current_steps->call.current_step);
@@ -235,6 +266,14 @@ static pa_hook_result_t call_state_cb(pa_call_state_tracker *t, void *active, st
         destroy_virtual_stream(u);
 
     signal_steps(u, FALSE);
+
+    if (u->notifier.watchdog)
+        check_notifier(u);
+
+    check_and_signal_high_volume(u);
+
+    /* Notify users of new call status. */
+    dbus_signal_call_status(u);
 
     return PA_HOOK_OK;
 }
@@ -255,6 +294,7 @@ static struct mv_volume_steps_set* fallback_new(const char *route, const int cal
     fallback = pa_xnew0(struct mv_volume_steps_set, 1);
     fallback->call.n_steps = call_steps;
     fallback->media.n_steps = media_steps;
+    fallback->high_volume_step = -1;
 
     /* calculate call/media_steps linearly using PA_VOLUME_NORM
      * as max value, starting from 0 volume. */
@@ -289,7 +329,7 @@ static pa_hook_result_t parameters_changed_cb(pa_core *c, meego_parameter_update
      * normally */
     if (u->tuning_mode && ua->parameters) {
         if ((set = pa_hashmap_remove(u->steps, u->route))) {
-            steps_set_free(set, NULL);
+            steps_set_free(set);
             set = NULL;
         }
     }
@@ -308,8 +348,9 @@ static pa_hook_result_t parameters_changed_cb(pa_core *c, meego_parameter_update
         if (ua && ua->parameters && (p = pa_proplist_from_string(ua->parameters)))
             ret = mv_parse_steps(u,
                                  u->route,
-                                 pa_proplist_gets(p, XMAEMO_CALL_STEPS),
-                                 pa_proplist_gets(p, XMAEMO_MEDIA_STEPS));
+                                 pa_proplist_gets(p, PROP_CALL_STEPS),
+                                 pa_proplist_gets(p, PROP_MEDIA_STEPS),
+                                 pa_proplist_gets(p, PROP_HIGH_VOLUME));
 
         if (ret > 0) {
             u->current_steps = pa_hashmap_get(u->steps, u->route);
@@ -330,6 +371,20 @@ static pa_hook_result_t parameters_changed_cb(pa_core *c, meego_parameter_update
     u->mode_change_ready = TRUE;
     signal_steps(u, TRUE);
 
+    /* Check if new route is in notifier watch list */
+    if (u->notifier.watchdog) {
+        if (pa_hashmap_get(u->notifier.modes, u->route))
+            u->notifier.mode_active = TRUE;
+        else
+            u->notifier.mode_active = FALSE;
+
+        check_notifier(u);
+    }
+
+    /* When mode changes immediately send HighVolume signal
+     * containing the safe step if one is defined */
+    check_and_signal_high_volume(u);
+
     return PA_HOOK_OK;
 }
 
@@ -338,6 +393,7 @@ static pa_hook_result_t volume_changed_cb(pa_volume_proxy *r, const char *name, 
     struct mv_volume_steps *steps;
     int new_step;
     pa_bool_t call_steps;
+    pa_bool_t changed = FALSE;
 
     pa_assert(u);
 
@@ -360,7 +416,23 @@ static pa_hook_result_t volume_changed_cb(pa_volume_proxy *r, const char *name, 
         pa_log_debug("volume changed for stream %s, vol %d (step %d)", name, vol, new_step);
 
         steps->current_step = new_step;
+        changed = TRUE;
+    }
 
+    /* Check only once per module load / parsed step set
+     * if volume is higher than safe step. If so, reset to
+     * safe step. */
+    if (!call_steps && u->current_steps->first) {
+        if (mv_high_volume(u)) {
+            pa_log_info("high volume after module load, requested %d, we will reset to safe step %d", new_step, mv_safe_step(u));
+            mv_set_step(u, mv_safe_step(u));
+            changed = TRUE;
+        }
+
+        u->current_steps->first = FALSE;
+    }
+
+    if (changed) {
         /* signal changed step forward */
         if (call_steps == u->call_active) {
             u->volume_change_ready = TRUE;
@@ -371,8 +443,263 @@ static pa_hook_result_t volume_changed_cb(pa_volume_proxy *r, const char *name, 
     return PA_HOOK_OK;
 }
 
+static void check_notifier(struct mv_userdata *u) {
+    pa_assert(u);
+
+    if (u->notifier.mode_active && u->notifier.enabled_slots && !u->call_active)
+        mv_listening_watchdog_start(u->notifier.watchdog);
+    else
+        mv_listening_watchdog_pause(u->notifier.watchdog);
+}
+
+static void notify_event_cb(struct mv_listening_watchdog *wd, pa_bool_t initial_notify, void *userdata) {
+    struct mv_userdata *u = userdata;
+
+    pa_assert(wd);
+    pa_assert(u);
+
+    pa_log_debug("Listening timer expired, send %snotify signal.", initial_notify ? "initial " : "");
+    if (initial_notify)
+        dbus_signal_listening_notifier(u, 0);
+    else {
+        dbus_signal_listening_notifier(u, u->notifier.timeout);
+        check_notifier(u);
+    }
+}
+
+static uint32_t acquire_slot(struct mv_userdata *u) {
+    uint32_t i;
+    uint32_t slot;
+
+    pa_assert(u);
+
+    if (!u->notifier.free_slots) {
+        pa_log_warn("All sink-input watcher slots taken.");
+        return 0;
+    }
+
+    for (i = 0; i < 32; i++) {
+        slot = (1 << i);
+        if (u->notifier.free_slots & slot) {
+            u->notifier.free_slots &= ~slot;
+            return slot;
+        }
+    }
+    return 0;
+}
+
+static void release_slot(struct mv_userdata *u, uint32_t slot) {
+    pa_assert(u);
+
+    u->notifier.free_slots |= slot;
+}
+
+static pa_hook_result_t sink_input_put_cb(pa_core *c, pa_object *o, struct mv_userdata *u) {
+    pa_sink_input *si;
+    pa_sink_input_state_t state;
+    const char *role;
+    uint32_t slot;
+
+    pa_assert(o);
+    pa_assert(u);
+    si = PA_SINK_INPUT(o);
+
+    if (!(role = pa_proplist_gets(si->proplist, PA_PROP_MEDIA_ROLE)))
+        /* No media role, skip */
+        goto end;
+
+    if (!pa_hashmap_get(u->notifier.roles, role))
+        /* Not our stream, skip */
+        goto end;
+
+    if (!(slot = acquire_slot(u)))
+        /* All slots taken, skip */
+        goto end;
+
+    pa_sink_input_ref(si);
+    if (pa_hashmap_put(u->notifier.sink_inputs, si, PA_UINT32_TO_PTR(slot))) {
+        /* Already in our hashmap? Shouldn't happen... */
+        pa_sink_input_unref(si);
+        release_slot(u, slot);
+        goto end;
+    }
+
+    state = pa_sink_input_get_state(si);
+    if (state == PA_SINK_INPUT_DRAINED ||
+        state == PA_SINK_INPUT_RUNNING)
+        u->notifier.enabled_slots |= slot;
+
+    check_notifier(u);
+
+end:
+    return PA_HOOK_OK;
+}
+static pa_hook_result_t sink_input_state_changed_cb(pa_core *c, pa_object *o, struct mv_userdata *u) {
+    pa_sink_input *si;
+    pa_sink_input_state_t state;
+    uintptr_t *slot_ptr;
+    uint32_t slot;
+
+    pa_assert(o);
+    pa_assert(u);
+    pa_assert(pa_sink_input_isinstance(o));
+
+    si = PA_SINK_INPUT(o);
+
+    if (!(slot_ptr = pa_hashmap_get(u->notifier.sink_inputs, si)))
+        /* Not our stream, skip */
+        goto end;
+
+    slot = PA_PTR_TO_UINT32(slot_ptr);
+
+    state = pa_sink_input_get_state(si);
+    if (state == PA_SINK_INPUT_DRAINED ||
+        state == PA_SINK_INPUT_RUNNING)
+        u->notifier.enabled_slots |= slot;
+    else
+        u->notifier.enabled_slots &= ~slot;
+
+    check_notifier(u);
+
+end:
+    return PA_HOOK_OK;
+}
+
+static pa_hook_result_t sink_input_unlink_cb(pa_core *c, pa_object *o, struct mv_userdata *u) {
+    pa_sink_input *si;
+    uintptr_t *slot_ptr;
+    uint32_t slot;
+
+    pa_assert(o);
+    pa_assert(u);
+    pa_assert(pa_sink_input_isinstance(o));
+
+    si = PA_SINK_INPUT(o);
+
+    if (!(slot_ptr = pa_hashmap_remove(u->notifier.sink_inputs, si)))
+        /* Not our stream, skip */
+        goto end;
+
+    slot = PA_PTR_TO_UINT32(slot_ptr);
+    u->notifier.enabled_slots &= ~slot;
+    release_slot(u, slot);
+
+    pa_sink_input_unref(si);
+
+    check_notifier(u);
+
+end:
+    return PA_HOOK_OK;
+}
+
+#define NOTIFIER_LIST_DELIMITER ","
+
+static int parse_list(pa_config_parser_state *state) {
+    const char *split_state = NULL;
+    char *c;
+
+    pa_assert(state);
+
+    while ((c = pa_split(state->rvalue, NOTIFIER_LIST_DELIMITER, &split_state))) {
+        pa_hashmap *m = state->data;
+        if (pa_hashmap_put(m, c, c) != 0) {
+            pa_log_warn("Duplicate %s entry: \"%s\"", state->lvalue, c);
+            pa_xfree(c);
+        } else
+            pa_log_debug("Notifier conf %s add: \"%s\"", state->lvalue, c);
+    }
+
+    return 0;
+}
+
+static void setup_notifier(struct mv_userdata *u, const char *conf_file) {
+    uint32_t timeout = 0;
+    const char *conf;
+    pa_hashmap *mode_list;
+    pa_hashmap *role_list;
+
+    mode_list = pa_hashmap_new(pa_idxset_string_hash_func, pa_idxset_string_compare_func);
+    role_list = pa_hashmap_new(pa_idxset_string_hash_func, pa_idxset_string_compare_func);
+
+    pa_config_item items[] = {
+        { "timeout",    pa_config_parse_unsigned,   &timeout,   NULL },
+        { "role-list",  parse_list,                 role_list,  NULL },
+        { "mode-list",  parse_list,                 mode_list,  NULL },
+        { NULL, NULL, NULL, NULL }
+    };
+
+    conf = conf_file ? conf_file : DEFAULT_LISTENING_NOTIFIER_CONF_FILE;
+    pa_log_debug("Read long listening time notifier config from %s", conf);
+    pa_config_parse(conf, NULL, items, NULL, NULL);
+
+    if (pa_hashmap_isempty(role_list) || pa_hashmap_isempty(mode_list) || timeout == 0) {
+        /* No valid configuration parsed, free and return */
+        pa_hashmap_free(mode_list, NULL);
+        pa_hashmap_free(role_list, NULL);
+        pa_log_debug("Long listening time notifier disabled.");
+        return;
+    }
+
+    u->notifier.watchdog = mv_listening_watchdog_new(u->core, notify_event_cb, timeout, u);
+    u->notifier.timeout = timeout;
+    u->notifier.roles = role_list;
+    u->notifier.modes = mode_list;
+    u->notifier.free_slots = UINT32_MAX;
+    u->notifier.sink_inputs = pa_hashmap_new(pa_idxset_trivial_hash_func, pa_idxset_trivial_compare_func);
+
+    u->notifier.sink_input_put_slot = pa_hook_connect(&u->core->hooks[PA_CORE_HOOK_SINK_INPUT_PUT], PA_HOOK_LATE, (pa_hook_cb_t) sink_input_put_cb, u);
+    u->notifier.sink_input_changed_slot = pa_hook_connect(&u->core->hooks[PA_CORE_HOOK_SINK_INPUT_STATE_CHANGED], PA_HOOK_LATE, (pa_hook_cb_t) sink_input_state_changed_cb, u);
+    u->notifier.sink_input_unlink_slot = pa_hook_connect(&u->core->hooks[PA_CORE_HOOK_SINK_INPUT_UNLINK], PA_HOOK_LATE, (pa_hook_cb_t) sink_input_unlink_cb, u);
+
+    pa_log_debug("Long listening time notifier setup done.");
+}
+
+static void free_si_hashmap(pa_hashmap *h) {
+    pa_sink_input *si;
+    void *state = NULL;
+    const void *key;
+
+    pa_assert(h);
+
+    while (pa_hashmap_iterate(h, &state, &key)) {
+        /* Yes we strip const from key pointer. We shouldn't get
+         * here other than when mainvolume-module is unloaded
+         * while daemon is running. And when we do, we have our a bit
+         * cleverly used hashmap with data as keys, which we need
+         * to unref. */
+        si = (pa_sink_input *) key;
+        pa_sink_input_unref(si);
+    }
+
+    pa_hashmap_free(h, NULL);
+}
+
+static void notifier_done(struct mv_userdata *u) {
+    pa_assert(u);
+
+    if (!u->notifier.watchdog)
+        return;
+
+    if (u->notifier.sink_input_put_slot)
+        pa_hook_slot_free(u->notifier.sink_input_put_slot);
+    if (u->notifier.sink_input_changed_slot)
+        pa_hook_slot_free(u->notifier.sink_input_changed_slot);
+    if (u->notifier.sink_input_unlink_slot)
+        pa_hook_slot_free(u->notifier.sink_input_unlink_slot);
+
+    mv_listening_watchdog_free(u->notifier.watchdog);
+
+    if (u->notifier.roles)
+        pa_hashmap_free(u->notifier.roles, pa_xfree);
+    if (u->notifier.modes)
+        pa_hashmap_free(u->notifier.modes, pa_xfree);
+    if (u->notifier.sink_inputs)
+        free_si_hashmap(u->notifier.sink_inputs);
+}
+
 int pa__init(pa_module *m) {
     pa_modargs *ma = NULL;
+    const char *notifier_conf;
     struct mv_userdata *u;
     struct mv_volume_steps_set *fallback;
 
@@ -408,11 +735,11 @@ int pa__init(pa_module *m) {
         goto fail;
     }
 
-    u->call_state_tracker = pa_call_state_tracker_get(u->core);
-    u->call_state_tracker_slot = pa_hook_connect(&pa_call_state_tracker_hooks(u->call_state_tracker)[PA_CALL_STATE_HOOK_CHANGED],
-                                                 PA_HOOK_NORMAL,
-                                                 (pa_hook_cb_t)call_state_cb,
-                                                 u);
+    notifier_conf = pa_modargs_get_value(ma, "listening_time_notifier_conf", NULL);
+    setup_notifier(u, notifier_conf);
+
+    u->shared = pa_shared_data_get(u->core);
+    u->call_state_hook_slot = pa_shared_data_connect(u->shared, PA_NEMO_PROP_CALL_STATE, (pa_hook_cb_t) call_state_cb, u);
 
     u->volume_proxy = pa_volume_proxy_get(u->core);
     u->volume_proxy_slot = pa_hook_connect(&pa_volume_proxy_hooks(u->volume_proxy)[PA_VOLUME_PROXY_HOOK_CHANGED],
@@ -441,6 +768,10 @@ int pa__init(pa_module *m) {
 void pa__done(pa_module *m) {
     struct mv_userdata *u = m->userdata;
 
+    notifier_done(u);
+
+    meego_parameter_stop_updates("mainvolume", (pa_hook_cb_t) parameters_changed_cb, u);
+
     signal_timer_stop(u);
 
     dbus_done(u);
@@ -450,11 +781,11 @@ void pa__done(pa_module *m) {
     if (u->sink_proplist_changed_slot)
         pa_hook_slot_free(u->sink_proplist_changed_slot);
 
-    if (u->call_state_tracker_slot)
-        pa_hook_slot_free(u->call_state_tracker_slot);
+    if (u->call_state_hook_slot)
+        pa_hook_slot_free(u->call_state_hook_slot);
 
-    if (u->call_state_tracker)
-        pa_call_state_tracker_unref(u->call_state_tracker);
+    if (u->shared)
+        pa_shared_data_unref(u->shared);
 
     if (u->volume_proxy_slot)
         pa_hook_slot_free(u->volume_proxy_slot);
@@ -462,7 +793,7 @@ void pa__done(pa_module *m) {
     if (u->volume_proxy)
         pa_volume_proxy_unref(u->volume_proxy);
 
-    pa_hashmap_free(u->steps, (pa_free2_cb_t)steps_set_free, NULL);
+    pa_hashmap_free(u->steps, (pa_free_cb_t) steps_set_free);
 
     pa_assert(m);
 
@@ -474,21 +805,23 @@ void pa__done(pa_module *m) {
  * DBus
  */
 
-#define MAINVOLUME_API_MAJOR (1)
-#define MAINVOLUME_API_MINOR (0)
-#define MAINVOLUME_PATH "/com/meego/mainvolume1"
-#define MAINVOLUME_IFACE "com.Nokia.MainVolume1"
+#define MAINVOLUME_API_MAJOR (2)
+#define MAINVOLUME_API_MINOR (1)
+#define MAINVOLUME_PATH "/com/meego/mainvolume2"
+#define MAINVOLUME_IFACE "com.Meego.MainVolume2"
 
 static void mainvolume_get_revision(DBusConnection *conn, DBusMessage *msg, void *_u);
 static void mainvolume_get_step_count(DBusConnection *conn, DBusMessage *msg, void *_u);
 static void mainvolume_get_current_step(DBusConnection *conn, DBusMessage *msg, void *_u);
 static void mainvolume_set_current_step(DBusConnection *conn, DBusMessage *msg, DBusMessageIter *iter, void *_u);
+static void mainvolume_get_high_volume_step(DBusConnection *conn, DBusMessage *msg, void *_u);
 static void mainvolume_get_all(DBusConnection *conn, DBusMessage *msg, void *_u);
 
 enum mainvolume_handler_index {
     MAINVOLUME_HANDLER_REVISION,
     MAINVOLUME_HANDLER_STEP_COUNT,
     MAINVOLUME_HANDLER_CURRENT_STEP,
+    MAINVOLUME_HANDLER_HIGH_VOLUME,
     MAINVOLUME_HANDLER_MAX
 };
 
@@ -510,11 +843,20 @@ static pa_dbus_property_handler mainvolume_handlers[MAINVOLUME_HANDLER_MAX] = {
         .type = "u",
         .get_cb = mainvolume_get_current_step,
         .set_cb = mainvolume_set_current_step
+    },
+    [MAINVOLUME_HANDLER_HIGH_VOLUME] = {
+        .property_name = "HighVolumeStep",
+        .type = "u",
+        .get_cb = mainvolume_get_high_volume_step,
+        .set_cb = NULL
     }
 };
 
 enum mainvolume_signal_index {
     MAINVOLUME_SIGNAL_STEPS_UPDATED,
+    MAINVOLUME_SIGNAL_NOTIFY_LISTENER,  /* Notify user that one has listened to audio for a long time. */
+    MAINVOLUME_SIGNAL_HIGH_VOLUME,      /* Notify user that current volume is harmful for hearing. */
+    MAINVOLUME_SIGNAL_CALL_STATUS,      /* Notify user of current call state. */
     MAINVOLUME_SIGNAL_MAX
 };
 
@@ -523,11 +865,38 @@ static pa_dbus_arg_info steps_updated_args[] = {
     {"CurrentStep", "u", NULL}
 };
 
+static pa_dbus_arg_info high_volume_args[] = {
+    {"SafeStep", "u", NULL}
+};
+
+static pa_dbus_arg_info listening_time_args[] = {
+    {"ListeningTime", "u", NULL}
+};
+
+static pa_dbus_arg_info call_state_args[] = {
+    {"Status", "s", NULL}
+};
+
 static pa_dbus_signal_info mainvolume_signals[MAINVOLUME_SIGNAL_MAX] = {
     [MAINVOLUME_SIGNAL_STEPS_UPDATED] = {
         .name = "StepsUpdated",
         .arguments = steps_updated_args,
         .n_arguments = 2
+    },
+    [MAINVOLUME_SIGNAL_NOTIFY_LISTENER] = {
+        .name = "NotifyListeningTime",
+        .arguments = listening_time_args,
+        .n_arguments = 1
+    },
+    [MAINVOLUME_SIGNAL_HIGH_VOLUME] = {
+        .name = "NotifyHighVolume",
+        .arguments = high_volume_args,
+        .n_arguments = 1
+    },
+    [MAINVOLUME_SIGNAL_CALL_STATUS] = {
+        .name = "CallStatus",
+        .arguments = call_state_args,
+        .n_arguments = 1
     }
 };
 
@@ -562,6 +931,46 @@ void dbus_done(struct mv_userdata *u) {
     pa_dbus_protocol_unref(u->dbus_protocol);
 }
 
+static void dbus_signal_call_status(struct mv_userdata *u) {
+    DBusMessage *signal;
+    const char *status_str;
+
+    pa_assert(u);
+
+    if (u->call_active)
+        status_str = "active";
+    else
+        status_str = "inactive";
+
+    pa_assert_se((signal = dbus_message_new_signal(MAINVOLUME_PATH,
+                                                   MAINVOLUME_IFACE,
+                                                   mainvolume_signals[MAINVOLUME_SIGNAL_CALL_STATUS].name)));
+    pa_assert_se(dbus_message_append_args(signal,
+                                          DBUS_TYPE_STRING, &status_str,
+                                          DBUS_TYPE_INVALID));
+    pa_dbus_protocol_send_signal(u->dbus_protocol, signal);
+    dbus_message_unref(signal);
+
+    pa_log_debug("Signal %s. Status: %s", mainvolume_signals[MAINVOLUME_SIGNAL_CALL_STATUS].name, status_str);
+}
+
+static void dbus_signal_high_volume(struct mv_userdata *u, uint32_t safe_step) {
+    DBusMessage *signal;
+
+    pa_assert(u);
+
+    pa_assert_se((signal = dbus_message_new_signal(MAINVOLUME_PATH,
+                                                   MAINVOLUME_IFACE,
+                                                   mainvolume_signals[MAINVOLUME_SIGNAL_HIGH_VOLUME].name)));
+    pa_assert_se(dbus_message_append_args(signal,
+                                          DBUS_TYPE_UINT32, &safe_step,
+                                          DBUS_TYPE_INVALID));
+    pa_dbus_protocol_send_signal(u->dbus_protocol, signal);
+    dbus_message_unref(signal);
+
+    pa_log_debug("Signal %s. Safe step: %u", mainvolume_signals[MAINVOLUME_SIGNAL_HIGH_VOLUME].name, safe_step);
+}
+
 void dbus_signal_steps(struct mv_userdata *u) {
     DBusMessage *signal;
     struct mv_volume_steps *steps;
@@ -589,6 +998,23 @@ void dbus_signal_steps(struct mv_userdata *u) {
     u->mode_change_ready = FALSE;
     u->last_signal_timestamp = pa_rtclock_now();
 }
+
+static void dbus_signal_listening_notifier(struct mv_userdata *u, uint32_t timeout) {
+    DBusMessage *signal;
+
+    pa_assert(u);
+
+    pa_assert_se((signal = dbus_message_new_signal(MAINVOLUME_PATH,
+                                                   MAINVOLUME_IFACE,
+                                                   mainvolume_signals[MAINVOLUME_SIGNAL_NOTIFY_LISTENER].name)));
+    pa_assert_se(dbus_message_append_args(signal,
+                                          DBUS_TYPE_UINT32, &timeout,
+                                          DBUS_TYPE_INVALID));
+
+    pa_dbus_protocol_send_signal(u->dbus_protocol, signal);
+    dbus_message_unref(signal);
+}
+
 
 void mainvolume_get_revision(DBusConnection *conn, DBusMessage *msg, void *_u) {
     uint32_t rev = MAINVOLUME_API_MINOR;
@@ -656,6 +1082,22 @@ void mainvolume_set_current_step(DBusConnection *conn, DBusMessage *msg, DBusMes
     signal_steps(u, FALSE);
 }
 
+void mainvolume_get_high_volume_step(DBusConnection *conn, DBusMessage *msg, void *_u) {
+    struct mv_userdata *u = (struct mv_userdata*)_u;
+    uint32_t high_volume_step = 0;
+
+    pa_assert(conn);
+    pa_assert(msg);
+    pa_assert(u);
+
+    if (mv_has_high_volume(u))
+        high_volume_step = mv_safe_step(u) + 1;
+
+    pa_log_debug("D-Bus: Get high volume step (%u)", high_volume_step);
+
+    pa_dbus_send_basic_variant_reply(conn, msg, DBUS_TYPE_UINT32, &high_volume_step);
+}
+
 void mainvolume_get_all(DBusConnection *conn, DBusMessage *msg, void *_u) {
     struct mv_userdata *u = (struct mv_userdata*)_u;
     DBusMessage *reply = NULL;
@@ -665,6 +1107,7 @@ void mainvolume_get_all(DBusConnection *conn, DBusMessage *msg, void *_u) {
     struct mv_volume_steps *steps;
     uint32_t step_count;
     uint32_t current_step;
+    uint32_t high_volume_step = 0;
 
     pa_assert(conn);
     pa_assert(msg);
@@ -675,6 +1118,9 @@ void mainvolume_get_all(DBusConnection *conn, DBusMessage *msg, void *_u) {
     rev = MAINVOLUME_API_MINOR;
     step_count = steps->n_steps;
     current_step = steps->current_step;
+
+    if (mv_has_high_volume(u))
+        high_volume_step = mv_safe_step(u) + 1;
 
     pa_assert_se((reply = dbus_message_new_method_return(msg)));
     dbus_message_iter_init_append(reply, &msg_iter);
@@ -689,8 +1135,11 @@ void mainvolume_get_all(DBusConnection *conn, DBusMessage *msg, void *_u) {
     pa_dbus_append_basic_variant_dict_entry(&dict_iter,
                                             mainvolume_handlers[MAINVOLUME_HANDLER_CURRENT_STEP].property_name,
                                             DBUS_TYPE_UINT32, &current_step);
+    pa_dbus_append_basic_variant_dict_entry(&dict_iter,
+                                            mainvolume_handlers[MAINVOLUME_HANDLER_HIGH_VOLUME].property_name,
+                                            DBUS_TYPE_UINT32, &high_volume_step);
 
-    pa_log_debug("D-Bus: Get all, revision %u, step count %u, current step %u", rev, step_count, current_step);
+    pa_log_debug("D-Bus: Get all: revision %u, step count %u, current step %u, high volume step %u", rev, step_count, current_step, high_volume_step);
     pa_assert_se(dbus_message_iter_close_container(&msg_iter, &dict_iter));
     pa_assert_se(dbus_connection_send(conn, reply, NULL));
     dbus_message_unref(reply);

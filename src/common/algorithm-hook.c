@@ -150,7 +150,7 @@ static meego_algorithm_hook_slot *find_slot(meego_algorithm_hook_slot *list, uns
     return list;
 }
 
-static void algorithm_hook_free(meego_algorithm_hook *hook, void *userdata) {
+static void algorithm_hook_free(meego_algorithm_hook *hook) {
     meego_algorithm_hook_slot *slot;
     unsigned j;
 
@@ -185,12 +185,12 @@ void meego_algorithm_hook_api_unref(meego_algorithm_hook_api *a) {
 
     pa_assert_se(pa_shared_remove(a->core, ALGORITHM_API_IDENTIFIER) >= 0);
 
-    pa_hashmap_free(a->hooks, (pa_free2_cb_t) algorithm_hook_free, NULL);
+    pa_hashmap_free(a->hooks, (pa_free_cb_t) algorithm_hook_free);
 
     /* clean up dead hooks */
     while ((hook = a->dead_hooks)) {
         PA_LLIST_REMOVE(meego_algorithm_hook, a->dead_hooks, hook);
-        algorithm_hook_free(hook, NULL);
+        algorithm_hook_free(hook);
     }
 
     pa_xfree(a);
@@ -264,7 +264,7 @@ void meego_algorithm_hook_done(meego_algorithm_hook *hook) {
      * dead_hooks list and clean up when meego_algorithm_hook_api struct is
      * cleaned up in meego_algorithm_hook_api_unref. */
     if (done)
-        algorithm_hook_free(hook, NULL);
+        algorithm_hook_free(hook);
     else
         PA_LLIST_PREPEND(meego_algorithm_hook, hook->api->dead_hooks, hook);
 }

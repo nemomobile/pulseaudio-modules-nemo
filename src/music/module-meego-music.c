@@ -398,8 +398,7 @@ static void sink_input_moving_cb(pa_sink_input *i, pa_sink *dest){
 
     u->master_sink = dest;
     pa_sink_set_asyncmsgq(u->sink, dest->asyncmsgq);
-    pa_sink_set_latency_flag(u->sink, dest->flags & PA_SINK_LATENCY);
-    pa_sink_set_dynamic_latency_flag(u->sink, dest->flags & PA_SINK_DYNAMIC_LATENCY);
+    pa_sink_update_flags(u->sink, PA_SINK_LATENCY|PA_SINK_DYNAMIC_LATENCY, dest->flags);
 
     p = pa_proplist_new();
     pa_proplist_setf(p, PA_PROP_DEVICE_DESCRIPTION, "%s connected to %s", u->sink->name, u->master_sink->name);
@@ -604,8 +603,6 @@ int pa__init(pa_module*m) {
     u->sink_input->update_max_request = sink_input_update_max_request_cb;
     u->sink_input->update_sink_latency_range = sink_input_update_sink_latency_range_cb;
     u->sink_input->update_sink_fixed_latency = sink_input_update_sink_fixed_latency_cb;
-    u->sink_input->update_sink_latency_flag = pa_sink_input_update_sink_latency_flag_cb;
-    u->sink_input->update_sink_dynamic_latency_flag = pa_sink_input_update_sink_dynamic_latency_flag_cb;
     u->sink_input->kill = sink_input_kill_cb;
     u->sink_input->attach = sink_input_attach_cb;
     u->sink_input->detach = sink_input_detach_cb;

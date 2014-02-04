@@ -1,6 +1,6 @@
 Name: pulseaudio-modules-nemo
 Summary: PulseAudio modules for Nemo
-Version: 2.1.3
+Version: 4.0.6
 Release: 1
 Group: Multimedia/PulseAudio
 License: LGPLv2.1+
@@ -15,7 +15,7 @@ PkgConfigBR:
     - alsa >= 1.0.19
     - check
     - dbus-1
-    - pulsecore >= 2.1
+    - pulsecore >= 4.0
 Configure: reconfigure
 Builder: make
 NoFiles: yes
@@ -26,11 +26,12 @@ SubPackages:
       Group: Multimedia/PulseAudio
       Description: This contains common libs for the Nemo PulseAudio modules.
       Requires:
-          - pulseaudio >= 2.1
+          - pulseaudio >= 4.0
       Obsoletes:
-          - pulseaudio-modules-n900-common <= 2.1.2
-      Provides:
-          - pulseaudio-modules-n900-common = 2.1.3
+          - pulseaudio-modules-nemo-voice < 4.0.6
+          - pulseaudio-modules-nemo-music < 4.0.6
+          - pulseaudio-modules-nemo-record < 4.0.6
+          - pulseaudio-modules-nemo-sidetone < 4.0.6
 
     - Name: music
       Summary: Music module for PulseAudio
@@ -38,11 +39,7 @@ SubPackages:
       Description: This contains music module for PulseAudio
       Requires:
           - "%{name}-common = %{version}-%{release}"
-          - pulseaudio >= 2.1
-      Obsoletes:
-          - pulseaudio-modules-n900-music <= 2.1.2
-      Provides:
-          - pulseaudio-modules-n900-music = 2.1.3
+          - pulseaudio >= 4.0
 
     - Name: record
       Summary: Cmtspeech module for PulseAudio
@@ -50,11 +47,7 @@ SubPackages:
       Description: This contains record module for PulseAudio
       Requires:
           - "%{name}-common = %{version}-%{release}"
-          - pulseaudio >= 2.1
-      Obsoletes:
-          - pulseaudio-modules-n900-record <= 2.1.2
-      Provides:
-          - pulseaudio-modules-n900-record = 2.1.3
+          - pulseaudio >= 4.0
 
     - Name: voice
       Summary: Voice module for PulseAudio
@@ -62,11 +55,7 @@ SubPackages:
       Description: This contains voice module for PulseAudio
       Requires:
           - "%{name}-common = %{version}-%{release}"
-          - pulseaudio >= 2.1
-      Obsoletes:
-          - pulseaudio-modules-n900-voice <= 2.1.2
-      Provides:
-          - pulseaudio-modules-n900-voice = 2.1.3
+          - pulseaudio >= 4.0
 
     - Name: mainvolume
       Summary: Mainvolume module for PulseAudio
@@ -75,11 +64,7 @@ SubPackages:
       Requires:
           - "%{name}-common = %{version}-%{release}"
           - "%{name}-stream-restore"
-          - pulseaudio >= 2.1
-      Obsoletes:
-          - pulseaudio-modules-n900-mainvolume <= 2.1.2
-      Provides:
-          - pulseaudio-modules-n900-mainvolume = 2.1.3
+          - pulseaudio >= 4.0
 
     - Name: parameters
       Summary: Algorithm parameter manager module for PulseAudio
@@ -87,11 +72,7 @@ SubPackages:
       Description: This contains an algorithm parameter manager module for PulseAudio
       Requires:
           - "%{name}-common = %{version}-%{release}"
-          - pulseaudio >= 2.1
-      Obsoletes:
-          - pulseaudio-modules-n900-parameters <= 2.1.2
-      Provides:
-          - pulseaudio-modules-n900-parameters = 2.1.3
+          - pulseaudio >= 4.0
 
     - Name: sidetone
       Summary: Sidetone module for PulseAudio
@@ -99,11 +80,7 @@ SubPackages:
       Description: This contains a sidetone module for PulseAudio
       Requires:
           - "%{name}-common = %{version}-%{release}"
-          - pulseaudio >= 2.1
-      Obsoletes:
-          - pulseaudio-modules-n900-sidetone <= 2.1.2
-      Provides:
-          - pulseaudio-modules-n900-sidetone = 2.1.3
+          - pulseaudio >= 4.0
 
     - Name: test
       Summary: Test module for PulseAudio
@@ -111,11 +88,7 @@ SubPackages:
       Description: This contains a test module for PulseAudio
       Requires:
           - "%{name}-common = %{version}-%{release}"
-          - pulseaudio >= 2.1
-      Obsoletes:
-          - pulseaudio-modules-n900-test <= 2.1.2
-      Provides:
-          - pulseaudio-modules-n900-test = 2.1.3
+          - pulseaudio >= 4.0
 
     - Name: stream-restore
       Summary: Modified version of the original stream-restore module for PulseAudio
@@ -123,11 +96,7 @@ SubPackages:
       Description: This contains a modified version of the original stream-restore module in PulseAudio.
       Requires:
           - "%{name}-common = %{version}-%{release}"
-          - pulseaudio >= 2.1
-      Obsoletes:
-          - pulseaudio-modules-n900-stream-restore-nemo <= 2.1.2
-      Provides:
-          - pulseaudio-modules-n900-stream-restore-nemo = 2.1.3
+          - pulseaudio >= 4.0
 
     - Name: devel
       Summary: Development files for modules.
@@ -135,4 +104,4 @@ SubPackages:
       Description: This contains development files for nemo modules.
       Requires:
           - "%{name}-common = %{version}-%{release}"
-          - pulseaudio >= 2.1
+          - pulseaudio >= 4.0

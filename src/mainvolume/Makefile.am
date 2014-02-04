@@ -6,7 +6,7 @@ modlibexec_LTLIBRARIES = module-meego-mainvolume.la
 
 noinst_HEADERS = module-meego-mainvolume-symdef.h
 
-module_meego_mainvolume_la_SOURCES = mainvolume.c mainvolume.h module-meego-mainvolume.c
+module_meego_mainvolume_la_SOURCES = mainvolume.c mainvolume.h listening-watchdog.c listening-watchdog.h module-meego-mainvolume.c
 
 module_meego_mainvolume_la_LDFLAGS = -module -avoid-version -Wl,-no-undefined
 module_meego_mainvolume_la_LIBADD = $(AM_LIBADD) $(top_builddir)/src/common/libmeego-common.la

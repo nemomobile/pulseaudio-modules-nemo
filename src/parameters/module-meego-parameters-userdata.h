@@ -31,6 +31,7 @@
 #include <pulsecore/modargs.h>
 
 #include <meego/parameter-hook-implementor.h>
+#include <meego/shared-data.h>
 
 struct userdata {
     pa_core *core;
@@ -44,6 +45,7 @@ struct userdata {
     struct parameters {
         const char *directory;
         pa_bool_t cache;
+        pa_bool_t use_voice;
         PA_LLIST_HEAD(struct mode, modes); /* list of all modes */
         PA_LLIST_HEAD(struct algorithm, algorithms); /* list of all algorithms */
     } parameters;
@@ -52,6 +54,9 @@ struct userdata {
 
     pa_hook_slot *sink_proplist_changed_slot;
     pa_hook_slot *sink_input_move_finished_slot;
+    pa_hook_slot *mode_changed_slot;
+
+    pa_shared_data *shared;
 };
 
 #endif

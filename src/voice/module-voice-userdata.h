@@ -37,7 +37,7 @@
 #include <pulsecore/semaphore.h>
 #include <pulsecore/fdsem.h>
 
-#include "call-state-tracker.h"
+#include "shared-data.h"
 #include "src-48-to-8.h"
 #include "src-8-to-48.h"
 
@@ -119,6 +119,7 @@ struct userdata {
 
     pa_source_output *hw_source_output;
     pa_hook_slot *hw_source_output_move_fail_slot;
+    pa_hook_slot *hw_source_output_flags_changed_slot;
 
     pa_memblockq *hw_source_memblockq;
 
@@ -151,7 +152,7 @@ struct userdata {
 
     pa_subscription *sink_subscription;
 
-    pa_call_state_tracker *call_state_tracker;
+    pa_shared_data *shared;
 
     unsigned current_audio_mode_hwid_hash;
     meego_algorithm_hook *hooks[HOOK_MAX];

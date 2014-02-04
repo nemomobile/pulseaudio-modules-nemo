@@ -160,8 +160,6 @@ int voice_init_aep_sink_input(struct userdata *u) {
     u->aep_sink_input->update_max_rewind = aep_sink_input_update_max_rewind_cb;
     u->aep_sink_input->update_max_request = aep_sink_input_update_max_request_cb;
     u->aep_sink_input->update_sink_latency_range = aep_sink_input_update_sink_latency_range_cb;
-    u->aep_sink_input->update_sink_latency_flag = pa_sink_input_update_sink_latency_flag_cb;
-    u->aep_sink_input->update_sink_dynamic_latency_flag = pa_sink_input_update_sink_dynamic_latency_flag_cb;
     u->aep_sink_input->kill = aep_sink_input_kill_cb;
     u->aep_sink_input->attach = aep_sink_input_attach_cb;
     u->aep_sink_input->detach = aep_sink_input_detach_cb;

@@ -58,6 +58,7 @@
 
 #include "module-stream-restore-nemo-symdef.h"
 #include "volume-proxy.h"
+#include "parameter-hook.h"
 
 PA_MODULE_AUTHOR("Lennart Poettering");
 PA_MODULE_DESCRIPTION("Automatically restore the volume/mute/device state of streams");
@@ -1524,25 +1525,29 @@ static void update_volumes(struct userdata *u) {
     return;
 }
 
-static void check_mode(pa_sink *s, struct userdata *u) {
+static void check_mode(const char *mode, struct userdata *u) {
+    pa_assert(mode);
+    pa_assert(u);
+
+    if (u->route && pa_streq(mode, u->route))
+        return;
+
+    if (u->route)
+        pa_xfree(u->route);
+
+    u->route = pa_xstrdup(mode);
+
+    update_volumes(u);
+}
+
+static void check_sink_mode(pa_sink *s, struct userdata *u) {
     const char *mode;
 
     pa_assert(s);
     pa_assert(u);
 
-    mode = pa_proplist_gets(s->proplist, PA_NOKIA_PROP_AUDIO_MODE);
-
-    if (mode) {
-        if (u->route && pa_streq(mode, u->route))
-            return;
-
-        if (u->route)
-            pa_xfree(u->route);
-
-        u->route = pa_xstrdup(mode);
-
-        update_volumes(u);
-    }
+    if ((mode = pa_proplist_gets(s->proplist, PA_NOKIA_PROP_AUDIO_MODE)))
+        check_mode(mode, u);
 }
 
 static pa_hook_result_t sink_proplist_changed_hook_callback(pa_core *c, pa_sink *s, struct userdata *u) {
@@ -1553,16 +1558,13 @@ static pa_hook_result_t sink_proplist_changed_hook_callback(pa_core *c, pa_sink 
     pa_assert(s);
     pa_assert(u);
 
-    if (u->use_voice) {
-        PA_IDXSET_FOREACH(i, s->inputs, idx) {
-            name = pa_proplist_gets(i->proplist, PA_PROP_MEDIA_NAME);
-            if (name && pa_streq(name, VOICE_MASTER_SINK_INPUT_NAME)) {
-                check_mode(s, u);
-                break;
-            }
+    PA_IDXSET_FOREACH(i, s->inputs, idx) {
+        name = pa_proplist_gets(i->proplist, PA_PROP_MEDIA_NAME);
+        if (name && pa_streq(name, VOICE_MASTER_SINK_INPUT_NAME)) {
+            check_sink_mode(s, u);
+            break;
         }
-    } else
-        check_mode(s, u);
+    }
 
     return PA_HOOK_OK;
 }
@@ -1576,7 +1578,20 @@ static pa_hook_result_t hw_sink_input_move_finish_callback(pa_core *c, pa_sink_i
     name = pa_proplist_gets(i->proplist, PA_PROP_MEDIA_NAME);
 
     if (i->sink && name && pa_streq(name, VOICE_MASTER_SINK_INPUT_NAME))
-        check_mode(i->sink, u);
+        check_sink_mode(i->sink, u);
+
+    return PA_HOOK_OK;
+}
+
+static pa_hook_result_t parameters_changed_cb(pa_core *c, meego_parameter_update_args *ua, struct userdata *u) {
+    struct mv_volume_steps_set *set;
+    pa_proplist *p = NULL;
+    int ret = 0;
+
+    pa_assert(ua);
+    pa_assert(u);
+
+    check_mode(ua->mode, u);
 
     return PA_HOOK_OK;
 }
@@ -2979,13 +2994,10 @@ int pa__init(pa_module*m) {
     if (restore_volume || restore_muted)
         u->sink_input_fixate_hook_slot = pa_hook_connect(&m->core->hooks[PA_CORE_HOOK_SINK_INPUT_FIXATE], PA_HOOK_EARLY, (pa_hook_cb_t) sink_input_fixate_hook_callback, u);
 
-    if (u->restore_route_volume) {
+    if (u->restore_route_volume && u->use_voice) {
         u->sink_proplist_changed_slot = pa_hook_connect(&m->core->hooks[PA_CORE_HOOK_SINK_PROPLIST_CHANGED], PA_HOOK_LATE, (pa_hook_cb_t)sink_proplist_changed_hook_callback, u);
-        if (u->use_voice)
-            u->sink_input_move_finished_slot = pa_hook_connect(&m->core->hooks[PA_CORE_HOOK_SINK_INPUT_MOVE_FINISH], PA_HOOK_NORMAL, (pa_hook_cb_t)hw_sink_input_move_finish_callback, u);
+        u->sink_input_move_finished_slot = pa_hook_connect(&m->core->hooks[PA_CORE_HOOK_SINK_INPUT_MOVE_FINISH], PA_HOOK_NORMAL, (pa_hook_cb_t)hw_sink_input_move_finish_callback, u);
     }
-
-    u->route = NULL;
 
     if (!(fname = pa_state_path("stream-volumes", TRUE)))
         goto fail;
@@ -3059,6 +3071,14 @@ int pa__init(pa_module*m) {
     PA_IDXSET_FOREACH(so, m->core->source_outputs, idx)
         subscribe_callback(m->core, PA_SUBSCRIPTION_EVENT_SOURCE_OUTPUT|PA_SUBSCRIPTION_EVENT_NEW, so->index, u);
 
+    if (u->restore_route_volume && !u->use_voice) {
+        /* Listen for parameter updates from parameter module. We do the connect this late, so that all route
+         * databases are filled and in shape. When we request parameter mode updates, parameter module immediately
+         * sends us the current audio mode, and we need to have route values to properly forward them again to
+         * volume proxy. */
+        meego_parameter_request_updates(NULL, (pa_hook_cb_t) parameters_changed_cb, PA_HOOK_NORMAL, TRUE, u);
+    }
+
     pa_modargs_free(ma);
     return 0;
 
@@ -3071,7 +3091,7 @@ fail:
     return  -1;
 }
 
-static void free_dbus_entry_cb(void *p, void *userdata) {
+static void free_dbus_entry_cb(void *p) {
     struct dbus_entry *de = p;
 
     pa_assert(de);
@@ -3093,7 +3113,7 @@ void pa__done(pa_module*m) {
         pa_assert_se(pa_dbus_protocol_unregister_extension(u->dbus_protocol, INTERFACE_STREAM_RESTORE) >= 0);
         pa_assert_se(pa_dbus_protocol_remove_interface(u->dbus_protocol, OBJECT_PATH, stream_restore_interface_info.name) >= 0);
 
-        pa_hashmap_free(u->dbus_entries, free_dbus_entry_cb, NULL);
+        pa_hashmap_free(u->dbus_entries, free_dbus_entry_cb);
 
         pa_dbus_protocol_unref(u->dbus_protocol);
     }
@@ -3103,6 +3123,9 @@ void pa__done(pa_module*m) {
 
     if (u->sink_subscription)
         pa_subscription_free(u->sink_subscription);
+
+    if (!u->use_voice)
+        meego_parameter_stop_updates(NULL, (pa_hook_cb_t) parameters_changed_cb, u);
 
     if (u->sink_input_new_hook_slot)
         pa_hook_slot_free(u->sink_input_new_hook_slot);
@@ -3148,7 +3171,7 @@ void pa__done(pa_module*m) {
     }
 
     if (u->subscribed)
-        pa_idxset_free(u->subscribed, NULL, NULL);
+        pa_idxset_free(u->subscribed, NULL);
 
     _free_route_volumes(u);
 
