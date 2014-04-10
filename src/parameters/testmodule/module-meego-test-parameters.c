@@ -145,9 +145,9 @@ static void disable_algs(struct userdata *u) {
 static void run_basic_tests(struct userdata *u) {
 
     /* Subscribe to updates. Note that "alg_b" wants full updates. */
-    meego_parameter_request_updates("alg_a", (pa_hook_cb_t)parameters_changed_cb, PA_HOOK_NORMAL, FALSE, &u->alg_a);
-    meego_parameter_request_updates("alg_b", (pa_hook_cb_t)parameters_changed_cb, PA_HOOK_NORMAL, TRUE,  &u->alg_b);
-    meego_parameter_request_updates("alg_c", (pa_hook_cb_t)parameters_changed_cb, PA_HOOK_NORMAL, FALSE, &u->alg_c);
+    meego_parameter_request_updates("alg_a", (pa_hook_cb_t)parameters_changed_cb, PA_HOOK_NORMAL, false, &u->alg_a);
+    meego_parameter_request_updates("alg_b", (pa_hook_cb_t)parameters_changed_cb, PA_HOOK_NORMAL, true,  &u->alg_b);
+    meego_parameter_request_updates("alg_c", (pa_hook_cb_t)parameters_changed_cb, PA_HOOK_NORMAL, false, &u->alg_c);
 
     disable_algs(u);
 
@@ -188,9 +188,9 @@ static void run_basic_tests(struct userdata *u) {
     verify(&u->alg_c, "mode_reset2", NULL, MEEGO_PARAM_DISABLE);
 
     /* This should cause updates to mode_a */
-    meego_parameter_request_updates("alg_a", (pa_hook_cb_t)parameters_changed_cb, PA_HOOK_NORMAL, FALSE, &u->alg_a);
-    meego_parameter_request_updates("alg_b", (pa_hook_cb_t)parameters_changed_cb, PA_HOOK_NORMAL, TRUE,  &u->alg_b);
-    meego_parameter_request_updates("alg_c", (pa_hook_cb_t)parameters_changed_cb, PA_HOOK_NORMAL, FALSE, &u->alg_c);
+    meego_parameter_request_updates("alg_a", (pa_hook_cb_t)parameters_changed_cb, PA_HOOK_NORMAL, false, &u->alg_a);
+    meego_parameter_request_updates("alg_b", (pa_hook_cb_t)parameters_changed_cb, PA_HOOK_NORMAL, true,  &u->alg_b);
+    meego_parameter_request_updates("alg_c", (pa_hook_cb_t)parameters_changed_cb, PA_HOOK_NORMAL, false, &u->alg_c);
 
     verify(&u->alg_a, "mode_a", "set_a1_parameters", MEEGO_PARAM_UPDATE);
     verify(&u->alg_b, "mode_a", "set_b1_parameters", MEEGO_PARAM_UPDATE);
@@ -203,7 +203,7 @@ static void run_basic_tests(struct userdata *u) {
     disable_algs(u);
 }
 
-static pa_bool_t get_parameters_cb(const void *base_parameters, unsigned len_base_parameters,
+static bool get_parameters_cb(const void *base_parameters, unsigned len_base_parameters,
                             void **parameters, unsigned *len_parameters, void *userdata) {
 
     struct algorithm *alg = (struct algorithm*)userdata;
@@ -224,12 +224,12 @@ static pa_bool_t get_parameters_cb(const void *base_parameters, unsigned len_bas
     *parameters = alg->modified_parameters;
     *len_parameters = strlen(*parameters);
 
-    return TRUE;
+    return true;
 }
 
-static pa_bool_t failing_get_parameters_cb(const void *base_parameters, unsigned len_base_parameters,
+static bool failing_get_parameters_cb(const void *base_parameters, unsigned len_base_parameters,
                             void **parameters, unsigned *len_parameters, void *userdata) {
-    return FALSE;
+    return false;
 }
 
 static void run_modifier_tests(struct userdata *u) {
@@ -255,9 +255,9 @@ static void run_modifier_tests(struct userdata *u) {
 
     disable_algs(u);
 
-    meego_parameter_request_updates("alg_a", (pa_hook_cb_t)parameters_changed_cb, PA_HOOK_NORMAL, FALSE, &u->alg_a);
-    meego_parameter_request_updates("alg_b", (pa_hook_cb_t)parameters_changed_cb, PA_HOOK_NORMAL, TRUE,  &u->alg_b);
-    meego_parameter_request_updates("alg_c", (pa_hook_cb_t)parameters_changed_cb, PA_HOOK_NORMAL, FALSE, &u->alg_c);
+    meego_parameter_request_updates("alg_a", (pa_hook_cb_t)parameters_changed_cb, PA_HOOK_NORMAL, false, &u->alg_a);
+    meego_parameter_request_updates("alg_b", (pa_hook_cb_t)parameters_changed_cb, PA_HOOK_NORMAL, true,  &u->alg_b);
+    meego_parameter_request_updates("alg_c", (pa_hook_cb_t)parameters_changed_cb, PA_HOOK_NORMAL, false, &u->alg_c);
 
     switch_mode(u, "mode_a");
     verify(&u->alg_a, "mode_a", "set_a1_parameters", MEEGO_PARAM_UPDATE);
@@ -330,7 +330,7 @@ int pa__init(pa_module *m) {
     run_basic_tests(u);
     run_modifier_tests(u);
 
-    pa_module_unload_request(m, TRUE);
+    pa_module_unload_request(m, true);
     return 0;
 }
 

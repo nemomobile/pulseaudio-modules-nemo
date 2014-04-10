@@ -25,13 +25,13 @@
 #include <pulsecore/source.h>
 
 static inline
-pa_bool_t voice_voip_source_active(struct userdata *u) {
+bool voice_voip_source_active(struct userdata *u) {
     return (u->voip_source && (u->voip_source->state == PA_SOURCE_RUNNING ||
                                u->voip_source->state == PA_SOURCE_IDLE));
 }
 
 static inline
-pa_bool_t voice_voip_source_active_iothread(struct userdata *u) {
+bool voice_voip_source_active_iothread(struct userdata *u) {
     return (u->voip_source && (u->voip_source->thread_info.state == PA_SOURCE_RUNNING));
 }
 

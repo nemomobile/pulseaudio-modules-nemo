@@ -24,13 +24,13 @@
 #include <pulsecore/sink.h>
 
 static inline
-pa_bool_t voice_voip_sink_active(struct userdata *u) {
+bool voice_voip_sink_active(struct userdata *u) {
     pa_assert(u);
     return (u->voip_sink && PA_SINK_IS_LINKED(u->voip_sink->state) && pa_sink_used_by(u->voip_sink));
 }
 
 static inline
-pa_bool_t voice_voip_sink_active_iothread(struct userdata *u) {
+bool voice_voip_sink_active_iothread(struct userdata *u) {
     pa_assert(u);
     return (u->voip_sink && u->voip_sink->thread_info.state == PA_SINK_RUNNING);
 }

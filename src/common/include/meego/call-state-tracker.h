@@ -50,10 +50,10 @@ pa_call_state_tracker *pa_call_state_tracker_get(pa_core *core);
 pa_call_state_tracker *pa_call_state_tracker_ref(pa_call_state_tracker *t);
 void pa_call_state_tracker_unref(pa_call_state_tracker *t);
 
-/* If the value has not been explicitly set, returns FALSE. */
-pa_bool_t pa_call_state_tracker_get_active(pa_call_state_tracker *t);
+/* If the value has not been explicitly set, returns false. */
+bool pa_call_state_tracker_get_active(pa_call_state_tracker *t);
 
-void pa_call_state_tracker_set_active(pa_call_state_tracker *t, pa_bool_t active);
+void pa_call_state_tracker_set_active(pa_call_state_tracker *t, bool active);
 
 pa_hook *pa_call_state_tracker_hooks(pa_call_state_tracker *t);
 

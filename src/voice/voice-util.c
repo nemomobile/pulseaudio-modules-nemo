@@ -189,14 +189,14 @@ int voice_source_set_state(pa_source *s, pa_source *other, pa_source_state_t sta
         if (pa_source_output_get_state(u->hw_source_output) == PA_SOURCE_OUTPUT_RUNNING) {
             if (state == PA_SOURCE_SUSPENDED &&
                 pa_source_get_state(other) == PA_SOURCE_SUSPENDED) {
-                pa_source_output_cork(u->hw_source_output, TRUE);
+                pa_source_output_cork(u->hw_source_output, true);
                 pa_log_debug("hw_source_output corked");
             }
         }
         else if (pa_source_output_get_state(u->hw_source_output) == PA_SOURCE_OUTPUT_CORKED) {
             if (PA_SOURCE_IS_OPENED(state) ||
                 PA_SOURCE_IS_OPENED(pa_source_get_state(other))) {
-                pa_source_output_cork(u->hw_source_output, FALSE);
+                pa_source_output_cork(u->hw_source_output, false);
                 pa_log_debug("hw_source_output uncorked");
             }
         }
@@ -223,14 +223,14 @@ int voice_sink_set_state(pa_sink *s, pa_sink *other, pa_sink_state_t state) {
         if (pa_sink_input_get_state(u->hw_sink_input) == PA_SINK_INPUT_CORKED) {
             if (PA_SINK_IS_OPENED(state) ||
                 PA_SINK_IS_OPENED(pa_sink_get_state(other))) {
-                pa_sink_input_cork(u->hw_sink_input, FALSE);
+                pa_sink_input_cork(u->hw_sink_input, false);
                 pa_log_debug("hw_sink_input uncorked");
             }
         }
         else {
             if (state == PA_SINK_SUSPENDED &&
                 pa_sink_get_state(other) == PA_SINK_SUSPENDED) {
-                pa_sink_input_cork(u->hw_sink_input, TRUE);
+                pa_sink_input_cork(u->hw_sink_input, true);
                 pa_log_debug("hw_sink_input corked");
             }
         }
@@ -313,7 +313,7 @@ pa_usec_t voice_sink_get_requested_latency(pa_sink *s, pa_sink *other) {
     return latency;
 }
 
-void voice_sink_inputs_may_move(pa_sink *s, pa_bool_t move) {
+void voice_sink_inputs_may_move(pa_sink *s, bool move) {
     pa_sink_input *i;
     uint32_t idx;
 
@@ -325,7 +325,7 @@ void voice_sink_inputs_may_move(pa_sink *s, pa_bool_t move) {
     }
 }
 
-void voice_source_outputs_may_move(pa_source *s, pa_bool_t move) {
+void voice_source_outputs_may_move(pa_source *s, bool move) {
     pa_source_output *i;
     uint32_t idx;
 

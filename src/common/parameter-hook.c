@@ -43,7 +43,7 @@ static pa_hook *modifier_register_requests_ptr = NULL;
 static pa_hook modifier_unregister_requests;
 static pa_hook *modifier_unregister_requests_ptr = NULL;
 
-int meego_parameter_request_updates(const char *name, pa_hook_cb_t cb, pa_hook_priority_t prio, pa_bool_t full_updates, void *userdata) {
+int meego_parameter_request_updates(const char *name, pa_hook_cb_t cb, pa_hook_priority_t prio, bool full_updates, void *userdata) {
     meego_parameter_connection_args args;
 
     pa_assert(cb);

@@ -85,7 +85,7 @@ void voice_aep_ear_ref_unload(struct userdata *u) {
 static inline
 int voice_aep_ear_ref_check_dl_xrun(struct userdata *u) {
     struct voice_aep_ear_ref *r = &u->ear_ref;
-    pa_bool_t underrun;
+    bool underrun;
 
     if (u->master_sink) {
         PA_MSGOBJECT(u->master_sink)->process_msg(
@@ -109,7 +109,7 @@ int voice_aep_ear_ref_dl_push_to_syncq(struct userdata *u, pa_memchunk *chunk) {
     *qchunk = *chunk;
     pa_memblock_ref(qchunk->memblock);
     static int fail_count = 0;
-    if (pa_asyncq_push(u->ear_ref.loop_asyncq, qchunk, FALSE)) {
+    if (pa_asyncq_push(u->ear_ref.loop_asyncq, qchunk, false)) {
         pa_memblock_unref(qchunk->memblock);
         voice_memchunk_pool_free(u, qchunk);
         if (fail_count == 0)
@@ -177,11 +177,11 @@ int voice_aep_ear_ref_dl(struct userdata *u, pa_memchunk *chunk) {
 }
 
 static inline
-int voice_aep_ear_ref_ul_drain_asyncq(struct userdata *u, pa_bool_t push_forward) {
+int voice_aep_ear_ref_ul_drain_asyncq(struct userdata *u, bool push_forward) {
     struct voice_aep_ear_ref *r = &u->ear_ref;
     pa_memchunk *chunk;
     int queue_counter = 0;
-    while ((chunk = pa_asyncq_pop(r->loop_asyncq, FALSE))) {
+    while ((chunk = pa_asyncq_pop(r->loop_asyncq, false))) {
         queue_counter++;
         if (push_forward) {
             if (pa_memblockq_push(r->loop_memblockq, chunk) < 0) {

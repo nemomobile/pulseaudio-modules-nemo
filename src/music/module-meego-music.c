@@ -180,7 +180,7 @@ static void sink_request_rewind(pa_sink *s) {
 
     /* Just hand this one over to the master sink */
     if (s->thread_info.rewind_nbytes > 0)
-        pa_sink_input_request_rewind(u->sink_input, s->thread_info.rewind_nbytes, TRUE, FALSE, FALSE);
+        pa_sink_input_request_rewind(u->sink_input, s->thread_info.rewind_nbytes, true, false, false);
 }
 
 /* Called from I/O thread context */
@@ -322,7 +322,7 @@ static void sink_input_update_sink_fixed_latency_cb(pa_sink_input *i) {
     pa_sink_set_fixed_latency_within_thread(u->sink, i->sink->thread_info.fixed_latency);
 }
 
-static void sink_inputs_may_move(pa_sink *s, pa_bool_t move) {
+static void sink_inputs_may_move(pa_sink *s, bool move) {
     pa_sink_input *i;
     uint32_t idx;
 
@@ -348,7 +348,7 @@ static void sink_input_detach_cb(pa_sink_input *i) {
         pa_log("fixme: !PA_SINK_IS_LINKED ?");
 
     pa_sink_set_rtpoll(u->sink, NULL);
-    sink_inputs_may_move(u->sink, FALSE);
+    sink_inputs_may_move(u->sink, false);
 }
 
 /* Called from I/O thread context */
@@ -361,7 +361,7 @@ static void sink_input_attach_cb(pa_sink_input *i) {
     if (!u->sink || !PA_SINK_IS_LINKED(u->sink->thread_info.state))
         return;
 
-    sink_inputs_may_move(u->sink, TRUE);
+    sink_inputs_may_move(u->sink, true);
     pa_sink_set_rtpoll(u->sink, i->sink->thread_info.rtpoll);
 
     if (i->sink->flags & PA_SINK_DYNAMIC_LATENCY)
@@ -436,7 +436,7 @@ static void sink_input_kill_cb(pa_sink_input *i) {
     pa_sink_input_unref(u->sink_input);
     u->sink_input = NULL;
 
-    pa_module_unload_request(u->module, TRUE);
+    pa_module_unload_request(u->module, true);
 }
 
 /* Called from IO thread context */
@@ -452,7 +452,7 @@ static void sink_input_state_change_cb(pa_sink_input *i, pa_sink_input_state_t s
         i->thread_info.state == PA_SINK_INPUT_INIT &&
         PA_SINK_INPUT_IS_LINKED(i->thread_info.state)) {
         pa_log_debug("Requesting rewind due to state change.");
-        pa_sink_input_request_rewind(i, 0, FALSE, TRUE, FALSE);
+        pa_sink_input_request_rewind(i, 0, false, true, false);
     }
 }
 

@@ -54,19 +54,19 @@ struct mv_volume_steps_set {
     struct mv_volume_steps call;
     struct mv_volume_steps media;
     int high_volume_step;
-    /* when parsing volume steps first is set TRUE,
+    /* when parsing volume steps first is set true,
      * and if entering a route with volume higher than high_volume_step,
      * volume is reset to safe volume.
      * This is done once per parsed steps, first is set
-     * to FALSE after first check. */
-    pa_bool_t first;
+     * to false after first check. */
+    bool first;
 };
 
 struct mv_userdata {
     pa_core *core;
     pa_module *module;
-    pa_bool_t tuning_mode;
-    pa_bool_t virtual_stream;
+    bool tuning_mode;
+    bool virtual_stream;
 
     pa_sink_input *virtual_sink_input;
 
@@ -76,15 +76,15 @@ struct mv_userdata {
 
     pa_shared_data *shared;
     pa_hook_slot *call_state_hook_slot;
-    pa_bool_t call_active;
+    bool call_active;
 
     pa_volume_proxy *volume_proxy;
     pa_hook_slot *volume_proxy_slot;
 
     pa_hook_slot *sink_proplist_changed_slot;
 
-    pa_bool_t mode_change_ready;
-    pa_bool_t volume_change_ready;
+    bool mode_change_ready;
+    bool volume_change_ready;
 
     pa_time_event *signal_time_event;
     pa_usec_t last_signal_timestamp;
@@ -101,7 +101,7 @@ struct mv_userdata {
         uint32_t timeout;
         /* Modes that are watched. */
         pa_hashmap *modes;
-        pa_bool_t mode_active;
+        bool mode_active;
 
         /* Roles for sink-inputs that are watched. */
         pa_hashmap *roles;
@@ -123,7 +123,7 @@ struct mv_volume_steps* mv_active_steps(struct mv_userdata *u);
 /* set new step as current step.
  * returns true if new step differs from current step.
  */
-pa_bool_t mv_set_step(struct mv_userdata *u, unsigned step);
+bool mv_set_step(struct mv_userdata *u, unsigned step);
 
 /* search for step with volume vol.
  * returns found step or -1 if not found
@@ -133,7 +133,7 @@ int mv_search_step(int *steps, int n_steps, int vol);
 /* update step based on information in volume proxy.
  * returns true if update was successfull.
  */
-pa_bool_t mv_update_step(struct mv_userdata *u);
+bool mv_update_step(struct mv_userdata *u);
 
 /* normalize mdB values to linear values */
 void mv_normalize_steps(struct mv_volume_steps *steps);
@@ -158,9 +158,9 @@ int mv_parse_steps(struct mv_userdata *u,
 int mv_safe_step(struct mv_userdata *u);
 
 /* Return true if current media step is same or over high volume step. */
-pa_bool_t mv_high_volume(struct mv_userdata *u);
+bool mv_high_volume(struct mv_userdata *u);
 
 /* Return true if currently active media steps have high volume step defined. */
-pa_bool_t mv_has_high_volume(struct mv_userdata *u);
+bool mv_has_high_volume(struct mv_userdata *u);
 
 #endif

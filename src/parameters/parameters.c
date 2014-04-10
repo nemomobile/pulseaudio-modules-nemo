@@ -57,9 +57,9 @@ struct set {
 struct algorithm {
     char *name;
     unsigned hash;
-    pa_bool_t enabled:1;
-    pa_bool_t full_updates:1;
-    pa_bool_t fired:1;
+    bool enabled:1;
+    bool full_updates:1;
+    bool fired:1;
     pa_hook hook;
     struct set *active_set;
     PA_LLIST_HEAD(struct set, sets);
@@ -255,8 +255,8 @@ static struct algorithm *algorithm_new(pa_core *c, struct algorithm **a_head, co
     a = pa_xnew(struct algorithm, 1);
     a->name = pa_xstrdup(name);
     a->hash = pa_idxset_string_hash_func(name);
-    a->enabled = TRUE;
-    a->full_updates = FALSE;
+    a->enabled = true;
+    a->full_updates = false;
     pa_hook_init(&a->hook, c);
     a->active_set = NULL;
     PA_LLIST_HEAD_INIT(struct set, a->sets);
@@ -278,7 +278,7 @@ static pa_hook_result_t algorithm_enable(struct userdata *u, struct algorithm *a
     ua.status = MEEGO_PARAM_ENABLE;
     ua.parameters = NULL;
     ua.length = 0;
-    a->enabled = TRUE;
+    a->enabled = true;
 
     pa_log_debug("Enabling %s (%s)", a->name, a->active_set->name);
 
@@ -295,7 +295,7 @@ static pa_hook_result_t algorithm_disable(struct userdata *u, struct algorithm *
     ua.status = MEEGO_PARAM_DISABLE;
     ua.parameters = NULL;
     ua.length = 0;
-    a->enabled = FALSE;
+    a->enabled = false;
 
     pa_log_debug("Disabling %s (%s)", a->name, (a->active_set ? a->active_set->name : "not initialized"));
 
@@ -368,12 +368,12 @@ static void algorithm_mode_update(struct userdata *u, struct algorithm *a) {
  * and they return the exact same data and the algorithm will still be updated.
  * Such optimizations are however not currently needed.
  **/
-static pa_bool_t algorithm_modified_update(struct userdata *u, struct algorithm *a, struct algorithm_enabler *e) {
+static bool algorithm_modified_update(struct userdata *u, struct algorithm *a, struct algorithm_enabler *e) {
     meego_parameter_update_args ua;
     void *parameters = NULL;
     void *base_parameters = NULL;
     unsigned len_base_parameters = 0;
-    pa_bool_t updated = FALSE;
+    bool updated = false;
     meego_parameter_modifier *modifier = NULL;
 
     pa_assert(u);
@@ -383,7 +383,7 @@ static pa_bool_t algorithm_modified_update(struct userdata *u, struct algorithm 
     modifier = e->modifier;
 
     if (!modifier)
-        return FALSE;
+        return false;
 
     if (e->set) {
         if (!u->parameters.cache)
@@ -409,7 +409,7 @@ static pa_bool_t algorithm_modified_update(struct userdata *u, struct algorithm 
         ua.status = MEEGO_PARAM_UPDATE;
         ua.parameters = parameters;
         pa_assert(ua.parameters && ua.length > 0);
-        a->enabled = TRUE;
+        a->enabled = true;
         a->active_set = NULL;
         pa_hook_fire(&a->hook, &ua);
         pa_log_debug("Update from modifier successful");
@@ -440,7 +440,7 @@ static pa_hook_result_t algorithm_update(struct userdata *u, struct algorithm *a
     ua.status = MEEGO_PARAM_UPDATE;
     ua.parameters = s->data;
     ua.length = s->length;
-    a->enabled = TRUE;
+    a->enabled = true;
 
     pa_log_debug("Updating %s with %s", a->name, s->name);
 
@@ -853,16 +853,16 @@ int switch_mode(struct userdata *u, const char *mode) {
 
         pa_assert((!a->active_set && e->modifier) || (a->active_set && e->set == a->active_set));
 
-        a->fired = TRUE;
+        a->fired = true;
     }
 
     PA_LLIST_FOREACH(a, u->parameters.algorithms) {
-        if (a->fired == FALSE && a->enabled == TRUE)
+        if (a->fired == false && a->enabled == true)
             algorithm_disable(u, a);
-        else if (a->fired == FALSE && a->full_updates)
+        else if (a->fired == false && a->full_updates)
             algorithm_mode_update(u, a);
 
-        a->fired = FALSE;
+        a->fired = false;
     }
 
     return 0;

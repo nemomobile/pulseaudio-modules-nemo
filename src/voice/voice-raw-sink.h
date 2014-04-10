@@ -23,13 +23,13 @@
 #define voice_raw_sink_h
 
 static inline
-pa_bool_t voice_raw_sink_active(struct userdata *u) {
+bool voice_raw_sink_active(struct userdata *u) {
     return (u->raw_sink && (u->raw_sink->state == PA_SINK_RUNNING ||
                             u->raw_sink->state == PA_SINK_IDLE));
 }
 
 static inline
-pa_bool_t voice_raw_sink_active_iothread(struct userdata *u) {
+bool voice_raw_sink_active_iothread(struct userdata *u) {
     return (u->raw_sink && (u->raw_sink->thread_info.state == PA_SINK_RUNNING));
 }
 

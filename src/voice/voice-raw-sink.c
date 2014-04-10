@@ -85,7 +85,7 @@ static void raw_sink_request_rewind(pa_sink *s) {
     if (u->hw_sink_input && s->thread_info.rewind_nbytes > 0) {
         size_t nbytes = voice_convert_nbytes(s->thread_info.rewind_nbytes, &s->sample_spec, &u->hw_sink_input->sample_spec);
 
-        pa_sink_input_request_rewind(u->hw_sink_input, nbytes, TRUE, FALSE, FALSE);
+        pa_sink_input_request_rewind(u->hw_sink_input, nbytes, true, false, false);
     }
 }
 

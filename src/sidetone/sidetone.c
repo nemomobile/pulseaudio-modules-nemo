@@ -46,7 +46,7 @@ struct element_volume {
     /* Sidetone is mono, so we're only interested in one channel (default SND_MIXER_SCHN_MONO) */
     snd_mixer_selem_channel_id_t channel;
     /* Is this a playback or capture element? */
-    pa_bool_t playback;
+    bool playback;
 };
 
 /* Sidetone object data */
@@ -58,7 +58,7 @@ struct sidetone {
     /* If important sinks  unlinked unexpectedly, paths owned by
      * them are destroyed. This flag is set in such cases to disable the
      * sidetone altogether. */
-    pa_bool_t dead;
+    bool dead;
     /* Sink unlink slot is needed in case important sinks disappear */
     pa_hook_slot* sink_unlink_slot;
     /* right now not in use but would be needed in future  */
@@ -171,7 +171,7 @@ static void sink_input_subscribe_sidetone_cb(pa_core *c, pa_subscription_event_t
 static void set_dead(sidetone *st) {
     pa_assert(st);
 
-    st->dead = TRUE;
+    st->dead = true;
     ctrl_element_mute(st->ctrl_element);
 }
 
@@ -221,7 +221,7 @@ sidetone *sidetone_new(pa_core *core, const char* argument) {
         st->total_steps->index[i] = st_args->steps->index[i];
     }
 
-    st->mutex = pa_mutex_new(FALSE, FALSE);
+    st->mutex = pa_mutex_new(false, false);
 
     if (!(st->mixer = pa_alsa_old_open_mixer(st_args->mixer))) {
         pa_log_error("Failed to open mixer \"%s\"", st_args->mixer);
@@ -248,7 +248,7 @@ sidetone *sidetone_new(pa_core *core, const char* argument) {
     /* subscription made for fetching the current main volume */
     st->sink_subscription = pa_subscription_new(core, PA_SUBSCRIPTION_MASK_SINK_INPUT, (pa_subscription_cb_t) sink_input_subscribe_sidetone_cb, st);
 
-    st->dead = FALSE;
+    st->dead = false;
 
     sidetone_args_free(st_args);
 

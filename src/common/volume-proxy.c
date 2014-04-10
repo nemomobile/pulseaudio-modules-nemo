@@ -113,7 +113,7 @@ void pa_volume_proxy_unref(pa_volume_proxy *r) {
     pa_xfree(r);
 }
 
-pa_bool_t pa_volume_proxy_get_volume(pa_volume_proxy *r, const char *name, pa_volume_t *return_volume) {
+bool pa_volume_proxy_get_volume(pa_volume_proxy *r, const char *name, pa_volume_t *return_volume) {
     struct volume_entry *e;
 
     pa_assert(r);
@@ -122,15 +122,15 @@ pa_bool_t pa_volume_proxy_get_volume(pa_volume_proxy *r, const char *name, pa_vo
 
     if ((e = pa_hashmap_get(r->volumes, name))) {
         *return_volume = e->volume;
-        return TRUE;
+        return true;
     }
 
-    return FALSE;
+    return false;
 }
 
 void pa_volume_proxy_set_volume(pa_volume_proxy *r, const char *name, pa_volume_t volume) {
     struct volume_entry *e;
-    pa_bool_t changed;
+    bool changed;
 
     pa_assert(r);
     pa_assert(PA_REFCNT_VALUE(r) >= 1);
@@ -139,7 +139,7 @@ void pa_volume_proxy_set_volume(pa_volume_proxy *r, const char *name, pa_volume_
         e = pa_xnew0(struct volume_entry, 1);
         e->name = pa_xstrdup(name);
         pa_hashmap_put(r->volumes, e->name, e);
-        changed = TRUE;
+        changed = true;
     } else
         changed = e->volume != volume;
 

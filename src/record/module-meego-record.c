@@ -251,7 +251,7 @@ static void source_output_update_source_fixed_latency_cb(pa_source_output *o) {
     pa_source_set_fixed_latency_within_thread(u->source, o->source->thread_info.fixed_latency);
 }
 
-static void source_outputs_may_move(pa_source *s, pa_bool_t move) {
+static void source_outputs_may_move(pa_source *s, bool move) {
     pa_source_output *o;
     uint32_t idx;
 
@@ -276,7 +276,7 @@ static void source_output_detach_cb(pa_source_output *o) {
         pa_log_debug("fixme: !PA_SOURCE_IS_LINKED ?");
 
     pa_source_set_rtpoll(u->source, NULL);
-    source_outputs_may_move(u->source, FALSE);
+    source_outputs_may_move(u->source, false);
 }
 
 /* Called from I/O thread context */
@@ -289,7 +289,7 @@ static void source_output_attach_cb(pa_source_output *o) {
     if (!u->source || !PA_SOURCE_IS_LINKED(u->source->thread_info.state))
         return;
 
-    source_outputs_may_move(u->source, TRUE);
+    source_outputs_may_move(u->source, true);
     pa_source_set_rtpoll(u->source, o->source->thread_info.rtpoll);
 
     if (o->source->flags & PA_SOURCE_DYNAMIC_LATENCY)
@@ -351,7 +351,7 @@ static void source_output_kill_cb(pa_source_output *o) {
     pa_source_output_unref(u->source_output);
     u->source_output = NULL;
 
-    pa_module_unload_request(u->module, TRUE);
+    pa_module_unload_request(u->module, true);
 }
 
 static void set_hooks(struct userdata *u) {
@@ -378,7 +378,7 @@ int pa__init(pa_module*m) {
     char t[256];
     pa_source_output_new_data source_output_data;
     pa_source_new_data source_data;
-    pa_bool_t stereo = TRUE;
+    bool stereo = true;
     unsigned samplerate;
     unsigned samplelength;
     int maxblocksize;

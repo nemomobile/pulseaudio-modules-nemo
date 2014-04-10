@@ -34,7 +34,7 @@
 PA_MODULE_AUTHOR("Tanu Kaskinen & Antti-Ville Jansson & Sudarshan Bisht");
 PA_MODULE_DESCRIPTION("Sidetone Controller for ALSA Devices");
 PA_MODULE_VERSION(PACKAGE_VERSION);
-PA_MODULE_LOAD_ONCE(FALSE);
+PA_MODULE_LOAD_ONCE(false);
 PA_MODULE_USAGE(
         "mixer=<name of the ALSA mixer> "
         "control_element=<mixer element name> "
@@ -92,7 +92,7 @@ int pa__init(pa_module *m) {
     u->argument = NULL;
     u->sidetone = NULL;
 
-    meego_parameter_request_updates("alsa-sidetone", (pa_hook_cb_t)parameters_changed_cb, PA_HOOK_NORMAL, FALSE, u);
+    meego_parameter_request_updates("alsa-sidetone", (pa_hook_cb_t)parameters_changed_cb, PA_HOOK_NORMAL, false, u);
 
     return 0;
 }

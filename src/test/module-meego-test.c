@@ -127,8 +127,8 @@ static void test_sink_input_subscribe_cb(pa_core *c, pa_subscription_event_type_
     if (!(name = get_name(si->proplist, "sink-input")))
         return;
 
-    pa_sink_input_get_volume(si, &reference_ratio, FALSE);
-    pa_sink_input_get_volume(si, &absolute_volume, TRUE);
+    pa_sink_input_get_volume(si, &reference_ratio, false);
+    pa_sink_input_get_volume(si, &absolute_volume, true);
 
     pa_log_debug("sink-input: %s reference ratio: %s absolute volume: %s",
             name,
@@ -145,7 +145,7 @@ static void test_sink_input(struct userdata *u) {
 
 static void test_call(struct userdata *u, pa_modargs *ma) {
     pa_shared_data *shared;
-    pa_bool_t active;
+    bool active;
 
     shared = pa_shared_data_get(u->core);
 
@@ -160,7 +160,7 @@ static void test_call(struct userdata *u, pa_modargs *ma) {
 
 end:
     pa_shared_data_unref(shared);
-    pa_module_unload_request(u->module, TRUE);
+    pa_module_unload_request(u->module, true);
 }
 
 static void test_proplist(struct userdata *u, pa_modargs *ma) {
@@ -207,7 +207,7 @@ static void test_proplist(struct userdata *u, pa_modargs *ma) {
     pa_proplist_free(p);
     pa_sink_unref(s);
 
-    pa_module_unload_request(u->module, TRUE);
+    pa_module_unload_request(u->module, true);
 }
 
 static void test_audio_mode(struct userdata *u, pa_modargs *ma) {
@@ -237,7 +237,7 @@ static void test_audio_mode(struct userdata *u, pa_modargs *ma) {
     pa_proplist_free(p);
 
     /* Work done, let's unload */
-    pa_module_unload_request(u->module, TRUE);
+    pa_module_unload_request(u->module, true);
 }
 
 int pa__init(pa_module*m) {

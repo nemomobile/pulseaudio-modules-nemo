@@ -81,7 +81,7 @@ static void check_notifier(struct mv_userdata *u);
  * sending change signal. */
 #define SIGNAL_WAIT_TIME ((pa_usec_t)(0.5 * PA_USEC_PER_SEC))
 
-static void signal_steps(struct mv_userdata *u, pa_bool_t wait_for_mode_change);
+static void signal_steps(struct mv_userdata *u, bool wait_for_mode_change);
 
 static void steps_set_free(struct mv_volume_steps_set *s) {
     pa_assert(s);
@@ -108,7 +108,7 @@ static void signal_time_callback(pa_mainloop_api *a, pa_time_event *e, const str
     signal_timer_stop(u);
 
     /* try signalling current steps again */
-    signal_steps(u, FALSE);
+    signal_steps(u, false);
 }
 
 static void signal_timer_set(struct mv_userdata *u, const pa_usec_t time) {
@@ -132,7 +132,7 @@ static void check_and_signal_high_volume(struct mv_userdata *u) {
         dbus_signal_high_volume(u, 0);
 }
 
-static void signal_steps(struct mv_userdata *u, pa_bool_t wait_for_mode_change) {
+static void signal_steps(struct mv_userdata *u, bool wait_for_mode_change) {
     pa_usec_t now;
 
     now = pa_rtclock_now();
@@ -253,9 +253,9 @@ static pa_hook_result_t call_state_cb(pa_core *c, const char *key, struct mv_use
     pa_assert(u->current_steps);
 
     if ((str = pa_shared_data_gets(u->shared, key)) && pa_streq(str, PA_NEMO_PROP_CALL_STATE_ACTIVE))
-        u->call_active = TRUE;
+        u->call_active = true;
     else
-        u->call_active = FALSE;
+        u->call_active = false;
 
     pa_log_debug("call is %s (media step %u call step %u)", u->call_active ? "active" : "inactive",
                  u->current_steps->media.current_step, u->current_steps->call.current_step);
@@ -265,7 +265,7 @@ static pa_hook_result_t call_state_cb(pa_core *c, const char *key, struct mv_use
     else
         destroy_virtual_stream(u);
 
-    signal_steps(u, FALSE);
+    signal_steps(u, false);
 
     if (u->notifier.watchdog)
         check_notifier(u);
@@ -368,15 +368,15 @@ static pa_hook_result_t parameters_changed_cb(pa_core *c, meego_parameter_update
     pa_log_debug("mode changes to %s (media step %d, call step %d)",
                  u->route, u->current_steps->media.current_step, u->current_steps->call.current_step);
 
-    u->mode_change_ready = TRUE;
-    signal_steps(u, TRUE);
+    u->mode_change_ready = true;
+    signal_steps(u, true);
 
     /* Check if new route is in notifier watch list */
     if (u->notifier.watchdog) {
         if (pa_hashmap_get(u->notifier.modes, u->route))
-            u->notifier.mode_active = TRUE;
+            u->notifier.mode_active = true;
         else
-            u->notifier.mode_active = FALSE;
+            u->notifier.mode_active = false;
 
         check_notifier(u);
     }
@@ -392,8 +392,8 @@ static pa_hook_result_t volume_changed_cb(pa_volume_proxy *r, const char *name, 
     pa_volume_t vol;
     struct mv_volume_steps *steps;
     int new_step;
-    pa_bool_t call_steps;
-    pa_bool_t changed = FALSE;
+    bool call_steps;
+    bool changed = false;
 
     pa_assert(u);
 
@@ -402,10 +402,10 @@ static pa_hook_result_t volume_changed_cb(pa_volume_proxy *r, const char *name, 
 
     if (pa_streq(name, CALL_STREAM)) {
         steps = &u->current_steps->call;
-        call_steps = TRUE;
+        call_steps = true;
     } else if (pa_streq(name, MEDIA_STREAM)) {
         steps = &u->current_steps->media;
-        call_steps = FALSE;
+        call_steps = false;
     } else {
         return PA_HOOK_OK;
     }
@@ -416,7 +416,7 @@ static pa_hook_result_t volume_changed_cb(pa_volume_proxy *r, const char *name, 
         pa_log_debug("volume changed for stream %s, vol %d (step %d)", name, vol, new_step);
 
         steps->current_step = new_step;
-        changed = TRUE;
+        changed = true;
     }
 
     /* Check only once per module load / parsed step set
@@ -426,17 +426,17 @@ static pa_hook_result_t volume_changed_cb(pa_volume_proxy *r, const char *name, 
         if (mv_high_volume(u)) {
             pa_log_info("high volume after module load, requested %d, we will reset to safe step %d", new_step, mv_safe_step(u));
             mv_set_step(u, mv_safe_step(u));
-            changed = TRUE;
+            changed = true;
         }
 
-        u->current_steps->first = FALSE;
+        u->current_steps->first = false;
     }
 
     if (changed) {
         /* signal changed step forward */
         if (call_steps == u->call_active) {
-            u->volume_change_ready = TRUE;
-            signal_steps(u, TRUE);
+            u->volume_change_ready = true;
+            signal_steps(u, true);
         }
     }
 
@@ -452,7 +452,7 @@ static void check_notifier(struct mv_userdata *u) {
         mv_listening_watchdog_pause(u->notifier.watchdog);
 }
 
-static void notify_event_cb(struct mv_listening_watchdog *wd, pa_bool_t initial_notify, void *userdata) {
+static void notify_event_cb(struct mv_listening_watchdog *wd, bool initial_notify, void *userdata) {
     struct mv_userdata *u = userdata;
 
     pa_assert(wd);
@@ -722,8 +722,8 @@ int pa__init(pa_module *m) {
     pa_hashmap_put(u->steps, fallback->route, fallback);
     u->current_steps = fallback;
 
-    u->tuning_mode = FALSE;
-    u->virtual_stream = FALSE;
+    u->tuning_mode = false;
+    u->virtual_stream = false;
 
     if (pa_modargs_get_value_boolean(ma, "tuning_mode", &u->tuning_mode) < 0) {
         pa_log_error("tuning_mode expects boolean argument");
@@ -749,7 +749,7 @@ int pa__init(pa_module *m) {
 
     dbus_init(u);
 
-    meego_parameter_request_updates("mainvolume", (pa_hook_cb_t)parameters_changed_cb, PA_HOOK_NORMAL, TRUE, u);
+    meego_parameter_request_updates("mainvolume", (pa_hook_cb_t)parameters_changed_cb, PA_HOOK_NORMAL, true, u);
 
     pa_modargs_free(ma);
 
@@ -994,8 +994,8 @@ void dbus_signal_steps(struct mv_userdata *u) {
     pa_dbus_protocol_send_signal(u->dbus_protocol, signal);
     dbus_message_unref(signal);
 
-    u->volume_change_ready = FALSE;
-    u->mode_change_ready = FALSE;
+    u->volume_change_ready = false;
+    u->mode_change_ready = false;
     u->last_signal_timestamp = pa_rtclock_now();
 }
 
@@ -1079,7 +1079,7 @@ void mainvolume_set_current_step(DBusConnection *conn, DBusMessage *msg, DBusMes
     pa_dbus_send_empty_reply(conn, msg);
 
     u->last_step_set_timestamp = pa_rtclock_now();
-    signal_steps(u, FALSE);
+    signal_steps(u, false);
 }
 
 void mainvolume_get_high_volume_step(DBusConnection *conn, DBusMessage *msg, void *_u) {
