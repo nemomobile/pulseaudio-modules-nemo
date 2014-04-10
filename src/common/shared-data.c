@@ -58,6 +58,8 @@ struct pa_shared_data {
     pa_hashmap *items;
 };
 
+static void shared_item_free(shared_item *i);
+
 static pa_shared_data* shared_data_new(pa_core *c) {
     pa_shared_data *t;
 
@@ -66,7 +68,7 @@ static pa_shared_data* shared_data_new(pa_core *c) {
     t = pa_xnew0(pa_shared_data, 1);
     PA_REFCNT_INIT(t);
     t->core = c;
-    t->items = pa_hashmap_new(pa_idxset_string_hash_func, pa_idxset_string_compare_func);
+    t->items = pa_hashmap_new_full(pa_idxset_string_hash_func, pa_idxset_string_compare_func, NULL, (pa_free_cb_t) shared_item_free);
 
     pa_assert_se(pa_shared_set(c, "shared-data-0", t) >= 0);
 
@@ -105,7 +107,7 @@ void pa_shared_data_unref(pa_shared_data *t) {
     if (PA_REFCNT_DEC(t) > 0)
         return;
 
-    pa_hashmap_free(t->items, (pa_free_cb_t) shared_item_free);
+    pa_hashmap_free(t->items);
 
     pa_assert_se(pa_shared_remove(t->core, "shared-data-0") >= 0);
 

@@ -79,6 +79,8 @@ struct meego_algorithm_hook_slot {
     PA_LLIST_FIELDS(meego_algorithm_hook_slot);
 };
 
+static void algorithm_hook_free(meego_algorithm_hook *hook);
+
 static meego_algorithm_hook_api *algorithm_hook_new(pa_core *c) {
     meego_algorithm_hook_api *a;
 
@@ -87,8 +89,10 @@ static meego_algorithm_hook_api *algorithm_hook_new(pa_core *c) {
     a = pa_xnew0(meego_algorithm_hook_api, 1);
     PA_REFCNT_INIT(a);
     a->core = c;
-    a->hooks = pa_hashmap_new(pa_idxset_string_hash_func,
-                              pa_idxset_string_compare_func);
+    a->hooks = pa_hashmap_new_full(pa_idxset_string_hash_func,
+                                   pa_idxset_string_compare_func,
+                                   NULL,
+                                   (pa_free_cb_t) algorithm_hook_free);
     PA_LLIST_HEAD_INIT(meego_algorithm_hook, a->dead_hooks);
 
     pa_assert_se(pa_shared_set(c, ALGORITHM_API_IDENTIFIER, a) >= 0);
@@ -185,7 +189,7 @@ void meego_algorithm_hook_api_unref(meego_algorithm_hook_api *a) {
 
     pa_assert_se(pa_shared_remove(a->core, ALGORITHM_API_IDENTIFIER) >= 0);
 
-    pa_hashmap_free(a->hooks, (pa_free_cb_t) algorithm_hook_free);
+    pa_hashmap_free(a->hooks);
 
     /* clean up dead hooks */
     while ((hook = a->dead_hooks)) {

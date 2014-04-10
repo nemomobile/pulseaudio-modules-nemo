@@ -618,8 +618,8 @@ static void setup_notifier(struct mv_userdata *u, const char *conf_file) {
     pa_hashmap *mode_list;
     pa_hashmap *role_list;
 
-    mode_list = pa_hashmap_new(pa_idxset_string_hash_func, pa_idxset_string_compare_func);
-    role_list = pa_hashmap_new(pa_idxset_string_hash_func, pa_idxset_string_compare_func);
+    mode_list = pa_hashmap_new_full(pa_idxset_string_hash_func, pa_idxset_string_compare_func, NULL, pa_xfree);
+    role_list = pa_hashmap_new_full(pa_idxset_string_hash_func, pa_idxset_string_compare_func, NULL, pa_xfree);
 
     pa_config_item items[] = {
         { "timeout",    pa_config_parse_unsigned,   &timeout,   NULL },
@@ -634,8 +634,8 @@ static void setup_notifier(struct mv_userdata *u, const char *conf_file) {
 
     if (pa_hashmap_isempty(role_list) || pa_hashmap_isempty(mode_list) || timeout == 0) {
         /* No valid configuration parsed, free and return */
-        pa_hashmap_free(mode_list, NULL);
-        pa_hashmap_free(role_list, NULL);
+        pa_hashmap_free(mode_list);
+        pa_hashmap_free(role_list);
         pa_log_debug("Long listening time notifier disabled.");
         return;
     }
@@ -671,7 +671,7 @@ static void free_si_hashmap(pa_hashmap *h) {
         pa_sink_input_unref(si);
     }
 
-    pa_hashmap_free(h, NULL);
+    pa_hashmap_free(h);
 }
 
 static void notifier_done(struct mv_userdata *u) {
@@ -690,9 +690,9 @@ static void notifier_done(struct mv_userdata *u) {
     mv_listening_watchdog_free(u->notifier.watchdog);
 
     if (u->notifier.roles)
-        pa_hashmap_free(u->notifier.roles, pa_xfree);
+        pa_hashmap_free(u->notifier.roles);
     if (u->notifier.modes)
-        pa_hashmap_free(u->notifier.modes, pa_xfree);
+        pa_hashmap_free(u->notifier.modes);
     if (u->notifier.sink_inputs)
         free_si_hashmap(u->notifier.sink_inputs);
 }
@@ -716,7 +716,8 @@ int pa__init(pa_module *m) {
     u->core = m->core;
     u->module = m;
 
-    u->steps = pa_hashmap_new(pa_idxset_string_hash_func, pa_idxset_string_compare_func);
+    u->steps = pa_hashmap_new_full(pa_idxset_string_hash_func, pa_idxset_string_compare_func,
+                                   NULL, (pa_free_cb_t) steps_set_free);
 
     fallback = fallback_new("fallback", 10, 20);
     pa_hashmap_put(u->steps, fallback->route, fallback);
@@ -793,7 +794,7 @@ void pa__done(pa_module *m) {
     if (u->volume_proxy)
         pa_volume_proxy_unref(u->volume_proxy);
 
-    pa_hashmap_free(u->steps, (pa_free_cb_t) steps_set_free);
+    pa_hashmap_free(u->steps);
 
     pa_assert(m);
 
