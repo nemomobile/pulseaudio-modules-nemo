@@ -1,6 +1,6 @@
 Name: pulseaudio-modules-nemo
 Summary: PulseAudio modules for Nemo
-Version: 4.0.6
+Version: 5.0.15
 Release: 1
 Group: Multimedia/PulseAudio
 License: LGPLv2.1+
@@ -15,7 +15,7 @@ PkgConfigBR:
     - alsa >= 1.0.19
     - check
     - dbus-1
-    - pulsecore >= 4.0
+    - pulsecore >= 5.0
 Configure: reconfigure
 Builder: make
 NoFiles: yes
@@ -26,7 +26,7 @@ SubPackages:
       Group: Multimedia/PulseAudio
       Description: This contains common libs for the Nemo PulseAudio modules.
       Requires:
-          - pulseaudio >= 4.0
+          - pulseaudio >= 5.0
       Obsoletes:
           - pulseaudio-modules-nemo-voice < 4.0.6
           - pulseaudio-modules-nemo-music < 4.0.6
@@ -39,7 +39,7 @@ SubPackages:
       Description: This contains music module for PulseAudio
       Requires:
           - "%{name}-common = %{version}-%{release}"
-          - pulseaudio >= 4.0
+          - pulseaudio >= 5.0
 
     - Name: record
       Summary: Cmtspeech module for PulseAudio
@@ -47,7 +47,7 @@ SubPackages:
       Description: This contains record module for PulseAudio
       Requires:
           - "%{name}-common = %{version}-%{release}"
-          - pulseaudio >= 4.0
+          - pulseaudio >= 5.0
 
     - Name: voice
       Summary: Voice module for PulseAudio
@@ -55,7 +55,7 @@ SubPackages:
       Description: This contains voice module for PulseAudio
       Requires:
           - "%{name}-common = %{version}-%{release}"
-          - pulseaudio >= 4.0
+          - pulseaudio >= 5.0
 
     - Name: mainvolume
       Summary: Mainvolume module for PulseAudio
@@ -64,7 +64,7 @@ SubPackages:
       Requires:
           - "%{name}-common = %{version}-%{release}"
           - "%{name}-stream-restore"
-          - pulseaudio >= 4.0
+          - pulseaudio >= 5.0
 
     - Name: parameters
       Summary: Algorithm parameter manager module for PulseAudio
@@ -72,7 +72,7 @@ SubPackages:
       Description: This contains an algorithm parameter manager module for PulseAudio
       Requires:
           - "%{name}-common = %{version}-%{release}"
-          - pulseaudio >= 4.0
+          - pulseaudio >= 5.0
 
     - Name: sidetone
       Summary: Sidetone module for PulseAudio
@@ -80,7 +80,7 @@ SubPackages:
       Description: This contains a sidetone module for PulseAudio
       Requires:
           - "%{name}-common = %{version}-%{release}"
-          - pulseaudio >= 4.0
+          - pulseaudio >= 5.0
 
     - Name: test
       Summary: Test module for PulseAudio
@@ -88,7 +88,7 @@ SubPackages:
       Description: This contains a test module for PulseAudio
       Requires:
           - "%{name}-common = %{version}-%{release}"
-          - pulseaudio >= 4.0
+          - pulseaudio >= 5.0
 
     - Name: stream-restore
       Summary: Modified version of the original stream-restore module for PulseAudio
@@ -96,7 +96,7 @@ SubPackages:
       Description: This contains a modified version of the original stream-restore module in PulseAudio.
       Requires:
           - "%{name}-common = %{version}-%{release}"
-          - pulseaudio >= 4.0
+          - pulseaudio >= 5.0
 
     - Name: devel
       Summary: Development files for modules.
@@ -104,4 +104,4 @@ SubPackages:
       Description: This contains development files for nemo modules.
       Requires:
           - "%{name}-common = %{version}-%{release}"
-          - pulseaudio >= 4.0
+          - pulseaudio >= 5.0
