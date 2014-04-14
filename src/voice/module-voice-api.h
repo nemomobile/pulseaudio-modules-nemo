@@ -67,7 +67,7 @@ typedef struct {
 typedef struct {
     pa_memchunk *chunk;
     int spc_flags;
-    pa_bool_t cmt;
+    bool cmt;
 } aep_downlink;
 
 enum {

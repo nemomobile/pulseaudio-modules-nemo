@@ -90,7 +90,7 @@ static void voice_aep_sink_process(struct userdata *u, pa_memchunk *chunk) {
         params.chunk = chunk;
         params.spc_flags = spc_flags;
         /* TODO: get rid of cmt boolean */
-        params.cmt = TRUE;
+        params.cmt = true;
 
         /* TODO: I think this should be called from behind the hook */
         pa_memchunk_make_writable(chunk, u->aep_fragment_size);
@@ -328,8 +328,8 @@ static int hw_sink_input_pop_cb(pa_sink_input *i, size_t length, pa_memchunk *ch
 /*** sink_input callbacks ***/
 static int hw_sink_input_pop_8k_mono_cb(pa_sink_input *i, size_t length, pa_memchunk *chunk) {
     struct userdata *u;
-    pa_bool_t have_aep_frame = 0;
-    pa_bool_t have_raw_frame = 0;
+    bool have_aep_frame = 0;
+    bool have_raw_frame = 0;
 
     pa_assert(i);
     pa_sink_input_assert_ref(i);
@@ -532,7 +532,7 @@ static void hw_sink_input_detach_slave_sink(pa_sink *sink) {
     if (sink && PA_SINK_IS_LINKED(sink->thread_info.state)) {
         pa_sink_detach_within_thread(sink);
         pa_sink_set_rtpoll(sink, NULL);
-        voice_sink_inputs_may_move(sink, FALSE);
+        voice_sink_inputs_may_move(sink, false);
     }
 }
 
@@ -561,7 +561,7 @@ static void hw_sink_input_attach_slave_sink(struct userdata *u, pa_sink *sink, p
         /* FIXME: This should be done by the core. */
         pa_sink_set_rtpoll(sink, to_sink->thread_info.rtpoll);
 
-        voice_sink_inputs_may_move(sink, TRUE);
+        voice_sink_inputs_may_move(sink, true);
         if (to_sink->flags & PA_SINK_DYNAMIC_LATENCY)
             pa_sink_set_latency_range_within_thread(sink, to_sink->thread_info.min_latency,
                                                     to_sink->thread_info.max_latency);
@@ -614,7 +614,7 @@ static void hw_sink_input_kill_cb(pa_sink_input *i) {
     u->raw_sink = NULL;
 
     /* FIXME: this is sort-of understandable with the may_move hack... we avoid abort in free() here */
-    u->hw_sink_input->thread_info.attached = FALSE;
+    u->hw_sink_input->thread_info.attached = false;
     pa_sink_input_unref(u->hw_sink_input);
     u->hw_sink_input = NULL;
 }
@@ -689,14 +689,14 @@ static void hw_sink_input_moving_cb(pa_sink_input *i, pa_sink *dest){
     }
 }
 
-static pa_bool_t hw_sink_input_may_move_to_cb(pa_sink_input *i, pa_sink *dest) {
+static bool hw_sink_input_may_move_to_cb(pa_sink_input *i, pa_sink *dest) {
     struct userdata *u;
 
     pa_sink_input_assert_ref(i);
     pa_assert_se(u = i->userdata);
 
     if (u->master_sink == NULL)
-        return TRUE;
+        return true;
 
     return ((u->master_sink != dest) && (u->master_sink->asyncmsgq != dest->asyncmsgq));
 }
@@ -720,7 +720,7 @@ static pa_hook_result_t hw_sink_input_move_fail_cb(pa_core *c, pa_sink_input *i,
         return PA_HOOK_OK;
     }
 
-    if (pa_sink_input_finish_move(i, s, TRUE) >= 0)
+    if (pa_sink_input_finish_move(i, s, true) >= 0)
         return PA_HOOK_STOP;
 
     pa_log("Failed to fallback on \"%s\".", master_sink);
@@ -807,7 +807,7 @@ static void voice_hw_sink_input_reinit_defer_cb(pa_mainloop_api *m, pa_defer_eve
     struct voice_hw_sink_input_reinit_defered *d;
     pa_sink_input *new_si, *old_si;
     struct userdata *u;
-    pa_bool_t start_uncorked;
+    bool start_uncorked;
 
     pa_assert_se(d = userdata);
     pa_assert_se(u = d->u);
@@ -827,7 +827,7 @@ static void voice_hw_sink_input_reinit_defer_cb(pa_mainloop_api *m, pa_defer_eve
 
     pa_sink_update_flags(u->raw_sink, PA_SINK_LATENCY|PA_SINK_DYNAMIC_LATENCY, new_si->sink->flags);
 
-    pa_sink_input_cork(old_si, TRUE);
+    pa_sink_input_cork(old_si, true);
 
     pa_log_debug("reinitialize hw sink-input %s %p", u->master_sink->name, (void*)new_si);
 

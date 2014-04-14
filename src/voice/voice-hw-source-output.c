@@ -40,7 +40,7 @@
 #include "module-voice-api.h"
 #include "voice-hooks.h"
 
-static pa_bool_t voice_uplink_feed(struct userdata *u, pa_memchunk *chunk) {
+static bool voice_uplink_feed(struct userdata *u, pa_memchunk *chunk) {
     pa_memchunk ichunk;
     pa_assert(u);
     pa_assert(u->aep_fragment_size == chunk->length);
@@ -59,16 +59,16 @@ static pa_bool_t voice_uplink_feed(struct userdata *u, pa_memchunk *chunk) {
         if (PA_SOURCE_IS_OPENED(u->voip_source->thread_info.state))
             pa_source_post(u->voip_source, &ichunk);
         pa_memblock_unref(ichunk.memblock);
-        return TRUE;
+        return true;
     }
     else
-        return FALSE;
+        return false;
 }
 
 static inline
 int voice_aep_ear_ref_check_ul_xrun(struct userdata *u) {
     struct voice_aep_ear_ref *r = &u->ear_ref;
-    pa_bool_t overrun;
+    bool overrun;
 
     if (u->master_source) {
         PA_MSGOBJECT(u->master_source)->process_msg(
@@ -94,7 +94,7 @@ int voice_aep_ear_ref_ul(struct userdata *u, pa_memchunk *chunk) {
         switch (loop_state) {
             case VOICE_EAR_REF_RUNNING: {
                 if (!voice_aep_ear_ref_check_ul_xrun(u)) {
-                    voice_aep_ear_ref_ul_drain_asyncq(u, TRUE);
+                    voice_aep_ear_ref_ul_drain_asyncq(u, true);
                     if (util_memblockq_to_chunk(u->core->mempool, r->loop_memblockq, chunk, u->aep_fragment_size)) {
                         ret = 1;
                     }
@@ -108,7 +108,7 @@ int voice_aep_ear_ref_ul(struct userdata *u, pa_memchunk *chunk) {
             }
             break;
             case VOICE_EAR_REF_RESET: {
-                voice_aep_ear_ref_ul_drain_asyncq(u, FALSE);
+                voice_aep_ear_ref_ul_drain_asyncq(u, false);
                 pa_memblockq_drop(r->loop_memblockq, pa_memblockq_get_length(r->loop_memblockq));
                 pa_atomic_store(&r->loop_state, VOICE_EAR_REF_UL_READY);
             }
@@ -194,8 +194,8 @@ int voice_aep_ear_ref_ul(struct userdata *u, pa_memchunk *chunk) {
 }
 
 static
-pa_bool_t voice_voip_source_process(struct userdata *u, pa_memchunk *chunk, pa_memchunk *amb_chunk) {
-    pa_bool_t ul_frame_sent = FALSE;
+bool voice_voip_source_process(struct userdata *u, pa_memchunk *chunk, pa_memchunk *amb_chunk) {
+    bool ul_frame_sent = false;
 
     pa_assert(u);
     pa_assert(chunk->length == u->aep_fragment_size);
@@ -234,7 +234,7 @@ pa_bool_t voice_voip_source_process(struct userdata *u, pa_memchunk *chunk, pa_m
 
 static
 void voice_uplink_timing_check(struct userdata *u, pa_usec_t now,
-                               pa_bool_t ul_frame_sent) {
+                               bool ul_frame_sent) {
     int64_t to_deadline = u->ul_deadline - now;
 
     if (to_deadline < u->ul_timing_advance) {
@@ -279,7 +279,7 @@ static void hw_source_output_push_cb(pa_source_output *o, const pa_memchunk *new
     struct userdata *u;
     meego_algorithm_hook_data hook_data;
     pa_memchunk chunk;
-    pa_bool_t ul_frame_sent = FALSE;
+    bool ul_frame_sent = false;
     pa_usec_t now = pa_rtclock_now();
 
     pa_assert(o);
@@ -411,7 +411,7 @@ static void hw_source_output_push_cb(pa_source_output *o, const pa_memchunk *new
 static void hw_source_output_push_cb_8k_mono(pa_source_output *o, const pa_memchunk *new_chunk) {
     struct userdata *u;
     pa_memchunk chunk;
-    pa_bool_t ul_frame_sent = FALSE;
+    bool ul_frame_sent = false;
     pa_usec_t now = pa_rtclock_now();
 
     pa_assert(o);
@@ -563,7 +563,7 @@ static void hw_source_output_detach_slave_source(pa_source *source) {
     if (source && PA_SOURCE_IS_LINKED(source->thread_info.state)) {
         pa_source_detach_within_thread(source);
         pa_source_set_rtpoll(source, NULL);
-        voice_source_outputs_may_move(source, FALSE);
+        voice_source_outputs_may_move(source, false);
     }
 }
 
@@ -696,14 +696,14 @@ static void hw_source_output_kill_cb(pa_source_output* o) {
     u->hw_source_output = NULL;
 }
 
-static pa_bool_t hw_source_output_may_move_to_cb(pa_source_output *o, pa_source *dest) {
+static bool hw_source_output_may_move_to_cb(pa_source_output *o, pa_source *dest) {
     struct userdata *u;
 
     pa_source_output_assert_ref(o);
     pa_assert_se(u = o->userdata);
 
     if (u->master_source == NULL)
-        return TRUE;
+        return true;
 
     return ((u->master_source != dest) && (u->master_source->asyncmsgq != dest->asyncmsgq));
 }
@@ -727,7 +727,7 @@ static pa_hook_result_t hw_source_output_move_fail_cb(pa_core *c, pa_source_outp
         return PA_HOOK_OK;
     }
 
-    if (pa_source_output_finish_move(o, s, TRUE) >= 0)
+    if (pa_source_output_finish_move(o, s, true) >= 0)
         return PA_HOOK_STOP;
 
     pa_log("Failed to fallback on \"%s\".", master_source);
@@ -815,7 +815,7 @@ static void voice_hw_source_output_reinit_defer_cb(pa_mainloop_api *m, pa_defer_
     struct voice_hw_source_output_reinit_defered *d;
     pa_source_output *new_so, *old_so;
     struct userdata *u;
-    pa_bool_t start_uncorked;
+    bool start_uncorked;
 
     pa_assert_se(d = userdata);
     pa_assert_se(u = d->u);
@@ -840,7 +840,7 @@ static void voice_hw_source_output_reinit_defer_cb(pa_mainloop_api *m, pa_defer_
      * get propagated also to the voip source. */
     pa_source_update_flags(u->voip_source, PA_SOURCE_LATENCY|PA_SOURCE_DYNAMIC_LATENCY, new_so->source->flags);
 
-    pa_source_output_cork(old_so, TRUE);
+    pa_source_output_cork(old_so, true);
 
     pa_log_debug("reinitialize hw source-output %s %p", u->master_source->name, (void*)new_so);
 

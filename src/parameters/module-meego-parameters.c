@@ -141,7 +141,7 @@ int pa__init(pa_module *m) {
     m->userdata = u;
     u->core = m->core;
     u->module = m;
-    u->parameters.use_voice = TRUE;
+    u->parameters.use_voice = true;
 
     u->parameters.directory = pa_xstrdup(pa_modargs_get_value(ma, "directory", DEFAULT_DIRECTORY));
 

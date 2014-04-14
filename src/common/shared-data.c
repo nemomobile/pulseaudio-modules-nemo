@@ -58,6 +58,8 @@ struct pa_shared_data {
     pa_hashmap *items;
 };
 
+static void shared_item_free(shared_item *i);
+
 static pa_shared_data* shared_data_new(pa_core *c) {
     pa_shared_data *t;
 
@@ -66,7 +68,7 @@ static pa_shared_data* shared_data_new(pa_core *c) {
     t = pa_xnew0(pa_shared_data, 1);
     PA_REFCNT_INIT(t);
     t->core = c;
-    t->items = pa_hashmap_new(pa_idxset_string_hash_func, pa_idxset_string_compare_func);
+    t->items = pa_hashmap_new_full(pa_idxset_string_hash_func, pa_idxset_string_compare_func, NULL, (pa_free_cb_t) shared_item_free);
 
     pa_assert_se(pa_shared_set(c, "shared-data-0", t) >= 0);
 
@@ -105,7 +107,7 @@ void pa_shared_data_unref(pa_shared_data *t) {
     if (PA_REFCNT_DEC(t) > 0)
         return;
 
-    pa_hashmap_free(t->items, (pa_free_cb_t) shared_item_free);
+    pa_hashmap_free(t->items);
 
     pa_assert_se(pa_shared_remove(t->core, "shared-data-0") >= 0);
 
@@ -149,49 +151,49 @@ void pa_shared_data_hook_slot_free(pa_hook_slot *slot) {
     pa_hook_slot_free(slot);
 }
 
-int pa_shared_data_set_boolean(pa_shared_data *t, const char *key, pa_bool_t value) {
+int pa_shared_data_set_boolean(pa_shared_data *t, const char *key, bool value) {
     shared_item *item;
-    pa_bool_t changed = FALSE;
+    bool changed = false;
     GETI(t, key);
 
     if (item->type != SHARED_ITEM_NONE && item->type != SHARED_ITEM_BOOL)
         return -1;
 
     if (item->type == SHARED_ITEM_NONE)
-        changed = TRUE;
+        changed = true;
 
     if (item->type == SHARED_ITEM_BOOL && value != !!PA_UINT_TO_PTR(value))
-        changed = TRUE;
+        changed = true;
 
     item->type = SHARED_ITEM_BOOL;
     item->value = PA_UINT_TO_PTR(value);
     item->nbytes = 1;
 
     if (changed) {
-        pa_log_debug("Shared item '%s' changes to bool value %s", item->key, value ? "TRUE" : "FALSE");
+        pa_log_debug("Shared item '%s' changes to bool value %s", item->key, value ? "true" : "false");
         pa_hook_fire(&item->changed_hook, item->key);
     }
 
     return 0;
 }
 
-pa_bool_t pa_shared_data_get_boolean(pa_shared_data *t, const char *key) {
+bool pa_shared_data_get_boolean(pa_shared_data *t, const char *key) {
     shared_item *item;
     GETI(t, key);
 
     if (item->type == SHARED_ITEM_BOOL)
         return !!PA_PTR_TO_UINT(item->value);
     else if (item->type == SHARED_ITEM_NONE)
-        return FALSE;
+        return false;
     else if (item->value)
-        return TRUE;
+        return true;
     else
-        return FALSE;
+        return false;
 }
 
-static int shared_data_sets(pa_shared_data *t, const char *key, const char *value, pa_bool_t fire_always) {
+static int shared_data_sets(pa_shared_data *t, const char *key, const char *value, bool fire_always) {
     shared_item *item;
-    pa_bool_t changed = TRUE;
+    bool changed = true;
 
     pa_assert(key);
     pa_assert(value);
@@ -206,7 +208,7 @@ static int shared_data_sets(pa_shared_data *t, const char *key, const char *valu
 
     if (item->value) {
         if (pa_streq(item->value, value))
-            changed = FALSE;
+            changed = false;
         else
             pa_xfree(item->value);
     }
@@ -226,11 +228,11 @@ static int shared_data_sets(pa_shared_data *t, const char *key, const char *valu
 }
 
 int pa_shared_data_sets_always(pa_shared_data *t, const char *key, const char *value) {
-    return shared_data_sets(t, key, value, TRUE);
+    return shared_data_sets(t, key, value, true);
 }
 
 int pa_shared_data_sets(pa_shared_data *t, const char *key, const char *value) {
-    return shared_data_sets(t, key, value, FALSE);
+    return shared_data_sets(t, key, value, false);
 }
 
 const char *pa_shared_data_gets(pa_shared_data *t, const char *key) {

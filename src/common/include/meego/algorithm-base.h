@@ -95,8 +95,8 @@ void meego_algorithm_base_connect(meego_algorithm_base *b);
 void meego_algorithm_base_done(meego_algorithm_base *b);
 
 /* Set single algorithm hook slot or all hook slots enabled state. */
-void meego_algorithm_base_set_enabled(meego_algorithm_base *b, const char *algorithm_identifier, pa_bool_t enabled);
-void meego_algorithm_base_set_all_enabled(meego_algorithm_base *b, pa_bool_t enabled);
+void meego_algorithm_base_set_enabled(meego_algorithm_base *b, const char *algorithm_identifier, bool enabled);
+void meego_algorithm_base_set_all_enabled(meego_algorithm_base *b, bool enabled);
 
 /* Get pointer to connected hook slot. If this function returns NULL, it means that hook slot
  * with given name is not connected to any hook. */

@@ -44,8 +44,8 @@ struct userdata {
 
     struct parameters {
         const char *directory;
-        pa_bool_t cache;
-        pa_bool_t use_voice;
+        bool cache;
+        bool use_voice;
         PA_LLIST_HEAD(struct mode, modes); /* list of all modes */
         PA_LLIST_HEAD(struct algorithm, algorithms); /* list of all algorithms */
     } parameters;

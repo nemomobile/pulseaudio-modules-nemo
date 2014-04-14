@@ -60,33 +60,33 @@ typedef struct {
      *     starts listening to parameters and the current mode is mode_name.
      *
      * return value
-     *     TRUE when successful, FALSE when unsuccessful. If TRUE is
+     *     true when successful, false when unsuccessful. If true is
      *     returned, the algorithm is updated using the returned parameters.
      *     Otherwise file system defaults are used. If no file system defaults
-     *     exist and FALSE is returned, the algorithm is disabled.
+     *     exist and false is returned, the algorithm is disabled.
      *
      * base_parameters
      *     Parameters that the implementor can copy and use as a basis for
      *     the modified parameters. If no file system defaults exist, this value
      *     can be NULL in which case the implementor must either cope without base
-     *     parameters or return FALSE to indicate an error (thus disabling the
+     *     parameters or return false to indicate an error (thus disabling the
      *     algorithm).
      *
      * len_base_parameters
      *     The length of base_parameters
      *
      * parameters
-     *     The modified parameters provided by this function. With TRUE return
+     *     The modified parameters provided by this function. With true return
      *     value, a non-NULL value must be written to *parameters.
      *
      * len_parameters
-     *     The length of the modified parameters. With TRUE return value, a
+     *     The length of the modified parameters. With true return value, a
      *     value > 0 must be written to *len_parameters.
      *
      * userdata
      *     The value of the userdata member of this struct.
      */
-    pa_bool_t (*get_parameters)(const void *base_parameters, unsigned len_base_parameters, void **parameters, unsigned *len_parameters, void *userdata);
+    bool (*get_parameters)(const void *base_parameters, unsigned len_base_parameters, void **parameters, unsigned *len_parameters, void *userdata);
 
     /* Data for the implementor's own use. Passed as the final parameter to get_parameters. */
     void *userdata;

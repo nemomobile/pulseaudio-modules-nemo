@@ -44,9 +44,9 @@ struct mv_volume_steps* mv_active_steps(struct mv_userdata *u) {
         return &u->current_steps->media;
 }
 
-pa_bool_t mv_set_step(struct mv_userdata *u, unsigned step) {
+bool mv_set_step(struct mv_userdata *u, unsigned step) {
     struct mv_volume_steps *s;
-    pa_bool_t changed = FALSE;
+    bool changed = false;
     pa_assert(u);
 
     s = mv_active_steps(u);
@@ -64,7 +64,7 @@ pa_bool_t mv_set_step(struct mv_userdata *u, unsigned step) {
             pa_volume_proxy_set_volume(u->volume_proxy, MEDIA_STREAM, s->step[s->current_step]);
         }
 
-        changed = TRUE;
+        changed = true;
     }
 
     return changed;
@@ -101,9 +101,9 @@ int mv_search_step(int *steps, int n_steps, int vol) {
     return sel;
 }
 
-pa_bool_t mv_update_step(struct mv_userdata *u) {
+bool mv_update_step(struct mv_userdata *u) {
     pa_volume_t vol;
-    pa_bool_t success = TRUE;
+    bool success = true;
     int step;
 
     pa_assert(u);
@@ -113,14 +113,14 @@ pa_bool_t mv_update_step(struct mv_userdata *u) {
         step = mv_search_step(u->current_steps->call.step, u->current_steps->call.n_steps, vol);
         u->current_steps->call.current_step = step;
     } else
-        success = FALSE;
+        success = false;
 
 
     if (pa_volume_proxy_get_volume(u->volume_proxy, MEDIA_STREAM, &vol)) {
         step = mv_search_step(u->current_steps->media.step, u->current_steps->media.n_steps, vol);
         u->current_steps->media.current_step = step;
     } else
-        success = FALSE;
+        success = false;
 
     return success;
 }
@@ -257,7 +257,7 @@ int mv_parse_steps(struct mv_userdata *u,
     set->call = call_steps;
     set->media = media_steps;
     set->high_volume_step = parse_high_volume_step(set, high_volume);
-    set->first = TRUE;
+    set->first = true;
 
     pa_log_debug("adding %d call and %d media steps with route %s",
                  set->call.n_steps,
@@ -283,28 +283,28 @@ int mv_safe_step(struct mv_userdata *u) {
     return -1;
 }
 
-pa_bool_t mv_high_volume(struct mv_userdata *u) {
+bool mv_high_volume(struct mv_userdata *u) {
     pa_assert(u);
 
     if (u->call_active)
-        return FALSE;
+        return false;
 
     if (u->current_steps
         && u->current_steps->high_volume_step > -1
         && u->current_steps->media.current_step >= u->current_steps->high_volume_step)
-        return TRUE;
+        return true;
     else
-        return FALSE;
+        return false;
 }
 
-pa_bool_t mv_has_high_volume(struct mv_userdata *u) {
+bool mv_has_high_volume(struct mv_userdata *u) {
     pa_assert(u);
 
     if (u->call_active)
-        return FALSE;
+        return false;
 
     if (u->current_steps && u->current_steps->high_volume_step > -1)
-        return TRUE;
+        return true;
     else
-        return FALSE;
+        return false;
 }

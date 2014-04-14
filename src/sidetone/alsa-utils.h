@@ -28,7 +28,7 @@
 
 snd_mixer_elem_t *mixer_get_element(snd_mixer_t *mixer, const char* element_name);
 
-int mixer_get_element_volume(snd_mixer_t *mixer, const char *element_name, snd_mixer_selem_channel_id_t channel, pa_bool_t playback, long *volume);
+int mixer_get_element_volume(snd_mixer_t *mixer, const char *element_name, snd_mixer_selem_channel_id_t channel, bool playback, long *volume);
 
 #endif
 

@@ -33,10 +33,10 @@ void pa_shared_data_unref(pa_shared_data *t);
 
 /* Set boolean value to shared item. Fire value changed hook if value has changed from previous value.
  * Return 0 on success, -1 on failure */
-int pa_shared_data_set_boolean(pa_shared_data *t, const char *key, pa_bool_t value);
-/* Get boolean value from shared item. If shared item exists but is of different type than BOOLEAN, return TRUE.
- * If shared item doesn't exist, returns FALSE. */
-pa_bool_t pa_shared_data_get_boolean(pa_shared_data *t, const char *key);
+int pa_shared_data_set_boolean(pa_shared_data *t, const char *key, bool value);
+/* Get boolean value from shared item. If shared item exists but is of different type than BOOLEAN, return true.
+ * If shared item doesn't exist, returns false. */
+bool pa_shared_data_get_boolean(pa_shared_data *t, const char *key);
 
 /* Set char value to shared item. Fire value changed hook if value has changed from previous value.
  * Return 0 on success, -1 on failure */

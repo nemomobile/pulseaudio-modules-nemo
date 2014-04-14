@@ -48,10 +48,10 @@ void pa_volume_proxy_unref(pa_volume_proxy *r);
 
 void pa_volume_proxy_set_volume(pa_volume_proxy *r, const char *name, pa_volume_t volume);
 
-/* return TRUE if volume was found from proxy database,
- * otherwise return FALSE. The value of volume is returned
+/* return true if volume was found from proxy database,
+ * otherwise return false. The value of volume is returned
  * in return_volume. */
-pa_bool_t pa_volume_proxy_get_volume(pa_volume_proxy *r, const char *name, pa_volume_t *return_volume);
+bool pa_volume_proxy_get_volume(pa_volume_proxy *r, const char *name, pa_volume_t *return_volume);
 
 pa_hook *pa_volume_proxy_hooks(pa_volume_proxy *r);
 

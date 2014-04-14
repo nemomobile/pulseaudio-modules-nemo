@@ -56,7 +56,7 @@ typedef enum meego_parameter_status {
  * status MEEGO_PARAM_MODE_CHANGE:
  *      Mode has changed, but parameter state has not changed, that
  *      is, if status was disabled it is still so. This status
- *      is received only if full_updates was TRUE in connection.
+ *      is received only if full_updates was true in connection.
  *      parameters and length are set to currently active parameters.
  *      This status is also always set if only mode changes
  *      are requested. In that case parameters is NULL and length 0.
@@ -76,7 +76,7 @@ typedef struct meego_parameter_update_args {
  * If caller is only interested in mode updates, use NULL for name.
  * NOTE: The update requestor must call meego_parameter_stop_updates before being destroyed.
  */
-int meego_parameter_request_updates(const char *name, pa_hook_cb_t cb, pa_hook_priority_t prio, pa_bool_t full_updates, void *userdata);
+int meego_parameter_request_updates(const char *name, pa_hook_cb_t cb, pa_hook_priority_t prio, bool full_updates, void *userdata);
 
 /*
  * Stop calling the given callback "cb" with "userdata" for the algorithm

@@ -6,11 +6,11 @@
 Name:       pulseaudio-modules-nemo
 
 # >> macros
-%define pulseversion 4.0
+%define pulseversion 5.0
 # << macros
 
 Summary:    PulseAudio modules for Nemo
-Version:    4.0.6
+Version:    5.0.15
 Release:    1
 Group:      Multimedia/PulseAudio
 License:    LGPLv2.1+
@@ -20,7 +20,7 @@ Source100:  pulseaudio-modules-nemo.yaml
 BuildRequires:  pkgconfig(alsa) >= 1.0.19
 BuildRequires:  pkgconfig(check)
 BuildRequires:  pkgconfig(dbus-1)
-BuildRequires:  pkgconfig(pulsecore) >= 4.0
+BuildRequires:  pkgconfig(pulsecore) >= 5.0
 BuildRequires:  libtool-ltdl-devel
 
 %description
@@ -29,7 +29,7 @@ PulseAudio modules for Nemo.
 %package common
 Summary:    Common libs for the Nemo PulseAudio modules
 Group:      Multimedia/PulseAudio
-Requires:   pulseaudio >= 4.0
+Requires:   pulseaudio >= 5.0
 Obsoletes:  pulseaudio-modules-nemo-voice < 4.0.6
 Obsoletes:  pulseaudio-modules-nemo-music < 4.0.6
 Obsoletes:  pulseaudio-modules-nemo-record < 4.0.6
@@ -42,7 +42,7 @@ This contains common libs for the Nemo PulseAudio modules.
 Summary:    Music module for PulseAudio
 Group:      Multimedia/PulseAudio
 Requires:   %{name}-common = %{version}-%{release}
-Requires:   pulseaudio >= 4.0
+Requires:   pulseaudio >= 5.0
 
 %description music
 This contains music module for PulseAudio
@@ -51,7 +51,7 @@ This contains music module for PulseAudio
 Summary:    Cmtspeech module for PulseAudio
 Group:      Multimedia/PulseAudio
 Requires:   %{name}-common = %{version}-%{release}
-Requires:   pulseaudio >= 4.0
+Requires:   pulseaudio >= 5.0
 
 %description record
 This contains record module for PulseAudio
@@ -60,7 +60,7 @@ This contains record module for PulseAudio
 Summary:    Voice module for PulseAudio
 Group:      Multimedia/PulseAudio
 Requires:   %{name}-common = %{version}-%{release}
-Requires:   pulseaudio >= 4.0
+Requires:   pulseaudio >= 5.0
 
 %description voice
 This contains voice module for PulseAudio
@@ -70,7 +70,7 @@ Summary:    Mainvolume module for PulseAudio
 Group:      Multimedia/PulseAudio
 Requires:   %{name}-common = %{version}-%{release}
 Requires:   %{name}-stream-restore
-Requires:   pulseaudio >= 4.0
+Requires:   pulseaudio >= 5.0
 
 %description mainvolume
 This contains mainvolume module for PulseAudio
@@ -79,7 +79,7 @@ This contains mainvolume module for PulseAudio
 Summary:    Algorithm parameter manager module for PulseAudio
 Group:      Multimedia/PulseAudio
 Requires:   %{name}-common = %{version}-%{release}
-Requires:   pulseaudio >= 4.0
+Requires:   pulseaudio >= 5.0
 
 %description parameters
 This contains an algorithm parameter manager module for PulseAudio
@@ -88,7 +88,7 @@ This contains an algorithm parameter manager module for PulseAudio
 Summary:    Sidetone module for PulseAudio
 Group:      Multimedia/PulseAudio
 Requires:   %{name}-common = %{version}-%{release}
-Requires:   pulseaudio >= 4.0
+Requires:   pulseaudio >= 5.0
 
 %description sidetone
 This contains a sidetone module for PulseAudio
@@ -97,7 +97,7 @@ This contains a sidetone module for PulseAudio
 Summary:    Test module for PulseAudio
 Group:      Multimedia/PulseAudio
 Requires:   %{name}-common = %{version}-%{release}
-Requires:   pulseaudio >= 4.0
+Requires:   pulseaudio >= 5.0
 
 %description test
 This contains a test module for PulseAudio
@@ -106,7 +106,7 @@ This contains a test module for PulseAudio
 Summary:    Modified version of the original stream-restore module for PulseAudio
 Group:      Multimedia/PulseAudio
 Requires:   %{name}-common = %{version}-%{release}
-Requires:   pulseaudio >= 4.0
+Requires:   pulseaudio >= 5.0
 
 %description stream-restore
 This contains a modified version of the original stream-restore module in PulseAudio.
@@ -115,7 +115,7 @@ This contains a modified version of the original stream-restore module in PulseA
 Summary:    Development files for modules.
 Group:      Development/Libraries
 Requires:   %{name}-common = %{version}-%{release}
-Requires:   pulseaudio >= 4.0
+Requires:   pulseaudio >= 5.0
 
 %description devel
 This contains development files for nemo modules.

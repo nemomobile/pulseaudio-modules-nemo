@@ -100,12 +100,12 @@ void meego_algorithm_hook_slot_free(meego_algorithm_hook_slot *slot);
  * if at least one connected hook slot is enabled, hook is also enabled. If there
  * are no connected hook slots or all connected hook slots are disabled, hook is disabled.
  * Callbacks for hook slots that are disabled won't be called when firing the hook. */
-void meego_algorithm_hook_slot_set_enabled(meego_algorithm_hook_slot *slot, pa_bool_t enabled);
-pa_bool_t meego_algorithm_hook_slot_enabled(meego_algorithm_hook_slot *slot);
+void meego_algorithm_hook_slot_set_enabled(meego_algorithm_hook_slot *slot, bool enabled);
+bool meego_algorithm_hook_slot_enabled(meego_algorithm_hook_slot *slot);
 
 /* If hook is disabled (all slots are disabled), there is no need to call
  * meego_algorithm_hook_fire() for data. */
-pa_bool_t meego_algorithm_hook_enabled(meego_algorithm_hook *hook);
+bool meego_algorithm_hook_enabled(meego_algorithm_hook *hook);
 
 
 #endif

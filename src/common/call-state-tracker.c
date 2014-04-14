@@ -36,7 +36,7 @@ struct pa_call_state_tracker {
     PA_REFCNT_DECLARE;
 
     pa_core *core;
-    pa_bool_t active;
+    bool active;
     pa_hook hooks[PA_CALL_STATE_HOOK_MAX];
 };
 
@@ -49,7 +49,7 @@ static pa_call_state_tracker* call_state_tracker_new(pa_core *c) {
     t = pa_xnew0(pa_call_state_tracker, 1);
     PA_REFCNT_INIT(t);
     t->core = c;
-    t->active = FALSE;
+    t->active = false;
 
     for (h = 0; h < PA_CALL_STATE_HOOK_MAX; h++)
         pa_hook_init(&t->hooks[h], t);
@@ -94,15 +94,15 @@ void pa_call_state_tracker_unref(pa_call_state_tracker *t) {
     pa_xfree(t);
 }
 
-pa_bool_t pa_call_state_tracker_get_active(pa_call_state_tracker *t) {
+bool pa_call_state_tracker_get_active(pa_call_state_tracker *t) {
     pa_assert(t);
     pa_assert(PA_REFCNT_VALUE(t) >= 1);
 
     return t->active;
 }
 
-void pa_call_state_tracker_set_active(pa_call_state_tracker *t, pa_bool_t active) {
-    pa_bool_t changed;
+void pa_call_state_tracker_set_active(pa_call_state_tracker *t, bool active) {
+    bool changed;
 
     pa_assert(t);
     pa_assert(PA_REFCNT_VALUE(t) >= 1);

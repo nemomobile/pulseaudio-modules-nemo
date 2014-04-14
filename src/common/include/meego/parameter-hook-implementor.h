@@ -28,7 +28,7 @@ typedef struct meego_parameter_connection_args {
     const char *name;
     pa_hook_cb_t cb;
     pa_hook_priority_t prio;
-    pa_bool_t full_updates;
+    bool full_updates;
     void *userdata;
 } meego_parameter_connection_args;
 

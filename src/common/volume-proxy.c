@@ -48,6 +48,8 @@ struct volume_entry {
     pa_volume_t volume;
 };
 
+static void volume_entry_free(struct volume_entry *e);
+
 static pa_volume_proxy* volume_proxy_new(pa_core *c) {
     pa_volume_proxy *r;
     pa_volume_proxy_hook_t h;
@@ -57,8 +59,10 @@ static pa_volume_proxy* volume_proxy_new(pa_core *c) {
     r = pa_xnew0(pa_volume_proxy, 1);
     PA_REFCNT_INIT(r);
     r->core = c;
-    r->volumes = pa_hashmap_new(pa_idxset_string_hash_func,
-                                pa_idxset_string_compare_func);
+    r->volumes = pa_hashmap_new_full(pa_idxset_string_hash_func,
+                                     pa_idxset_string_compare_func,
+                                     NULL,
+                                     (pa_free_cb_t) volume_entry_free);
 
     for (h = 0; h < PA_VOLUME_PROXY_HOOK_MAX; h++)
         pa_hook_init(&r->hooks[h], r);
@@ -108,12 +112,12 @@ void pa_volume_proxy_unref(pa_volume_proxy *r) {
 
     pa_assert_se(pa_shared_remove(r->core, "volume-proxy") >= 0);
 
-    pa_hashmap_free(r->volumes, (pa_free_cb_t) volume_entry_free);
+    pa_hashmap_free(r->volumes);
 
     pa_xfree(r);
 }
 
-pa_bool_t pa_volume_proxy_get_volume(pa_volume_proxy *r, const char *name, pa_volume_t *return_volume) {
+bool pa_volume_proxy_get_volume(pa_volume_proxy *r, const char *name, pa_volume_t *return_volume) {
     struct volume_entry *e;
 
     pa_assert(r);
@@ -122,15 +126,15 @@ pa_bool_t pa_volume_proxy_get_volume(pa_volume_proxy *r, const char *name, pa_vo
 
     if ((e = pa_hashmap_get(r->volumes, name))) {
         *return_volume = e->volume;
-        return TRUE;
+        return true;
     }
 
-    return FALSE;
+    return false;
 }
 
 void pa_volume_proxy_set_volume(pa_volume_proxy *r, const char *name, pa_volume_t volume) {
     struct volume_entry *e;
-    pa_bool_t changed;
+    bool changed;
 
     pa_assert(r);
     pa_assert(PA_REFCNT_VALUE(r) >= 1);
@@ -139,7 +143,7 @@ void pa_volume_proxy_set_volume(pa_volume_proxy *r, const char *name, pa_volume_
         e = pa_xnew0(struct volume_entry, 1);
         e->name = pa_xstrdup(name);
         pa_hashmap_put(r->volumes, e->name, e);
-        changed = TRUE;
+        changed = true;
     } else
         changed = e->volume != volume;
 

@@ -31,7 +31,7 @@
 
 /* TODO: Change ear ref loop to use pa_usec_t and get rid off these */
 #define VOICE_TIMEVAL_INVALIDATE(TVal) ((TVal)->tv_usec = -1, (TVal)->tv_sec = 0)
-#define VOICE_TIMEVAL_IS_VALID(TVal) ((pa_bool_t) ((TVal)->tv_usec >= 0))
+#define VOICE_TIMEVAL_IS_VALID(TVal) ((bool) ((TVal)->tv_usec >= 0))
 
 #define VOICE_MEMCHUNK_POOL_SIZE 128
 typedef struct voice_memchunk_pool {
@@ -75,8 +75,8 @@ pa_usec_t voice_source_get_requested_latency(pa_source *s, pa_source *other);
 
 pa_usec_t voice_sink_get_requested_latency(pa_sink *s, pa_sink *other);
 
-void voice_sink_inputs_may_move(pa_sink *s, pa_bool_t move);
-void voice_source_outputs_may_move(pa_source *s, pa_bool_t move);
+void voice_sink_inputs_may_move(pa_sink *s, bool move);
+void voice_source_outputs_may_move(pa_source *s, bool move);
 
 pa_sink *voice_get_original_master_sink(struct userdata *u);
 pa_source *voice_get_original_master_source(struct userdata *u);

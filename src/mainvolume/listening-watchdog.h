@@ -36,7 +36,7 @@
 typedef struct mv_listening_watchdog mv_listening_watchdog;
 
 typedef void (*mv_listening_watchdog_notify_cb_t)(mv_listening_watchdog *watchdog,
-                                                  pa_bool_t initial_notify,
+                                                  bool initial_notify,
                                                   void *userdata);
 
 /* Timeout in minutes. */
@@ -51,6 +51,6 @@ void mv_listening_watchdog_start(mv_listening_watchdog *wd);
 void mv_listening_watchdog_reset(mv_listening_watchdog *wd);
 void mv_listening_watchdog_pause(mv_listening_watchdog *wd);
 
-pa_bool_t mv_listening_watchdog_running(mv_listening_watchdog *wd);
+bool mv_listening_watchdog_running(mv_listening_watchdog *wd);
 
 #endif

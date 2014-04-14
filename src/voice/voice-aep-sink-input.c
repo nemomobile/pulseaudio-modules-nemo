@@ -114,7 +114,7 @@ static void aep_sink_input_kill_cb(pa_sink_input *i) {
     pa_sink_input_unref(u->aep_sink_input);
     u->aep_sink_input = NULL;
 
-    pa_module_unload_request(u->module, TRUE);
+    pa_module_unload_request(u->module, true);
 }
 
 /* Called from IO thread context */
