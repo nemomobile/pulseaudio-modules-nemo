@@ -11,7 +11,6 @@ Group:      Multimedia/PulseAudio
 License:    LGPLv2.1+
 URL:        https://github.com/nemomobile/pulseaudio-modules-nemo
 Source0:    %{name}-%{version}.tar.gz
-Source100:  pulseaudio-modules-nemo.yaml
 BuildRequires:  pkgconfig(alsa) >= 1.0.19
 BuildRequires:  pkgconfig(check)
 BuildRequires:  pkgconfig(dbus-1)
