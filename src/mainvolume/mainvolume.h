@@ -42,6 +42,14 @@
 #define CALL_STREAM "sink-input-by-media-role:phone"
 #define MAX_STEPS (64)
 
+typedef enum media_state {
+    MEDIA_INACTIVE,
+    MEDIA_FOREGROUND,
+    MEDIA_BACKGROUND,
+    MEDIA_ACTIVE,
+    MEDIA_MAX
+} media_state_t;
+
 struct mv_volume_steps {
     int step[MAX_STEPS];
     unsigned n_steps;
@@ -76,6 +84,7 @@ struct mv_userdata {
 
     pa_shared_data *shared;
     pa_hook_slot *call_state_hook_slot;
+    pa_hook_slot *media_state_hook_slot;
     bool call_active;
 
     pa_volume_proxy *volume_proxy;
@@ -113,6 +122,10 @@ struct mv_userdata {
         pa_hashmap *sink_inputs;
         uint32_t enabled_slots; /* bit slots that are enabled */
         uint32_t free_slots;    /* 1 means free, 0 means taken. */
+
+        bool streams_active;                /* Active media streams. */
+        media_state_t policy_media_state;   /* Media state from policy enforcement point of view. */
+        media_state_t media_state;          /* Media state combined from active streams and policy state. */
     } notifier;
 };
 
@@ -162,5 +175,9 @@ bool mv_high_volume(struct mv_userdata *u);
 
 /* Return true if currently active media steps have high volume step defined. */
 bool mv_has_high_volume(struct mv_userdata *u);
+
+
+bool mv_media_state_from_string(const char *str, media_state_t *state);
+const char *mv_media_state_from_enum(media_state_t state);
 
 #endif
