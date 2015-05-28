@@ -68,6 +68,7 @@ static void dbus_signal_steps(struct mv_userdata *u);
 static void dbus_signal_listening_notifier(struct mv_userdata *u, uint32_t listening_time);
 static void dbus_signal_high_volume(struct mv_userdata *u, uint32_t safe_step);
 static void dbus_signal_call_status(struct mv_userdata *u);
+static void dbus_signal_media_state(struct mv_userdata *u);
 
 static void check_notifier(struct mv_userdata *u);
 
@@ -278,6 +279,47 @@ static pa_hook_result_t call_state_cb(pa_core *c, const char *key, struct mv_use
     return PA_HOOK_OK;
 }
 
+static void update_media_state(struct mv_userdata *u) {
+    media_state_t state = MEDIA_INACTIVE;
+
+    pa_assert(u);
+
+    if (!u->call_active) {
+        if (u->notifier.streams_active)
+            state = MEDIA_BACKGROUND;
+
+        if (u->notifier.policy_media_state != MEDIA_INACTIVE)
+            state = u->notifier.policy_media_state;
+    }
+
+    if (state != u->notifier.media_state) {
+        u->notifier.media_state = state;
+        dbus_signal_media_state(u);
+    }
+}
+
+static pa_hook_result_t media_state_cb(pa_core *c, const char *key, struct mv_userdata *u) {
+    const char *str;
+    media_state_t state;
+
+    pa_assert(c);
+    pa_assert(u);
+
+    if (!(str = pa_shared_data_gets(u->shared, key)))
+        return PA_HOOK_OK;
+
+    if (!mv_media_state_from_string(str, &state)) {
+        pa_log_warn("Unknown media state %s", str);
+        return PA_HOOK_OK;
+    }
+
+    u->notifier.policy_media_state = state;
+
+    update_media_state(u);
+
+    return PA_HOOK_OK;
+}
+
 /* create new volume steps set for route with linear steps.
  * route        - name of step route
  * call_steps   - number of steps for call case
@@ -450,6 +492,9 @@ static void check_notifier(struct mv_userdata *u) {
         mv_listening_watchdog_start(u->notifier.watchdog);
     else
         mv_listening_watchdog_pause(u->notifier.watchdog);
+
+    u->notifier.streams_active = u->notifier.enabled_slots ? true : false;
+    update_media_state(u);
 }
 
 static void notify_event_cb(struct mv_listening_watchdog *wd, bool initial_notify, void *userdata) {
@@ -741,6 +786,7 @@ int pa__init(pa_module *m) {
 
     u->shared = pa_shared_data_get(u->core);
     u->call_state_hook_slot = pa_shared_data_connect(u->shared, PA_NEMO_PROP_CALL_STATE, (pa_hook_cb_t) call_state_cb, u);
+    u->media_state_hook_slot = pa_shared_data_connect(u->shared, PA_NEMO_PROP_MEDIA_STATE, (pa_hook_cb_t) media_state_cb, u);
 
     u->volume_proxy = pa_volume_proxy_get(u->core);
     u->volume_proxy_slot = pa_hook_connect(&pa_volume_proxy_hooks(u->volume_proxy)[PA_VOLUME_PROXY_HOOK_CHANGED],
@@ -785,6 +831,9 @@ void pa__done(pa_module *m) {
     if (u->call_state_hook_slot)
         pa_hook_slot_free(u->call_state_hook_slot);
 
+    if (u->media_state_hook_slot)
+        pa_hook_slot_free(u->media_state_hook_slot);
+
     if (u->shared)
         pa_shared_data_unref(u->shared);
 
@@ -807,7 +856,7 @@ void pa__done(pa_module *m) {
  */
 
 #define MAINVOLUME_API_MAJOR (2)
-#define MAINVOLUME_API_MINOR (1)
+#define MAINVOLUME_API_MINOR (2)
 #define MAINVOLUME_PATH "/com/meego/mainvolume2"
 #define MAINVOLUME_IFACE "com.Meego.MainVolume2"
 
@@ -816,6 +865,7 @@ static void mainvolume_get_step_count(DBusConnection *conn, DBusMessage *msg, vo
 static void mainvolume_get_current_step(DBusConnection *conn, DBusMessage *msg, void *_u);
 static void mainvolume_set_current_step(DBusConnection *conn, DBusMessage *msg, DBusMessageIter *iter, void *_u);
 static void mainvolume_get_high_volume_step(DBusConnection *conn, DBusMessage *msg, void *_u);
+static void mainvolume_get_media_state(DBusConnection *conn, DBusMessage *msg, void *_u);
 static void mainvolume_get_all(DBusConnection *conn, DBusMessage *msg, void *_u);
 
 enum mainvolume_handler_index {
@@ -823,6 +873,7 @@ enum mainvolume_handler_index {
     MAINVOLUME_HANDLER_STEP_COUNT,
     MAINVOLUME_HANDLER_CURRENT_STEP,
     MAINVOLUME_HANDLER_HIGH_VOLUME,
+    MAINVOLUME_HANDLER_MEDIA_STATE,
     MAINVOLUME_HANDLER_MAX
 };
 
@@ -850,6 +901,12 @@ static pa_dbus_property_handler mainvolume_handlers[MAINVOLUME_HANDLER_MAX] = {
         .type = "u",
         .get_cb = mainvolume_get_high_volume_step,
         .set_cb = NULL
+    },
+    [MAINVOLUME_HANDLER_MEDIA_STATE] = {
+        .property_name = "MediaState",
+        .type = "s",
+        .get_cb = mainvolume_get_media_state,
+        .set_cb = NULL
     }
 };
 
@@ -858,6 +915,7 @@ enum mainvolume_signal_index {
     MAINVOLUME_SIGNAL_NOTIFY_LISTENER,  /* Notify user that one has listened to audio for a long time. */
     MAINVOLUME_SIGNAL_HIGH_VOLUME,      /* Notify user that current volume is harmful for hearing. */
     MAINVOLUME_SIGNAL_CALL_STATUS,      /* Notify user of current call state. */
+    MAINVOLUME_SIGNAL_MEDIA_STATE,      /* Notify user about media state. */
     MAINVOLUME_SIGNAL_MAX
 };
 
@@ -876,6 +934,10 @@ static pa_dbus_arg_info listening_time_args[] = {
 
 static pa_dbus_arg_info call_state_args[] = {
     {"Status", "s", NULL}
+};
+
+static pa_dbus_arg_info media_state_args[] = {
+    {"State", "s", NULL}
 };
 
 static pa_dbus_signal_info mainvolume_signals[MAINVOLUME_SIGNAL_MAX] = {
@@ -897,6 +959,11 @@ static pa_dbus_signal_info mainvolume_signals[MAINVOLUME_SIGNAL_MAX] = {
     [MAINVOLUME_SIGNAL_CALL_STATUS] = {
         .name = "CallStatus",
         .arguments = call_state_args,
+        .n_arguments = 1
+    },
+    [MAINVOLUME_SIGNAL_MEDIA_STATE] = {
+        .name = "MediaStateChanged",
+        .arguments = media_state_args,
         .n_arguments = 1
     }
 };
@@ -1016,6 +1083,27 @@ static void dbus_signal_listening_notifier(struct mv_userdata *u, uint32_t timeo
     dbus_message_unref(signal);
 }
 
+static void dbus_signal_media_state(struct mv_userdata *u) {
+    DBusMessage *signal;
+    const char *state;
+
+    pa_assert(u);
+
+    state = mv_media_state_from_enum(u->notifier.media_state);
+
+    pa_assert_se((signal = dbus_message_new_signal(MAINVOLUME_PATH,
+                                                   MAINVOLUME_IFACE,
+                                                   mainvolume_signals[MAINVOLUME_SIGNAL_MEDIA_STATE].name)));
+    pa_assert_se(dbus_message_append_args(signal,
+                                          DBUS_TYPE_STRING, &state,
+                                          DBUS_TYPE_INVALID));
+    pa_dbus_protocol_send_signal(u->dbus_protocol, signal);
+    dbus_message_unref(signal);
+
+    pa_log_debug("Signal %s. State: %s (%u)", mainvolume_signals[MAINVOLUME_SIGNAL_MEDIA_STATE].name,
+                                           state, u->notifier.media_state);
+}
+
 
 void mainvolume_get_revision(DBusConnection *conn, DBusMessage *msg, void *_u) {
     uint32_t rev = MAINVOLUME_API_MINOR;
@@ -1099,6 +1187,21 @@ void mainvolume_get_high_volume_step(DBusConnection *conn, DBusMessage *msg, voi
     pa_dbus_send_basic_variant_reply(conn, msg, DBUS_TYPE_UINT32, &high_volume_step);
 }
 
+void mainvolume_get_media_state(DBusConnection *conn, DBusMessage *msg, void *_u) {
+    struct mv_userdata *u = (struct mv_userdata*)_u;
+    const char *state;
+
+    pa_assert(conn);
+    pa_assert(msg);
+    pa_assert(u);
+
+    state = mv_media_state_from_enum(u->notifier.media_state);
+
+    pa_log_debug("D-Bus: Get MediaState %s (%u)", state, u->notifier.media_state);
+
+    pa_dbus_send_basic_variant_reply(conn, msg, DBUS_TYPE_STRING, &state);
+}
+
 void mainvolume_get_all(DBusConnection *conn, DBusMessage *msg, void *_u) {
     struct mv_userdata *u = (struct mv_userdata*)_u;
     DBusMessage *reply = NULL;
@@ -1109,6 +1212,7 @@ void mainvolume_get_all(DBusConnection *conn, DBusMessage *msg, void *_u) {
     uint32_t step_count;
     uint32_t current_step;
     uint32_t high_volume_step = 0;
+    const char *media_state;
 
     pa_assert(conn);
     pa_assert(msg);
@@ -1122,6 +1226,8 @@ void mainvolume_get_all(DBusConnection *conn, DBusMessage *msg, void *_u) {
 
     if (mv_has_high_volume(u))
         high_volume_step = mv_safe_step(u) + 1;
+
+    media_state = mv_media_state_from_enum(u->notifier.media_state);
 
     pa_assert_se((reply = dbus_message_new_method_return(msg)));
     dbus_message_iter_init_append(reply, &msg_iter);
@@ -1139,8 +1245,12 @@ void mainvolume_get_all(DBusConnection *conn, DBusMessage *msg, void *_u) {
     pa_dbus_append_basic_variant_dict_entry(&dict_iter,
                                             mainvolume_handlers[MAINVOLUME_HANDLER_HIGH_VOLUME].property_name,
                                             DBUS_TYPE_UINT32, &high_volume_step);
+    pa_dbus_append_basic_variant_dict_entry(&dict_iter,
+                                            mainvolume_handlers[MAINVOLUME_HANDLER_MEDIA_STATE].property_name,
+                                            DBUS_TYPE_STRING, &media_state);
 
-    pa_log_debug("D-Bus: Get all: revision %u, step count %u, current step %u, high volume step %u", rev, step_count, current_step, high_volume_step);
+    pa_log_debug("D-Bus: GetAll: revision %u, step count %u, current step %u, high volume step %u media state %s",
+                 rev, step_count, current_step, high_volume_step, media_state);
     pa_assert_se(dbus_message_iter_close_container(&msg_iter, &dict_iter));
     pa_assert_se(dbus_connection_send(conn, reply, NULL));
     dbus_message_unref(reply);

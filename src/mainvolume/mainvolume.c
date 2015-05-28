@@ -31,6 +31,7 @@
 
 #include "call-state-tracker.h"
 #include "volume-proxy.h"
+#include "proplist-nemo.h"
 
 #include "mainvolume.h"
 
@@ -307,4 +308,34 @@ bool mv_has_high_volume(struct mv_userdata *u) {
         return true;
     else
         return false;
+}
+
+struct media_state_map {
+    media_state_t state;
+    const char *str;
+};
+
+static struct media_state_map media_states[MEDIA_MAX] = {
+    { MEDIA_INACTIVE,   PA_NEMO_PROP_MEDIA_STATE_INACTIVE   },
+    { MEDIA_FOREGROUND, PA_NEMO_PROP_MEDIA_STATE_FOREGROUND },
+    { MEDIA_BACKGROUND, PA_NEMO_PROP_MEDIA_STATE_BACKGROUND },
+    { MEDIA_ACTIVE,     PA_NEMO_PROP_MEDIA_STATE_ACTIVE     }
+};
+
+bool mv_media_state_from_string(const char *str, media_state_t *state) {
+    uint32_t i;
+    for (i = 0; i < MEDIA_MAX; i++) {
+        if (pa_streq(media_states[i].str, str)) {
+            *state = media_states[i].state;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+const char *mv_media_state_from_enum(media_state_t state) {
+    pa_assert(state < MEDIA_MAX);
+
+    return media_states[state].str;
 }

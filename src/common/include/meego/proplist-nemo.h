@@ -26,4 +26,11 @@
 #define PA_NEMO_PROP_CALL_STATE_ACTIVE              "active"
 #define PA_NEMO_PROP_CALL_STATE_INACTIVE            "inactive"
 
+#define PA_NEMO_PROP_MEDIA_STATE                    "x-nemo.media.state"
+#define PA_NEMO_PROP_MEDIA_STATE_INACTIVE           "inactive"
+#define PA_NEMO_PROP_MEDIA_STATE_FOREGROUND         "foreground"
+#define PA_NEMO_PROP_MEDIA_STATE_BACKGROUND         "background"
+#define PA_NEMO_PROP_MEDIA_STATE_ACTIVE             "active"
+
+
 #endif /* _PROPLIST_NEMO_H_ */
