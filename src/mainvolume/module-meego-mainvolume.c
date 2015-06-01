@@ -258,7 +258,8 @@ static pa_hook_result_t call_state_cb(pa_core *c, const char *key, struct mv_use
     else
         u->call_active = false;
 
-    pa_log_debug("call is %s (media step %u call step %u)", u->call_active ? "active" : "inactive",
+    pa_log_debug("call is %s (media step %u call step %u)",
+                 u->call_active ? PA_NEMO_PROP_CALL_STATE_ACTIVE : PA_NEMO_PROP_CALL_STATE_INACTIVE,
                  u->current_steps->media.current_step, u->current_steps->call.current_step);
 
     if (u->call_active)
@@ -856,7 +857,7 @@ void pa__done(pa_module *m) {
  */
 
 #define MAINVOLUME_API_MAJOR (2)
-#define MAINVOLUME_API_MINOR (2)
+#define MAINVOLUME_API_MINOR (3)
 #define MAINVOLUME_PATH "/com/meego/mainvolume2"
 #define MAINVOLUME_IFACE "com.Meego.MainVolume2"
 
@@ -865,6 +866,7 @@ static void mainvolume_get_step_count(DBusConnection *conn, DBusMessage *msg, vo
 static void mainvolume_get_current_step(DBusConnection *conn, DBusMessage *msg, void *_u);
 static void mainvolume_set_current_step(DBusConnection *conn, DBusMessage *msg, DBusMessageIter *iter, void *_u);
 static void mainvolume_get_high_volume_step(DBusConnection *conn, DBusMessage *msg, void *_u);
+static void mainvolume_get_call_state(DBusConnection *conn, DBusMessage *msg, void *_u);
 static void mainvolume_get_media_state(DBusConnection *conn, DBusMessage *msg, void *_u);
 static void mainvolume_get_all(DBusConnection *conn, DBusMessage *msg, void *_u);
 
@@ -873,6 +875,7 @@ enum mainvolume_handler_index {
     MAINVOLUME_HANDLER_STEP_COUNT,
     MAINVOLUME_HANDLER_CURRENT_STEP,
     MAINVOLUME_HANDLER_HIGH_VOLUME,
+    MAINVOLUME_HANDLER_CALL_STATE,
     MAINVOLUME_HANDLER_MEDIA_STATE,
     MAINVOLUME_HANDLER_MAX
 };
@@ -902,6 +905,12 @@ static pa_dbus_property_handler mainvolume_handlers[MAINVOLUME_HANDLER_MAX] = {
         .get_cb = mainvolume_get_high_volume_step,
         .set_cb = NULL
     },
+    [MAINVOLUME_HANDLER_CALL_STATE] = {
+        .property_name = "CallState",
+        .type = "s",
+        .get_cb = mainvolume_get_call_state,
+        .set_cb = NULL
+    },
     [MAINVOLUME_HANDLER_MEDIA_STATE] = {
         .property_name = "MediaState",
         .type = "s",
@@ -914,7 +923,7 @@ enum mainvolume_signal_index {
     MAINVOLUME_SIGNAL_STEPS_UPDATED,
     MAINVOLUME_SIGNAL_NOTIFY_LISTENER,  /* Notify user that one has listened to audio for a long time. */
     MAINVOLUME_SIGNAL_HIGH_VOLUME,      /* Notify user that current volume is harmful for hearing. */
-    MAINVOLUME_SIGNAL_CALL_STATUS,      /* Notify user of current call state. */
+    MAINVOLUME_SIGNAL_CALL_STATE,       /* Notify user of current call state. */
     MAINVOLUME_SIGNAL_MEDIA_STATE,      /* Notify user about media state. */
     MAINVOLUME_SIGNAL_MAX
 };
@@ -932,11 +941,7 @@ static pa_dbus_arg_info listening_time_args[] = {
     {"ListeningTime", "u", NULL}
 };
 
-static pa_dbus_arg_info call_state_args[] = {
-    {"Status", "s", NULL}
-};
-
-static pa_dbus_arg_info media_state_args[] = {
+static pa_dbus_arg_info media_or_call_state_args[] = {
     {"State", "s", NULL}
 };
 
@@ -956,14 +961,14 @@ static pa_dbus_signal_info mainvolume_signals[MAINVOLUME_SIGNAL_MAX] = {
         .arguments = high_volume_args,
         .n_arguments = 1
     },
-    [MAINVOLUME_SIGNAL_CALL_STATUS] = {
-        .name = "CallStatus",
-        .arguments = call_state_args,
+    [MAINVOLUME_SIGNAL_CALL_STATE] = {
+        .name = "CallStateChanged",
+        .arguments = media_or_call_state_args,
         .n_arguments = 1
     },
     [MAINVOLUME_SIGNAL_MEDIA_STATE] = {
         .name = "MediaStateChanged",
-        .arguments = media_state_args,
+        .arguments = media_or_call_state_args,
         .n_arguments = 1
     }
 };
@@ -1001,25 +1006,22 @@ void dbus_done(struct mv_userdata *u) {
 
 static void dbus_signal_call_status(struct mv_userdata *u) {
     DBusMessage *signal;
-    const char *status_str;
+    const char *state_str;
 
     pa_assert(u);
 
-    if (u->call_active)
-        status_str = "active";
-    else
-        status_str = "inactive";
+    state_str = u->call_active ? PA_NEMO_PROP_CALL_STATE_ACTIVE : PA_NEMO_PROP_CALL_STATE_INACTIVE;
 
     pa_assert_se((signal = dbus_message_new_signal(MAINVOLUME_PATH,
                                                    MAINVOLUME_IFACE,
-                                                   mainvolume_signals[MAINVOLUME_SIGNAL_CALL_STATUS].name)));
+                                                   mainvolume_signals[MAINVOLUME_SIGNAL_CALL_STATE].name)));
     pa_assert_se(dbus_message_append_args(signal,
-                                          DBUS_TYPE_STRING, &status_str,
+                                          DBUS_TYPE_STRING, &state_str,
                                           DBUS_TYPE_INVALID));
     pa_dbus_protocol_send_signal(u->dbus_protocol, signal);
     dbus_message_unref(signal);
 
-    pa_log_debug("Signal %s. Status: %s", mainvolume_signals[MAINVOLUME_SIGNAL_CALL_STATUS].name, status_str);
+    pa_log_debug("Signal %s. State: %s", mainvolume_signals[MAINVOLUME_SIGNAL_CALL_STATE].name, state_str);
 }
 
 static void dbus_signal_high_volume(struct mv_userdata *u, uint32_t safe_step) {
@@ -1187,6 +1189,21 @@ void mainvolume_get_high_volume_step(DBusConnection *conn, DBusMessage *msg, voi
     pa_dbus_send_basic_variant_reply(conn, msg, DBUS_TYPE_UINT32, &high_volume_step);
 }
 
+void mainvolume_get_call_state(DBusConnection *conn, DBusMessage *msg, void *_u) {
+    struct mv_userdata *u = (struct mv_userdata*)_u;
+    const char *state;
+
+    pa_assert(conn);
+    pa_assert(msg);
+    pa_assert(u);
+
+    state = u->call_active ? PA_NEMO_PROP_CALL_STATE_ACTIVE : PA_NEMO_PROP_CALL_STATE_INACTIVE;
+
+    pa_log_debug("D-Bus: Get CallState %s", state);
+
+    pa_dbus_send_basic_variant_reply(conn, msg, DBUS_TYPE_STRING, &state);
+}
+
 void mainvolume_get_media_state(DBusConnection *conn, DBusMessage *msg, void *_u) {
     struct mv_userdata *u = (struct mv_userdata*)_u;
     const char *state;
@@ -1212,6 +1229,7 @@ void mainvolume_get_all(DBusConnection *conn, DBusMessage *msg, void *_u) {
     uint32_t step_count;
     uint32_t current_step;
     uint32_t high_volume_step = 0;
+    const char *call_state;
     const char *media_state;
 
     pa_assert(conn);
@@ -1226,6 +1244,8 @@ void mainvolume_get_all(DBusConnection *conn, DBusMessage *msg, void *_u) {
 
     if (mv_has_high_volume(u))
         high_volume_step = mv_safe_step(u) + 1;
+
+    call_state = u->call_active ? PA_NEMO_PROP_CALL_STATE_ACTIVE : PA_NEMO_PROP_CALL_STATE_INACTIVE;
 
     media_state = mv_media_state_from_enum(u->notifier.media_state);
 
@@ -1246,11 +1266,14 @@ void mainvolume_get_all(DBusConnection *conn, DBusMessage *msg, void *_u) {
                                             mainvolume_handlers[MAINVOLUME_HANDLER_HIGH_VOLUME].property_name,
                                             DBUS_TYPE_UINT32, &high_volume_step);
     pa_dbus_append_basic_variant_dict_entry(&dict_iter,
+                                            mainvolume_handlers[MAINVOLUME_HANDLER_CALL_STATE].property_name,
+                                            DBUS_TYPE_STRING, &media_state);
+    pa_dbus_append_basic_variant_dict_entry(&dict_iter,
                                             mainvolume_handlers[MAINVOLUME_HANDLER_MEDIA_STATE].property_name,
                                             DBUS_TYPE_STRING, &media_state);
 
-    pa_log_debug("D-Bus: GetAll: revision %u, step count %u, current step %u, high volume step %u media state %s",
-                 rev, step_count, current_step, high_volume_step, media_state);
+    pa_log_debug("D-Bus: GetAll: revision %u, step count %u, current step %u, high volume step %u call state %s media state %s",
+                 rev, step_count, current_step, high_volume_step, call_state, media_state);
     pa_assert_se(dbus_message_iter_close_container(&msg_iter, &dict_iter));
     pa_assert_se(dbus_connection_send(conn, reply, NULL));
     dbus_message_unref(reply);
