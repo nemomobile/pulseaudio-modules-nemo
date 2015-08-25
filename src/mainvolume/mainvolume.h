@@ -176,6 +176,10 @@ bool mv_high_volume(struct mv_userdata *u);
 /* Return true if currently active media steps have high volume step defined. */
 bool mv_has_high_volume(struct mv_userdata *u);
 
+/* Update notifier state based on route. */
+void mv_notifier_update_route(struct mv_userdata *u, const char *route);
+bool mv_notifier_active(struct mv_userdata *u);
+
 
 bool mv_media_state_from_string(const char *str, media_state_t *state);
 const char *mv_media_state_from_enum(media_state_t state);

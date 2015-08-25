@@ -301,10 +301,32 @@ bool mv_high_volume(struct mv_userdata *u) {
 bool mv_has_high_volume(struct mv_userdata *u) {
     pa_assert(u);
 
-    if (u->call_active)
+    if (u->call_active || !u->notifier.mode_active)
         return false;
 
     if (u->current_steps && u->current_steps->high_volume_step > -1)
+        return true;
+    else
+        return false;
+}
+
+void mv_notifier_update_route(struct mv_userdata *u, const char *route)
+{
+    pa_assert(u);
+    pa_assert(route);
+    pa_assert(u->notifier.modes);
+
+    if (pa_hashmap_get(u->notifier.modes, u->route))
+        u->notifier.mode_active = true;
+    else
+        u->notifier.mode_active = false;
+}
+
+bool mv_notifier_active(struct mv_userdata *u)
+{
+    pa_assert(u);
+
+    if (u->notifier.mode_active && u->notifier.enabled_slots && !u->call_active)
         return true;
     else
         return false;
