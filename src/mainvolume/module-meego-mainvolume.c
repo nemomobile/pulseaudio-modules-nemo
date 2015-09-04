@@ -123,11 +123,12 @@ static void signal_timer_set(struct mv_userdata *u, const pa_usec_t time) {
 static void check_and_signal_high_volume(struct mv_userdata *u) {
     pa_assert(u);
 
-    /* When call mode changes to active we don't have HighVolume steps. Send 0 when call active,
-     * send possible safe step if call is inactive. */
-    if (u->call_active)
-        dbus_signal_high_volume(u, 0);
-    else if (mv_has_high_volume(u))
+     /* We need to signal 0 when
+     *   - call active
+     *   - route is not in mode-list
+     * otherwise signal safe step
+     */
+    if (mv_has_high_volume(u))
         dbus_signal_high_volume(u, mv_safe_step(u));
     else
         dbus_signal_high_volume(u, 0);
@@ -416,11 +417,7 @@ static pa_hook_result_t parameters_changed_cb(pa_core *c, meego_parameter_update
 
     /* Check if new route is in notifier watch list */
     if (u->notifier.watchdog) {
-        if (pa_hashmap_get(u->notifier.modes, u->route))
-            u->notifier.mode_active = true;
-        else
-            u->notifier.mode_active = false;
-
+        mv_notifier_update_route(u, u->route);
         check_notifier(u);
     }
 
@@ -489,7 +486,7 @@ static pa_hook_result_t volume_changed_cb(pa_volume_proxy *r, const char *name, 
 static void check_notifier(struct mv_userdata *u) {
     pa_assert(u);
 
-    if (u->notifier.mode_active && u->notifier.enabled_slots && !u->call_active)
+    if (mv_notifier_active(u))
         mv_listening_watchdog_start(u->notifier.watchdog);
     else
         mv_listening_watchdog_pause(u->notifier.watchdog);
